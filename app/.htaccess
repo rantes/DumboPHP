@@ -1,0 +1,7 @@
+ErrorDocument 404: "webroot/index.php?error=404"
+ErrorDocument 403: "webroot/index.php?error=403"
+<IfModule mod_rewrite.c>
+    RewriteEngine on
+    RewriteRule    ^$    webroot/ [L]
+    RewriteRule    (.*) webroot/ [L]
+ </IfModule>
