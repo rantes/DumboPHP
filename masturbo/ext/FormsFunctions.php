@@ -106,6 +106,7 @@
 			$params = $params[0];
 			$stringi = '<input';
 			$stringt = '<textarea';
+			$strings = '<select';
 			$name = '';
 			$html = '';
 			$type = '';
@@ -158,6 +159,17 @@
 					break;
 					case 'textarea':
 						$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$obj->{$field}.'</textarea>';
+					break;
+					case 'select':
+						$first = !empty($params['first']) ? '<option value="">'.$params['first'].'</option>' : '';
+						$cont = '';
+						
+						foreach($params['list'] as $value => $option):
+							$default = '';
+							if($obj->{$field} == $value) $default = 'selected="selected"';
+							$cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
+						endforeach;
+						$input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
 					break;
 				endswitch;
 			else:

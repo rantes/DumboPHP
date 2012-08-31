@@ -6,7 +6,7 @@
  */
 
 	/*
-	* Paginate($params[per_page, page, conditions, fields, group, sort])
+	* Paginate($params[per_page, page, conditions, fields, group, sort, varPageName])
 	*
 	*/
 	function Paginate($params = NULL, &$model = NULL){
@@ -27,6 +27,7 @@
 		$arr_params['limit'] = $start.",".$per_page;
 		$arr_2['fields'] = 'COUNT(id)';
 		$obj = $model->Find($arr_params);
+		$obj->PaginatePageVarName = !empty($params['varPageName'])? $params['varPageName'] : 'page';
 		$obj->PaginateTotalItems = $model->Find($arr_2)->{'COUNT(id)'};
 		$obj->PaginateTotalPages = ceil($obj->PaginateTotalItems/$per_page);
 		$obj->PaginatePageNumber = $page_num;
@@ -47,8 +48,8 @@
 		$tail = '';
 		$i = 1;
 		if($params->PaginatePageNumber > 1):
-			$str .= '<a href="?page=1">|&lt;&lt;</a>&nbsp;';
-			$str .= '<a href="?page='.($params->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
+			$str .= '<a href="?'.$params->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
+			$str .= '<a href="?'.$params->PaginatePageVarName.'='.($params->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
 		endif;
 		$top = $params->PaginateTotalPages;
 		if($params->PaginateTotalPages > 10):
@@ -59,11 +60,11 @@
 			//$tail = '...<a href="?page='.$params->PaginateTotalPages.'">'.$params->PaginateTotalPages.'</a>&nbsp;';
 		endif;
 		if($params->PaginatePageNumber < $params->PaginateTotalPages):
-			$tail .= '<a href="?page='.($params->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
-			$tail .= '<a href="?page='.($params->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
+			$tail .= '<a href="?'.$params->PaginatePageVarName.'='.($params->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
+			$tail .= '<a href="?'.$params->PaginatePageVarName.'='.($params->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
 		endif;
 		for(; $i <= $top; $i++){
-			$str .= '<a href="?page='.$i.'">'.$i.'</a>&nbsp;';
+			$str .= '<a href="?'.$params->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
 		}
 		$str .= $tail;
 		return $str;

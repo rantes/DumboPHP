@@ -28,7 +28,7 @@ abstract class Page extends Core_General_Class{
 		$model = unCamelize($var);
 		if(file_exists(INST_PATH.'app/models/'.$model.'.php')):
 			if(!class_exists($var)):
-				require_once INST_PATH.'app/models/'.$model.'.php';
+				require INST_PATH.'app/models/'.$model.'.php';
 			endif;
 			$obj = new $var();
 			return $obj; 
@@ -39,8 +39,7 @@ abstract class Page extends Core_General_Class{
 		$this->action = _ACTION;
 		$this->controller = _CONTROLLER;
 		if(property_exists($this, 'noTemplate') and in_array($view['action'], $this->noTemplate)) $renderPage = FALSE;
-		define("_FULL_URL", INST_URI.'/'._CONTROLLER.'/'._ACTION.'/'.implode('/', $this->params));
-
+		
 		if(isset($this->render) and is_array($this->render)):
 			if(isset($this->render['file'])):
 				$view = $this->render['file'];

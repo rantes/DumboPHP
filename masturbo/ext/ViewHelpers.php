@@ -1,14 +1,14 @@
 <?php
 	/**
 	 * Crea una etiqueta html para la inclusi&oacute;n de una imagen
-	 * 
+	 *
 	 * @param string|array $params los parametros de construccion que puede ser un string con la ruta de la imagen o un array de opciones.
 	 */
 	function image_tag($params, &$obj=NULL){
 		$rute = 'images/';
 		$params = ($obj === NULL)? $params : $params[0];
 		if(is_array($params)):
-			
+
 			if(isset($params['image'])):
 				if(isset($params['rute'])):
 					if($params['rute'] == 'absolute'):
@@ -22,11 +22,11 @@
 				$params['image'] = $params['image'];
 				$html_options = '';
 				if(isset($params['html'])):
-					foreach($params['html'] as $attr => $value){
+					foreach($params['html'] as $attr => $value):
 						$html_options .= " $attr=\"$value\"";
-					}
+					endforeach;
 				endif;
-			
+
 				if(isset($params['alt'])) $html_options .= ' alt="'.$params['alt'].'"';
 				if(isset($params['border'])) $html_options .= ' border="'.$params['border'].'"';
 				return '<img src="'.INST_URI.'images/'.$params['image'].'" '.$html_options.' />';
@@ -60,7 +60,7 @@
 	}
 	/**
 	 * Recibe un arreglo como parametro en el que se define la url y otras opciones.
-	 * 
+	 *
 	 * @param array $params[0]= string $content
 	 * @param array $params[url]= string $url
 	 * @param array $params[url]= array $url[action]
@@ -86,20 +86,20 @@
 				if(isset($params['controller'])):
 					$controller = $params['controller'];
 					unset($params['controller']);
+					$link = INST_URI.$controller.'/';
 				endif;
-				$link = INST_URI.$controller.'/';
 				if(isset($params['action'])):
 					$action = $params['action'];
 					unset($params['action']);
+					$link .= $action;
 				endif;
-				$link .= $action;
 				if(isset($params['url'])):
 					if(is_string($params['url'])):
 						$link = $params['url'];
-					elseif(is_array($params['url'])):
-						if(isset($params['action'])) $action = $params['action'];
-						if(isset($params['controller'])) $controller = $params['controller'];
-						$link = INST_URI.$controller.'/'.$action;
+// 					elseif(is_array($params['url'])):
+// 						if(isset($params['action'])) $action = $params['action'];
+// 						if(isset($params['controller'])) $controller = $params['controller'];
+// 						$link = INST_URI.$controller.'/'.$action;
 					endif;
 					unset($params['url']);
 				endif;
@@ -118,7 +118,7 @@
 					}
 					unset($params['html']);
 				endif;
-				
+
 				if(sizeof($params) > 0 and !is_array($params)):
 					if(sizeof($params) === 1):
 						list($var) = $params;
@@ -136,7 +136,8 @@
 					endif;
 				endif;
 			endif;
-			return "<a href=\"$link\" $html_options>$content</a>";
+			if(strlen($link)>0) $link = 'href="'.$link.'"';
+			return "<a ".$link." $html_options>$content</a>";
 //		else:
 //			throw new Exception("Must provide content for link.");
 		endif;

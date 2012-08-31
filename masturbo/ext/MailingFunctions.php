@@ -1,10 +1,11 @@
 <?php
-// require "Mail.php";
+//require "Mail.php";
 if(file_exists("Mail.php")):
 	require "Mail.php";
 endif;
+
 /**
- * 
+ *
  * Envia emails con templates. Incluye encabezados completos para evitar que sea tomado como spam.
  * Utiliza PEAR::Mail para la conexion smtp
  * @param mixed $params Arreglo de parametros
@@ -13,9 +14,9 @@ endif;
  */
 	function email($arr, &$obj=NULL){
 		if($obj == null or sizeof($arr)>0):
-			
+
 			$headers = array();
-			
+
 			$boundary = 'masTurbo'.md5('+Turbo'.time());
 			$who = isset($arr['from'])? $arr['from'] : _CONTACT_MAIL;
 			$headers = array (
@@ -29,7 +30,7 @@ endif;
 				"MIME-Version" => "1.0",
 				"Content-type" => "multipart/alternative;\n boundary=\"".$boundary."\""
 			);
-						
+
 			if(!isset($arr['body'])) return false;
 			$body = '';
 			if(isset($arr['template'])):
@@ -45,7 +46,7 @@ endif;
 			$plain .= "Content-Type: text/plain; charset=utf-8\n";
 			$plain .= "Content-Transfer-Encoding: 7bit\n";
 			$plain .= strip_tags($body);
-			
+
 			$html = "--".$boundary."\n";
 			$html .= "Content-Type: text/html; charset=utf-8\n";
 			$html .= "Content-Transfer-Encoding: 7bit\n";
@@ -53,11 +54,11 @@ endif;
 			$html .= "--".$boundary."--";
 //			file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $plain.$html);
 			//$sent = mail($arr['to'], $arr['subject'], $plain.$html, $header);
-			 
+
 			 $host = isset($arr['smtp_host'])? $arr['smtp_host']:_CONTACT_SMTP_HOST;
 			 $username = isset($arr['smtp_user'])? $arr['smtp_user']:_CONTACT_SMTP_USER;
 			 $password = isset($arr['smtp_password'])? $arr['smtp_password']:_CONTACT_SMTP_PASSWORD;
-			 
+
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before smpt');
 
 			 $smtp = Mail::factory('smtp',
@@ -70,7 +71,7 @@ endif;
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before mail');
 			 $mail = $smtp->send($arr['to'], $headers, $plain.$html);
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'after mail');
-			 
+
 			 if (PEAR::isError($mail)):
 			   $sent = false;
 //			   echo $mail->getMessage();
@@ -79,10 +80,10 @@ endif;
 			   $sent = true;
 //			   file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $arr['to'].' sent');
 			 endif;
-			 
-			 
+
+
 			return $sent;
-			
+
 		endif;
 		return false;
 	}

@@ -1,19 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Brinsaman&iacute;a 2012</title>
-
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<meta name="keywords" content="Protabaco" />
-<meta name="description" content="Protabaco" />
-<meta name="author" content="Rantes - http://www.rantes.info" />
-<link rel="shortcut icon" href="<?=INST_URI;?>favicon.ico" /> 
-<link rel="icon" href="<?=INST_URI;?>favicon.ico" type="image/x-icon" />
-
-<?=stylesheet_link_tag("ui-custom/jquery-ui-1.8.7.custom.css");?>
-<?=stylesheet_link_tag("style.css");?>
-<?=stylesheet_link_tag("jquery.impromptu.css");?>
-<?=javascript_include_tag(array('jquery-1.6.4','jquery-ui-1.8.16.custom.min','jquery-impromptu.3.1.min','jquery.tablesorter','functions')); ?>
 <style>
 .aligner{
 	padding:10px 60px;
@@ -24,131 +8,111 @@
 	width:230px;
 	float:left;
 }
+fieldset input[type="text"]{
+	width:162px;
+}
 </style>
-</head>
-<body>
+<section id="main" class="column">
+	<h4 class="alert_info">Console.</h4>
+	<article class="module width_full">
+		<div style="float:left; width:100%; overflow:hidden;float:left;">
 
-<div style="float:left; width:90%; overflow:hidden;">
-	
-	<fieldset>
-	<legend>Migrations actions</legend>
-	<input type="checkbox" id="migrationschecks" /> Select All
-  <form id="migrations" name="migrations" method="post" action="<?=INST_URI;?>console/migrations/">
-  <div class="aligner">
-  
-  <? foreach($this->migrations as $migration){ ?>
-	 <div class="item">
-	
-		<input type="checkbox" name="migrations[<?=$migration;?>]" id="migrations[<?=$migration;?>]" class="checkmigration" style="float: left;" />
-		<label style="float: left;"><?=$migration;?></label>
-	</div>  	
-  <? } ?>
-	
-	</div><br />
-	 <div style="float:left; width:100%; text-align:center;">
-		 <input type="submit" name="migrations[reset:selected]" id="migrations[reset:selected]" value="Reset selected migration(s)" /> 
-		 <input type="submit" name="migrations[up:selected]" id="migrations[up:selected]" value="Up selected migration(s)" />
-		 <input type="submit" name="migrations[down:selected]" id="migrations[down:selected]" value="Down selected migration(s)" />
-	</div>
-  </form>
-  </fieldset>
-	<br />
-  <fieldset>
-	<legend>New migration</legend>
-  
-	<div style="float: left; clear: both; width: 100%;">
-		<a href="#" id="create_migration">Create migration</a>
-	</div>
-		<br />
-	 <div id="migrations_fields" style="display:none;" class="form_create_migration">
-		<a href="#" id="add_fields">Add Field</a>
-		<form id="create_migrations_form_id" name="create_migrations_form" method="post" action="<?=INST_URI;?>console/create_migrations">
-		<label>Table:
-			<input type="text" name="create_migrations[Table]" />
-		</label>
-		<label>Create Scaffold?:
-			<input type="checkbox" name="create_migrations[scaffold]" id="Scaffold" />
-		  </label>
-		<div id="fields0" style="width:100%;">
-		  
-		  <label>Field:
-			<input type="text" name="create_migrations[0][Field]" id="Field0" />
-		  </label>
-		  <label>Type:
-			<select name="create_migrations[0][Type]" id="Type0">
-				<option value="" selected="selected"></option>
-				<option value="INT">Integer</option>
-				<option value="BIGINT">Big Integer</option>
-				<option value="FLOAT">Float</option>
-				<option value="VARCHAR">Varchar</option>
-				<option value="TEXT">Text</option>
-			</select>            
-		  </label>
-		  <label>Not Null?:
-			<input type="checkbox" name="create_migrations[0][NotNull]" id="NotNull0" />
-		  </label>
-		  <label>Length:
-			<input type="text" name="create_migrations[0][Length]" id="Length0" />
-		  </label>
-		  <label>Default:
-			<input type="text" name="create_migrations[0][Default]" id="Default0" />
-		  </label>
-					
+			<fieldset>
+			<legend>Migrations actions</legend>
+			<input type="checkbox" id="migrationschecks" /> Select All
+		  <form id="migrations" name="migrations" method="post" action="<?=INST_URI;?>console/migrations/">
+		  <div style="float:left;clear:both;">
+
+		  <? foreach($this->migrations as $migration): ?>
+			 <div class="item">
+				<input type="checkbox" name="migrations[<?=$migration;?>]" id="migrations[<?=$migration;?>]" class="checkmigration" style="float: left;" />
+				<label style="float: left;"><?=$migration;?></label>
+			</div>
+		  <? endforeach; ?>
+
+			</div>
+			<div style="float:left; width:100%; text-align:center;">
+				 <input type="submit" name="migrations[reset:selected]" id="migrations[reset:selected]" value="Reset selected migration(s)" />
+				 <input type="submit" name="migrations[up:selected]" id="migrations[up:selected]" value="Up selected migration(s)" />
+				 <input type="submit" name="migrations[down:selected]" id="migrations[down:selected]" value="Down selected migration(s)" />
+			</div>
+		  </form>
+		  </fieldset>
+			<br />
+		  <fieldset>
+			<legend>New migration</legend>
+
+			<div style="float:left;clear:both;width:100%;margin-left:5px;">
+				<a href="#" id="create_migration">Create migration</a>
+			</div>
+			<div id="migrations_fields" style="float:left;clear:both;display:none;padding:0px 5px;" class="form_create_migration">
+				<a href="#" id="add_fields">Add Field</a>
+				<form id="create_migrations_form_id" name="create_migrations_form" method="post" action="<?=INST_URI;?>console/create_migrations">
+				<div style="float: left;clear:both;">
+					<div style="float:left;clear:none;padding-top:5px;">Table:</div>
+					<div style="float:left;clear:none;"><input type="text" name="create_migrations[Table]" /></div>
+					<div style="float: left;clear:none;margin-left:25px;">
+						<div style="float:left;clear:none;padding-top:2px;">Create Scaffold?:</div>
+						<div style="float:left;clear:none;"><input type="checkbox" name="create_migrations[scaffold]" id="Scaffold" /></div>
+					</div>
+				</div>
+				<div style="float:left;clear:both;width:100%;margin:10px 0px;" id="fields0">
+					<div style="float:left;clear:none;padding-top:5px;">Field:</div>
+					<div style="float:left;clear:none;"><input type="text" name="create_migrations[0][Field]" id="Field0" /></div>
+					<div style="float:left;clear:none;padding-top:5px;margin-left:10px;">Type:</div>
+					<div style="float:left;clear:none;">
+						<select name="create_migrations[0][Type]" id="Type0">
+							<option value="" selected="selected"></option>
+							<option value="INT">Integer</option>
+							<option value="BIGINT">Big Integer</option>
+							<option value="FLOAT">Float</option>
+							<option value="VARCHAR">Varchar</option>
+							<option value="TEXT">Text</option>
+						</select>
+					</div>
+					<div style="float:left;clear:none;padding-top:5px;margin-left:10px;">Not Null?:</div>
+					<div style="float:left;clear:none;"><input type="checkbox" name="create_migrations[0][NotNull]" id="NotNull0" /></div>
+					<div style="float:left;clear:none;padding-top:5px;margin-left:10px;">Length:</div>
+					<div style="float:left;clear:none;"><input type="text" name="create_migrations[0][Length]" id="Length0" /></div>
+					<div style="float:left;clear:none;padding-top:5px;margin-left:10px;">Default:</div>
+					<div style="float:left;clear:none;"><input type="text" name="create_migrations[0][Default]" id="Default0" /></div>
+				</div>
+				<div style="float:left;clear:both;width:100%;">
+				  <input type="submit" name="fields[sub]" id="fields[sub]" value="Create Migration" />
+				</div>
+				</form>
+			 </div>
+			</fieldset>
+			<br />
+			<fieldset>
+			<legend>Data actions</legend>
+			<input type="checkbox" id="modelschecks" /> Select All
+			<form id="models" name="models" method="post" action="<?=INST_URI;?>console/dump_model">
+			<div style="float:left;clear:both;">
+			 <? foreach($this->models as $model): ?>
+				<div class="item">
+					<input type="checkbox" name="models[<?=$model;?>]" id="models[<?=$model;?>]" class="checkmodel" style="float:left;" />
+					<label style="float:left;"><?=$model;?></label>
+				</div>
+		  <? endforeach; ?>
+			</div><br />
+			<div style="float:left; width:100%; text-align:center;">
+			 <input type="submit" name="models[dump:selected]" id="models[dump:selected]" value="Dump selected model(s)" />
+			 <!--<input type="submit" name="models[dump:all]" id="models[dump:all]" value="Dump all models" />-->
+			 <input type="submit" name="models[load:selected]" id="models[load:selected]" value="Load selected model(s)" />
+			  <!--<input type="submit" name="models[load:all]" id="models[load:all]" value="Load all models" />-->
+			  <br />
+			  </div>
+			</form>
+			</fieldset>
 		</div>
-		  <input type="submit" name="fields[sub]" id="fields[sub]" value="Create Migration" />
-		</form>
-	 </div>
-	</fieldset>
-	<br />
-	<fieldset>
-	<legend>Data actions</legend>
-	<input type="checkbox" id="modelschecks" /> Select All
-	<form id="models" name="models" method="post" action="<?=INST_URI;?>console/dump_model">
-	<div class="aligner">
-	 <? foreach($this->models as $model){ ?>
-		<div class="item">
-		
-		<input type="checkbox" name="models[<?=$model;?>]" id="models[<?=$model;?>]" class="checkmodel" />
-		<label><?=$model;?></label> 
-		</div>  	
-  <? } ?>
-	</div><br />
-	<div style="float:left; width:100%; text-align:center;">
-	 <input type="submit" name="models[dump:selected]" id="models[dump:selected]" value="Dump selected model(s)" />
-	 <!--<input type="submit" name="models[dump:all]" id="models[dump:all]" value="Dump all models" />-->
-	 <input type="submit" name="models[load:selected]" id="models[load:selected]" value="Load selected model(s)" />
-	  <!--<input type="submit" name="models[load:all]" id="models[load:all]" value="Load all models" />-->
-	  <br />
-	  </div>
-	</form>
-	</fieldset>
-</div>
+	</article>
+</section>
 <script type="text/javascript">
-jQuery(document).ready(function($) {
+	$(document).ready(function() {
 		$("#create_migration").click(function() {
-			$("#migrations_fields").show("slow");
+			$("#migrations_fields").slideDown();
 			return false;
-		});
-		$("#modelschecks").click(function(){
-			var $itemcheck = $(this);
-			$(".checkmodel").each(function(){
-				if($itemcheck.attr("checked") == 'checked'){
-					$(this).attr("checked",true);
-				} else {
-					$(this).attr("checked",false);
-				}
-			});
-		});
-		$("#migrationschecks").click(function(){
-			var $itemcheck = $(this);
-			
-			$(".checkmigration").each(function(){
-				if($itemcheck.attr("checked") == 'checked'){
-					$(this).attr("checked",true);
-				} else {
-					$(this).attr("checked",false);
-				}
-			});
 		});
 		var i=0;
 		var j = 0;
@@ -162,7 +126,7 @@ jQuery(document).ready(function($) {
 				$("#Length" + j, this).attr("name", "create_migrations[" + i + "][Length]");
 				$("#NotNull" + j, this).attr("name", "create_migrations[" + i + "][NotNull]");
 				$("#Default" + j, this).attr("name", "create_migrations[" + i + "][Default]");
-				
+
 				$("#Field" + j, this).attr("id", "Field" + i);
 				$("#Type" + j, this).attr("id", "Type" + i);
 				$("#Length" + j, this).attr("id", "Length" + i);
@@ -172,7 +136,25 @@ jQuery(document).ready(function($) {
 			});
 			return false;
 		});
-});
+		$("#modelschecks").click(function(){
+			var itemcheck = $(this);
+			$(".checkmodel").each(function(){
+				if(itemcheck.attr("checked") == true){
+					$(this).attr("checked",true);
+				} else {
+					$(this).attr("checked",false);
+				}
+			});
+		});
+		$("#migrationschecks").click(function(){
+			var itemcheck = $(this);
+			$(".checkmigration").each(function(){
+				if(itemcheck.attr("checked") == true){
+					$(this).attr("checked",true);
+				} else {
+					$(this).attr("checked",false);
+				}
+			});
+		});
+	});
 </script>
-</body>
-</html>

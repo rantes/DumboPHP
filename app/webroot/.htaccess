@@ -1,3 +1,8 @@
+ErrorDocument 400 "/app/webroot/index.php?_error=400"
+ErrorDocument 401 "/app/webroot/index.php?_error=401"
+ErrorDocument 403 "/app/webroot/index.php?_error=403"
+ErrorDocument 404 "/app/webroot/index.php?_error=404"
+ErrorDocument 500 "/app/webroot/index.php?_error=500"
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
@@ -6,7 +11,7 @@
 
     RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule    ^(.*)$ $1  [NC,L]
-#    RewriteRule    ^(.*\.(png|gif|jpg|html|jpeg|swf|js|pdf|css|ico))$ $1  [NC,L]
+    RewriteRule    ^(.*\.(png|gif|jpg|html|jpeg|swf|js|pdf|css|ico))$ $1  [NC,L]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)$ index.php?url=$1&%1 [QSA,L]

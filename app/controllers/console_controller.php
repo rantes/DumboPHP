@@ -13,14 +13,11 @@
  */
 require_once("Migrations.php");
 class ConsoleController extends Page{
-
+	public $layout = 'layout';
 	public $noTemplate = array("create_migrations", "dump_model", "migrations");
-	//public $layout = "admin_layout";
-	public $helper = array('Sessions');
 	
 	function indexAction(){
-		//Require_Admin_Login();
-		$this->render = array('layout'=>false);
+		$this->title = 'Consola DB';
 		$path=INST_PATH.'migrations/'; 
 		$directorio=dir($path); 
 		$this->migrations = array();
@@ -34,6 +31,7 @@ class ConsoleController extends Page{
 		endwhile;
 		$directorio->close();
 		asort($this->migrations);
+		
 		$pathmodels=INST_PATH.'app/models/'; 
 		$dirmodels=dir($pathmodels); 
 		$this->models = array();
@@ -45,7 +43,7 @@ class ConsoleController extends Page{
 			endif; 
 		endwhile;
 		$dirmodels->close();
-		asort($this->models);
+		asort($this->models);		
 	}
 	
 	function create_migrationsAction(){

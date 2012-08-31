@@ -79,7 +79,7 @@ abstract class Migrations extends Core_General_Class{
 					if($Field['type'] == 'VARCHAR' and (!isset($Field['limit']) or $Field['limit'] == '')) $Field['limit'] = 250;
 					$query .= (isset($Field['field']) and isset($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
 					$query .= (isset($Field['limit']) and $Field['limit'] != '')? " (".$Field['limit'].")" : NULL;
-					$query .= ($Field['type'] == 'VARCHAR' or $Field['type'] == 'TEXT')?' CHARACTER SET utf8 COLLATE utf8_general_ci':NULL;
+					$query .= ($Field['type'] == 'VARCHAR' or $Field['type'] == 'TEXT' or $Field['type'] == 'LONGTEXT')?' CHARACTER SET utf8 COLLATE utf8_general_ci':NULL;
 					$query .= (isset($Field['null']) and $Field['null'] != '')? " NOT NULL" : NULL;
 					$query .= (isset($Field['default']) and $Field['default'] != '')? " DEFAULT '".$Field['default']."'" : NULL;
 					$query .= " ,";

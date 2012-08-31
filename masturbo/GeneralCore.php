@@ -1,5 +1,29 @@
 <?php
 define('_VERSION_', '1.8b-r1');
+
+/**
+ * Converts a file to DataURI (for no more request to server)
+ * Can recieve a string of the full path file or can accept an array with 2 positions: 'file'=>FULL_PATH_FILE, 'mime'=>MIME_TYPE
+ * @param mixed $params [required:full_path_file],[optional:mime_type]
+ * @return string
+ */
+function getDataURI($params = null) {
+	if (!empty($params)):
+		if(is_string($params)):
+			$file = $params;
+			$mime = '';
+		elseif(is_array($params) and !empty($params['file'])):
+			$file = $params['file'];
+			$mime = !empty($params['mime']) ? $params['mime'] : null;
+		else:
+			throw new Exception('Must to give params to get the dataURI');
+		endif;
+		return 'data: '.(function_exists('mime_content_type') ? mime_content_type($file) : $mime).';base64,'.base64_encode(file_get_contents($file));
+	else:
+		throw new Exception('Must to give params to get the dataURI');
+	endif;
+}
+
 //carga de las extensiones instaladas.
 $path=dirname(__FILE__).'/ext/';
 $directory=dir($path);

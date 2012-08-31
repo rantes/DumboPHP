@@ -274,7 +274,7 @@ require "Driver.php";
 //		if (isset($this->_models[$name])):
 //			return $this->_models[$name];
 //		else:
-			switch($name){
+			switch($name):
 				case '_ObjTable':
 					return $this->_TableName();
 				break;
@@ -282,13 +282,23 @@ require "Driver.php";
 					return $this->_errors;
 				break;
 				default:
+					
 					if (isset($this->_data[$name])):
 						return $this->_data[$name];
 					else:
-						return NULL; 
+						$model = unCamelize($name);
+						if(file_exists(INST_PATH.'app/models/'.$model.'.php')):
+							if(!class_exists($name)):
+								require INST_PATH.'app/models/'.$model.'.php';
+							endif;
+							$this->_data[$name] = new $name();
+							return $this->_data[$name];
+						else:
+							return null;
+						endif;
 					endif;
 				break;
-			}
+			endswitch;
 //		endif;
 		throw new Exception('Undefined variable to get: ' . $name);
 		return null;
@@ -576,25 +586,28 @@ require "Driver.php";
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 			$type['native_type'] = strtoupper($type['native_type']);
 			$cast = 'toString';
+			$toCast= false;
 			switch($type['native_type']):
 				case 'LONG':
 				case 'INTEGER':
 				case 'INT':
-					$cast = 'toInteger';
+					$toCast = true;
+// 					$cast = 'toInteger';
 				break;
-				case 'FLOAT':
-				case 'VAR_STRING':
-				case 'BLOB':
-				case 'TEXT':
-				case 'VARCHAR':
-					$cast = 'toString';
-				break;
+// 				case 'FLOAT':
+// 				case 'VAR_STRING':
+// 				case 'BLOB':
+// 				case 'TEXT':
+// 				case 'VARCHAR':
+// 					$cast = 'toString';
+// 				break;
 			endswitch;
 			$value = '';
 			$this->_counter = 0;
 			if(isset($contents) and $contents !== NULL and is_array($contents)):
 				if(isset($contents[$row['Field']])):
-					$value = $cast($contents[$row['Field']]);
+// 					$value = $cast($contents[$row['Field']]);
+					$value = $toCast ? (integer)$contents[$row['Field']] : $contents[$row['Field']]; 
 					$this->_counter = 1;
 				else:
 					continue;
@@ -847,8 +860,8 @@ require "Driver.php";
 		if (!empty($this->dependents) and $id != 0):
 			foreach ($this->has_many as $model):
 				$model1 = Camelize($model);
-				$dependentObject = new $model1();
-				$children = $dependentObject->Find(array('conditions'=>Singulars($this->_TableName())."_id='".$id."'"));
+				//$dependentObject = new $model1();
+				$children = $this->{$model1}->Find(array('conditions'=>Singulars($this->_TableName())."_id='".$id."'"));
 				
 				foreach ($children as $child):
 					switch ($this->dependents):
@@ -1144,6 +1157,23 @@ require "Driver.php";
 	
 	public function _nativeType($field){
 		return $this->_dataAttributes[$field]['native_type'];
+	}
+	/**
+	 * Slices an Active Record object resulset into pieces delimited by start and length
+	 * @param integer $start
+	 * @param integer $length
+	 */
+	public function slice($start = null, $length = null){
+		if(empty($length)) $length = $this->_counter;
+		if($start === null) $start = 0;
+		$end = $start + $length;
+		if ($end > $this->_counter) $end = $this->_counter;
+		$name = get_class($this);
+		$arr = new $name();
+		for($i=$start; $i<$end; $i++):
+		$arr[] = $this[$i];
+		endfor;
+		return $arr;
 	}
 }
 ?>

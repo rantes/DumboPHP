@@ -32,9 +32,7 @@
 	
 	function first(&$arr, &$obj=NULL){
 		if($obj !== NULL and get_parent_class($obj)=='ActiveRecord'):
-			foreach($obj as $min){
-				return $min;
-			}
+			return $obj[0];
 		endif;
 	}
 ?>
