@@ -28,7 +28,7 @@ require "Driver.php";
  abstract class ActiveRecord extends Core_General_Class{
 	/**
 	* Variable protegida $ObjTable
-	* 
+	*
 	* Es una cadena de texto que contiene el nombre de la tabla del objeto actual.
 	* @var array $ObjTable
 	* @access protected
@@ -41,15 +41,15 @@ require "Driver.php";
 	protected $_singularName;
 	/**
 	 * Variable protegida $driver
-	 * 
+	 *
 	 * Objeto de tipo pdo para la conexi?n global de bases de datos.
 	 * @var Object_PDO $driver
 	 */
 	public $driver = NULL;
-	
+
 	/**
 	 * Variable protegida $_counter
-	 * 
+	 *
 	 * La Variable p?blica counter es para obtener el n?mero de registros existentes en el objeto
 	 * cuando se ha efectuado una b?squeda por el m?todo {@link Find()}.
 	 * @var integer $counter
@@ -145,7 +145,7 @@ require "Driver.php";
 	 * @var array $after_save
 	 */
 	protected $after_save = array();
-	
+
 	/**
 	 * Variable de tipo array $before_save.
 	 *
@@ -174,7 +174,7 @@ require "Driver.php";
 	 */
 	protected $before_delete = array();
 	/**
-	 * 
+	 *
 	 * Establece que hacer en cuanto un registro va a ser borrado, con sus registros hijos, si borrar o establecer null para eliminar el vinculo
 	 * @var string destroy|nullify
 	 */
@@ -186,22 +186,22 @@ require "Driver.php";
 	 * @var array
 	 */
 	protected $_data = array();
-	
+
 	protected $_dataAttributes = array();
-	
+
 	protected $_models = array();
-	
+
 	/**
 	*
 	* Objeto de tipo Error $_error
-	* 
+	*
 	* Este objeto controla y muestra los errores ocurridos durante los procesos de activerecord.
 	* @var Error $_error
 	**/
 	public $_error = NULL;
-	
+
 	public $_sqlQuery = '';
-	 
+
 	/**
 	 * Constructor
 	 *
@@ -212,8 +212,8 @@ require "Driver.php";
 		$this->_data = NULL;
 		$this->_data = array();
 		//$this->_TableName();
-		$this->Connect();		
-		
+		$this->Connect();
+
 	}
 	/**
 	 * Destructor
@@ -226,7 +226,7 @@ require "Driver.php";
 	}
 	/**
 	 * m?todo m?gico __set()
-	 * 
+	 *
 	 * Este m?todo se ejecuta cuando se crea un nuevo atributo al objeto.
 	 * Carga datos en la variable {@link $data}.
 	 *
@@ -241,7 +241,7 @@ require "Driver.php";
 //		else:
 			$this->_data[$name] = $value;
 //		endif;
-		
+
 		}
 		catch(Exception $e){
 			$trace = debug_backtrace();
@@ -264,7 +264,7 @@ require "Driver.php";
     }
 	/**
 	 * m?todo m?gico __get()
-	 * 
+	 *
 	 * Este m?todo se ejecuta cuando se accede a un attributo directamente del objeto y que no existe.
 	 *
 	 * Retorna el valor del atributo din?mico.
@@ -282,7 +282,7 @@ require "Driver.php";
 					return $this->_errors;
 				break;
 				default:
-					
+
 					if (isset($this->_data[$name])):
 						return $this->_data[$name];
 					else:
@@ -304,9 +304,9 @@ require "Driver.php";
 		return null;
 	}
 
-	
-	/** 
-	 * Metodo protegido Connect() 
+
+	/**
+	 * Metodo protegido Connect()
 	 *
 	 * Realiza la conexion a la base de datos
 	 */
@@ -314,19 +314,19 @@ require "Driver.php";
 		/**
 		 * El archivo driver.php es el archivo controlador para la conexi?n y tratamiento de la base de datos.
 		 */
-		
+
 		if($this->driver === NULL and !is_object($this->driver) and get_class($this->driver) != 'Driver'):
 			$this->driver = new Driver(INST_PATH.'config/db_settings.ini');
 		endif;
 		//$this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
 		$this->_error = new Errors();
-//		$pathModels=INST_PATH.'app/models/'; 
-//		$directorio=dir($pathModels); 
+//		$pathModels=INST_PATH.'app/models/';
+//		$directorio=dir($pathModels);
 //		$objects = array();
 //		$classes = get_declared_classes();
 //		while (($archivo = $directorio->read()) != FALSE):
 //			if($archivo !="." and $archivo != ".." and $archivo != "_notes" and preg_match('/.php/', $archivo)):
-				
+
 //				$nameTable = str_replace('.php', '', $archivo);
 //				$nameCons = strtoupper($nameTable);
 //				$class = Camelize($nameTable);
@@ -334,25 +334,25 @@ require "Driver.php";
 //				global $$class;
 //				$this->{$class} = new $class();
 				//$objects[$nameCons] = $nameTable;
-//			endif; 
+//			endif;
 //		endwhile;
-		
+
 //		$directorio->close();
 	}
-	
+
 	/**
 	* Metodo privado getData()
-	* 
+	*
 	* Este metodo se encarga de recrear los atributos del objeto.
 	* Lee los nombres de los campos y sus valores de la consulta realizada y de acuerdo con eso
 	* genera los nuevos atributos al objeto propio a trav?s de $this, siendo en el caso de un resultado de un
 	* solo registro o un arreglo de objetos de este mismo tipo como atributo de este objeto.
 	*/
 	private function getData($query){
-		
+
 		$this->_data = NULL;
 		$this->_data = array();
-		
+
 		if(sizeof($this) >0):
 			for($k = 0; $k<sizeof($this); $k++):
 				if(isset($this[$k])) $this->offsetUnSet($k);
@@ -372,7 +372,7 @@ require "Driver.php";
 				unset($this->_data[$key]);
 			endforeach;
 		endif;
-		
+
 		$result = array();
 		$i=0;
 		$regs = NULL;
@@ -382,7 +382,7 @@ require "Driver.php";
 		if(!is_object($regs)) die("Error in SQL Query. Please check the SQL Query: ".$query);
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset = $regs->fetchAll();
-		
+
 		if(sizeof($resultset) > 0):
 			for($j = 0; $j < sizeof($resultset); $j++):
 				$classToUse = get_class($this);
@@ -435,20 +435,20 @@ require "Driver.php";
 			unset($this[0]);
 		endif;
 	}
-	
+
 	/**
 	* M?todo p?blico Find()
-	* 
+	*
 	* Este m?todo se encarga de construir una consulta SQL de tipo selecci?n.
 	* Retorna este objeto luego de ejecutar el m?todo {@link getData()} y los
 	* par?metros que recibe son $conditions, que puede ser:
 	* o un arreglo de forma 'nombre_campo' => 'valor'.
-	* 
+	*
 	* o un valor entero.
-	* 
+	*
 	* Para el condicionamiento de la consulta y $fields, que es un string
 	* con un listado de campos, separados por comas, para la selecci?n de campos espec?ficos.
-	* 
+	*
 	* o Cuando el par?metro $conditions es un entero, se realiza una consulta por el campo id.
 	*
 	* o Cuando el par?metro $conditions es nulo o no se pasa ning?n par?metro, se selecciona todo sin condici?n.
@@ -467,13 +467,13 @@ require "Driver.php";
 				$this->{$functiontoRun}();
 			endforeach;
 		endif;
-		
+
 		//if(empty($this->_ObjTable)) $this->_TableName(); //$this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
-		
+
 		$fields = '*';
 		if(is_array($params) and isset($params['fields'])) $fields = $params['fields'];
 		$sql = "SELECT $fields FROM `".$this->_TableName()."` WHERE 1=1";
-		
+
 		if(isset($params) and !empty($params)):
 			if(is_numeric($params)) $params = (integer)$params;
 			$type = gettype($params);
@@ -519,7 +519,7 @@ require "Driver.php";
 							break;
 						endswitch;
 					endif;
-					
+
 					if(isset($params['limit'])):
 						$sql .= " LIMIT ".$params['limit'];
 					endif;
@@ -536,7 +536,7 @@ require "Driver.php";
 		//$this->Connect();
 		$this->getData($sql);
 		$this->_sqlQuery = $sql;
-		
+
 		//$this->__construct();
 		if(sizeof($this->after_find)>0):
 			foreach($this->after_find as $functiontoRun):
@@ -545,15 +545,15 @@ require "Driver.php";
 		endif;
 		return clone($this);
 	}
-	
-	
+
+
 	/**
 	 * M?todo p?blico Find_by_SQL
 	 *
 	 * Ejecuta una consulta de tipo selecci?n con la instrucci?n SQL pasada por par?metro.
 	 * Este m?todo es muy ?til cuando se requiere hacer una consulta muy compleja.
 	 * @param string $query Cadena con la consulta SQL.
-	 */	
+	 */
 	public function Find_by_SQL($query = NULL){
 	if(!$query):
 		trigger_error( "The query can not be NULL", E_USER_ERROR );
@@ -565,10 +565,10 @@ require "Driver.php";
 		return clone $this;
 	endif;
 	}
-	
+
 	/**
 	* M?todo p?blico Niu()
-	* 
+	*
 	* Prepara un nuevo objeto para insertar a la base de datos.
 	* @param array $contents Arreglo de tipo 'campo'=>'valor' para pasar al objeto, para que al crear, le adicione datos.
 	*/
@@ -607,7 +607,7 @@ require "Driver.php";
 			if(isset($contents) and $contents !== NULL and is_array($contents)):
 				if(isset($contents[$row['Field']])):
 // 					$value = $cast($contents[$row['Field']]);
-					$value = $toCast ? (integer)$contents[$row['Field']] : $contents[$row['Field']]; 
+					$value = $toCast ? (integer)$contents[$row['Field']] : $contents[$row['Field']];
 					$this->_counter = 1;
 				else:
 					continue;
@@ -618,21 +618,21 @@ require "Driver.php";
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
 		endforeach;
 		return clone($this);
-	}	
+	}
 	/**
 	* M?todo p?blico Save()
-	* 
+	*
 	* Guarda los datos en la base de datos.
 	* Es capaz de diferenciar cuando realizar una consulta de tipo insert y cuando una de tipo update.
 	* Si todo resulta bien, devuelve true, sino devuelve falso y no termina la ejecuci?n.
-	* 
+	*
 	* Realiza validaciones requeridas y definidas en el modelo y ejecuta funciones definidas en el modelo tambi?n.
-	* 
+	*
 	* Cuando se realiza una actualizaci?n, solo verifica los campos alterados y estos son los que se incluyen
 	* en la consulta.
 	* @return boolean
 	**/
-	
+
 	function Save(){
 		$this->Connect();
 		$className = get_class($this);
@@ -655,7 +655,7 @@ require "Driver.php";
 						}
 						if($this->_error->isActived()) return false;
 					break;
-					
+
 					case 'unique':
 						foreach($content as $field){
 							$lists = array();
@@ -665,7 +665,7 @@ require "Driver.php";
 							if($this->_error->isActived()) return false;
 						}
 					break;
-					
+
 					case 'numeric':
 						$noNumber = false;
 						foreach($content as $field){
@@ -676,7 +676,7 @@ require "Driver.php";
 						if($this->_error->isActived()) return false;
 					break;
 					case 'is_email':
-						
+
 						foreach($content as $field){
 							if(count(preg_match("/(@+)/",$this->{$field})) > 1):
 								$trace = debug_backtrace();
@@ -702,23 +702,23 @@ require "Driver.php";
 			$query = "UPDATE `".$this->_TableName()."` SET ";
 			$ThisClass = get_class($this);
 			$objAux = new $ThisClass();
-			
+
 			$existing_data = $objAux->Find($this->id)->getArray();
-			
+
 			$arraux = array();
 			$i=0;
 			foreach($existing_data as $key => $data):
 				if(is_array($data)):
-					
+
 					foreach($data as $field => $value):
 						if(!is_array($value)):
-							if(isset($this->{$field}) and $value !== $this->{$field} and strcmp($field, "created_at") !== 0 and strcmp($field, "updated_at") !== 0 and strcmp($field, "id") !== 0): 
+							if(isset($this->{$field}) and $value !== $this->{$field} and strcmp($field, "created_at") !== 0 and strcmp($field, "updated_at") !== 0 and strcmp($field, "id") !== 0):
 								$arraux[$field] = $this->{$field};
 							endif;
 						endif;
 					endforeach;
 				else:
-					if(isset($this->_data[$key]) and $data != $this->_data[$key] and strcmp($key, "created_at") !== 0 and strcmp($key, "updated_at") !== 0 and strcmp($key, "id") !== 0): 
+					if(isset($this->_data[$key]) and $data != $this->_data[$key] and strcmp($key, "created_at") !== 0 and strcmp($key, "updated_at") !== 0 and strcmp($key, "id") !== 0):
 						$arraux[$key] = $this->_data[$key];
 					endif;
 				endif;
@@ -741,6 +741,7 @@ require "Driver.php";
 			$values = "";
 			$i=1;
 			$this->created_at = time();
+			$this->updated_at = 0;
 			foreach($this->_data as $field => $value){
 				if(!is_array($value)):
 					if($field != 'id'):
@@ -776,13 +777,13 @@ require "Driver.php";
 		endif;
 		return true;
 	}
-	
+
 	/**
-	* 
+	*
 	* Crea un nuevo registro en la tabla cuando se tiene un id, este metodo se usa cuando se cargan
 	* archivos xml del dumpeo de la tabla.
 	*/
-	
+
 	function Insert(){
 		//if(!isset($this->ObjTable)) $this->ObjTable = $this->Plurals(strtolower($this->unCamelize(get_class($this))));
 		$query = "INSERT INTO `".$this->_TableName()."` ";
@@ -795,17 +796,17 @@ require "Driver.php";
 					$values .= "'$value',";
 			endif;
 		}
-		
+
 		$fields = substr($fields, 0,-1);
 		$values = substr($values, 0,-1);
 		$query .= "($fields) VALUES ($values)";
 		$this->driver->exec($query) or die(print_r($this->driver->errorInfo(), true));
 		return true;
 	}
-	
+
 	/**
 	* M?todo Delete()
-	* 
+	*
 	* Elimina registros en la Base de datos, dependiendo de las condiciones.
 	*
 	* El par?metro de condiciones $conditions puede ser un arreglo de tipo 'nombre_campo'=>'valor' o
@@ -814,7 +815,7 @@ require "Driver.php";
 	**/
 	function Delete($conditions = NULL){
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
-		
+
 		if($conditions === NULL and isset($this->id)) $conditions = $this->id;
 		if($conditions === NULL and (!isset($this->id) or $this->id == '')):
 			$this->_error->add(array('field' => $this->_TableName(),'message'=>"Must specify a register to delete"));
@@ -850,7 +851,7 @@ require "Driver.php";
 		endif;
 	}
 	/**
-	 * 
+	 *
 	 * borra o rompe el enlace con las tablas dependientes
 	 * @param integer $id
 	 * @return boolean
@@ -862,7 +863,7 @@ require "Driver.php";
 				$model1 = Camelize($model);
 				//$dependentObject = new $model1();
 				$children = $this->{$model1}->Find(array('conditions'=>Singulars($this->_TableName())."_id='".$id."'"));
-				
+
 				foreach ($children as $child):
 					switch ($this->dependents):
 						case 'destroy':
@@ -879,7 +880,7 @@ require "Driver.php";
 							endif;
 						break;
 					endswitch;
-					
+
 				endforeach;
 			endforeach;
 		endif;
@@ -887,7 +888,7 @@ require "Driver.php";
 	}
 	/**
 	* M?todo p?blico inspect()
-	* 
+	*
 	* Este m?todo sirve para realizar debugging del objeto. Es muy ?til para rastrear contenido del objeto y
 	* no se puede usar print_r() o echo o var_dump(). Este m?todo llama al m?todo {@link __toString()} para
 	* completar la impresi?n del contenido.
@@ -898,7 +899,7 @@ require "Driver.php";
 	}
 	/**
 	* M?todo p?blico m?gico __toString()
-	* 
+	*
 	* Este m?todo es quien se encarga de tomar los atributos y sus valores contenidos en el objeto.
 	* @return string $listProperties Cadena de texto con el listado de atributos y sus valores.
 	*/
@@ -926,7 +927,7 @@ require "Driver.php";
 			endif;
 			$listProperties .= "\t}\n";
 		endforeach;
-		
+
 		for($j=0; $j<$i; $j++):
 			$listProperties .= "\t";
 		endfor;
@@ -937,17 +938,17 @@ require "Driver.php";
 		$a = $this->ListProperties_ToString();
 		return $a;
 	}
-	
+
 	/**
 	* Metodo publico getArray()
-	* 
+	*
 	* Este metodo devuelve en un arreglo multidimensional el objeto tratado y cargado con los atributos de la tabla.
 	* @returns array $arraux Arreglo multidimensional que contiene atributos y/o valores que trae de la BD.
 	*/
 	public function getArray(){
 		$arraux = array();
 		$arraux1 = array();
-		
+
 		if($this->counter() > 0):
 				$n=0;
 		        for($t = 0; $t < $this->counter(); $t++):
@@ -963,7 +964,7 @@ require "Driver.php";
 	}
 	/**
 	* Metodo publico Dump($data, $path)
-	* 
+	*
 	* Crea un archivo Xml con el contenido de $data, en la ruta $path. Ideal para bajar datos a disco antes de
 	* resetear una tabla.
 	* @param array $data Arreglo que contiene los datos para dumpear.
@@ -1007,7 +1008,7 @@ require "Driver.php";
 	}
 	/**
 	* Metodo publico LoadDump($docXml)
-	* 
+	*
 	* Carga un archivo Xml que fue dumpeado anteriormente.
 	* @param string $docXml Nombre del archivo a cargar.
 	*/
@@ -1017,8 +1018,8 @@ require "Driver.php";
 		$tblName = str_replace('.xml', '', $docXml);
 		$items = $doc->getElementsByTagName($tblName);
 		foreach( $items as $xitem ):
-			$idfield = $xitem->getElementsByTagName("id"); 
-			$id  = $idfield->item(0)->nodeValue; 
+			$idfield = $xitem->getElementsByTagName("id");
+			$id  = $idfield->item(0)->nodeValue;
 			$Obj = Camelize(Singulars($tblName));
 			$Obj = new $Obj();
 			$Obj->Niu();
@@ -1032,11 +1033,11 @@ require "Driver.php";
 			endforeach;
 			$Obj->Insert();
 		endforeach;
-		
+
 	}
 	/**
 	* Metodo publico WriteSchema($tableName)
-	* 
+	*
 	* Este metodo se encarga de ir creando el schema de la base de datos para posterior indexaci?n sin necesidad de
 	* consultarlo a la base de datos.
 	* @param string $tableName Nombre de la tabla para registrar en el schema.
@@ -1066,7 +1067,7 @@ require "Driver.php";
 	}
 	/**
 	* Metodo publico WriteModel($table)
-	* 
+	*
 	* Este metodo se encarga de escribir en disco el archivo preliminar de modelo.
 	* @param string $table Nombre de la tabla para crearle el modelo.
 	*/
@@ -1087,15 +1088,15 @@ require "Driver.php";
 	}
 	/**
 	* Metodo publico GetFields()
-	* 
+	*
 	* Este metodo se encarga de leer los campos de la tabla y sus atributos. Devuelve un arreglo de tipo
 	* arreglo[nombre_campo] = tipo_del_campo.
 	*/
 	function GetFields(){
 		$this->Connect();
-		
-		//if(!isset($this->ObjTable) or $this->ObjTable != '') $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));		
-		
+
+		//if(!isset($this->ObjTable) or $this->ObjTable != '') $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
+
 		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`") or die(print_r($this->driver->errorInfo(), true));
 
 		$arraux = array();
@@ -1104,20 +1105,20 @@ require "Driver.php";
 		}
 		return $arraux;
 	}
-	
+
 	/**
 	 * Metodo publico BuildMigration()
-	 * 
+	 *
 	 * Construye un archivo de migraci?n en base del modelo.
-	 * 
-	 * Esto se usa cuando la base de datos ya exista y no se requiera hacer los archivos de 
+	 *
+	 * Esto se usa cuando la base de datos ya exista y no se requiera hacer los archivos de
 	 * migraci?n para ahorrar tiempo.
 	 */
 	function BuildMigration(){
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(get_class($this)));
-		
+
 	}
-	
+
 	public function getError(){
 		return $this->_errors;
 	}
@@ -1131,7 +1132,7 @@ require "Driver.php";
 		return sizeof($this) > 0? $this[sizeof($this) - 1] : FALSE;
 	}
 	/**
-	 * 
+	 *
 	 * Get or set the name of the table.
 	 * @param string $name
 	 */
@@ -1148,32 +1149,49 @@ require "Driver.php";
 		return $this->_ObjTable;
 	}
 	/**
-	 * 
+	 *
 	 * Gets the executed query.
 	 */
 	public function _sqlQuery(){
 	    return $this->_sqlQuery;
 	}
-	
+	/**
+	 * Gets the native type of an element or attribute of the recordset
+	 * @param mixed $field
+	 */
 	public function _nativeType($field){
 		return $this->_dataAttributes[$field]['native_type'];
 	}
 	/**
-	 * Slices an Active Record object resulset into pieces delimited by start and length
-	 * @param integer $start
-	 * @param integer $length
+	 * Gets the JSON of an ActiveRecord set
+	 * @return string JSON
 	 */
-	public function slice($start = null, $length = null){
-		if(empty($length)) $length = $this->_counter;
-		if($start === null) $start = 0;
-		$end = $start + $length;
-		if ($end > $this->_counter) $end = $this->_counter;
-		$name = get_class($this);
-		$arr = new $name();
-		for($i=$start; $i<$end; $i++):
-		$arr[] = $this[$i];
-		endfor;
-		return $arr;
+	function toJSON(){
+		$jsonString = "";
+		if($this->_counter > 1):
+			$jsonString .= "[";
+			foreach($this as $record):
+				$jsonString .= $record->toJSON().",";
+			endforeach;
+			$jsonString = substr($jsonString, 0, -1);
+			$jsonString .= "]";
+		else:
+			$jsonString .= "{";
+			foreach($this->_data as $index => $element):
+				if(is_object($element) and get_parent_class($element) == 'ActiveRecord'):
+					$jsonString .= "'".$index."':".$element->toJSON();
+				elseif(is_array($element)):
+					$jsonString .= "'".$index."':".json_encode($element);
+				else:
+					$jsonString .= "'".$index."':'".$element."'";
+				endif;
+				$jsonString .= ",";
+			endforeach;
+			$jsonString = substr($jsonString, 0, -1);
+// 			$jsonString = substr($jsonString, 0, (substr($jsonString, -1,1) == ',')?-1:-3);
+			$jsonString .= "}";
+		endif;
+		return $jsonString;
 	}
 }
 ?>

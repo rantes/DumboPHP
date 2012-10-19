@@ -88,23 +88,29 @@ class index{
 		if(file_exists($path.$controllerFile)):
 			require($path.$controllerFile);
 			$classPage = Camelize($controller)."Controller";
-
 			$page = new $classPage();
-
 			$page->params($params);
-
 			$page->Controller = $controller;
 			$page->Action = $action;
 			//loads of helpers
 			if(isset($page->helper) and sizeof($page->helper) > 0):
 				$page->LoadHelper($page->helper);
 			endif;
-
+			//before filter, executed before the action execution
+			if(method_exists($page,"before_filter")):
+				$page->before_filter();
+			endif;
 			if(method_exists($page,$action."Action")):
-
 				$page->{$action."Action"}();
-
-				$page->display(array('controller'=>$controller,'action'=>$action));
+				//before render, executed after the action execution and before the data renderize
+				if(method_exists($page,"before_render")):
+					$page->before_render();
+				endif;
+				if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) and $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest' and $page->canRespondToAJAX()):
+					echo $page->respondToAJAX();
+				else:
+					$page->display(array('controller'=>$controller,'action'=>$action));
+				endif;
 			else:
 				echo "Missing Action";
 			endif;

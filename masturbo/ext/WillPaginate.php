@@ -1,7 +1,7 @@
 <?php
 /*
  * Plugin Will Paginate.
- * 
+ *
  * Se encarga de la paginacion de los items en las vistas.
  */
 
@@ -33,39 +33,49 @@
 		$obj->PaginatePageNumber = $page_num;
 		return clone($obj);
 	}
-	
-	function WillPaginate($params = NULL, &$page = NULL){
-//		if($page === NULL):
-//			throw new Exception("WillPaginate must be called in instace of a page object.");
-//			return NULL;
-//		endif;
-		if(isset($params[0]) and is_array($params)) $params = $params[0];
-		if(!is_object($params) or get_parent_class($params) != 'ActiveRecord'):
+
+	function WillPaginate($params = NULL, &$model = NULL){
+		$object = null;
+		if(!empty($model) and is_object($model)):
+			$object = $model;
+			$params = $params[0];
+		elseif(is_array($params)):
+			if(isset($params[0])):
+				$object = $params[0];
+			elseif(isset($params['object'])):
+				$object = $params['object'];
+			endif;
+		endif;
+
+		if(!is_object($object) or get_parent_class($object) != 'ActiveRecord'):
 			throw new Exception("WillPaginate param must be a model object.");
 			return NULL;
 		endif;
+		if(empty($object->PaginateClass)) $object->PaginateClass = ' class="paginate-links"';
+		if(!empty($params['class'])) $object->PaginateClass = ' class="'.$params['class'].'"';
+		if(empty($object->PaginateIdPrefix)) $object->PaginateIdPrefix = 'paginate-link';
+		if(!empty($params['id'])) $object->PaginateIdPrefix = $params['id'];
 		$str = '';
 		$tail = '';
 		$i = 1;
-		if($params->PaginatePageNumber > 1):
-			$str .= '<a href="?'.$params->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
-			$str .= '<a href="?'.$params->PaginatePageVarName.'='.($params->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
+		if($object->PaginatePageNumber > 1):
+			$str .= '<a href="?'.$object->PaginatePageVarName.'=1"'.$object->PaginateClass.' id="'.$object->PaginateIdPrefix.'-first">|&lt;&lt;</a>&nbsp;';
+			$str .= '<a href="?'.$object->PaginatePageVarName.'='.($object->PaginatePageNumber-1).'"'.$object->PaginateClass.' id="'.$object->PaginateIdPrefix.'-prev">&lt;</a>&nbsp;';
 		endif;
-		$top = $params->PaginateTotalPages;
-		if($params->PaginateTotalPages > 10):
-			$top = ($params->PaginatePageNumber-1)+10;
-			if($top > $params->PaginateTotalPages) $top = $params->PaginateTotalPages;
+		$top = $object->PaginateTotalPages;
+		if($object->PaginateTotalPages > 10):
+			$top = ($object->PaginatePageNumber-1)+10;
+			if($top > $object->PaginateTotalPages) $top = $object->PaginateTotalPages;
 			$i = $top-10;
 			if($i < 1) $i = 1;
-			//$tail = '...<a href="?page='.$params->PaginateTotalPages.'">'.$params->PaginateTotalPages.'</a>&nbsp;';
 		endif;
-		if($params->PaginatePageNumber < $params->PaginateTotalPages):
-			$tail .= '<a href="?'.$params->PaginatePageVarName.'='.($params->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
-			$tail .= '<a href="?'.$params->PaginatePageVarName.'='.($params->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
+		if($object->PaginatePageNumber < $object->PaginateTotalPages):
+			$tail .= '<a href="?'.$object->PaginatePageVarName.'='.($object->PaginatePageNumber+1).'"'.$object->PaginateClass.' id="'.$object->PaginateIdPrefix.'-next">&gt;</a>&nbsp;';
+			$tail .= '<a href="?'.$object->PaginatePageVarName.'='.($object->PaginateTotalPages).'"'.$object->PaginateClass.' id="'.$object->PaginateIdPrefix.'-last">&gt;&gt;|</a>&nbsp;';
 		endif;
-		for(; $i <= $top; $i++){
-			$str .= '<a href="?'.$params->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
-		}
+		for(; $i <= $top; $i++):
+			$str .= '<a href="?'.$object->PaginatePageVarName.'='.$i.'"'.$object->PaginateClass.' id="'.$object->PaginateIdPrefix.'-'.$i.'">'.$i.'</a>&nbsp;';
+		endfor;
 		$str .= $tail;
 		return $str;
 	}

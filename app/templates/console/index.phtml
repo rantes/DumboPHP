@@ -12,7 +12,6 @@ fieldset input[type="text"]{
 	width:162px;
 }
 </style>
-<section id="main" class="column">
 	<h4 class="alert_info">Console.</h4>
 	<article class="module width_full">
 		<div style="float:left; width:100%; overflow:hidden;float:left;">
@@ -107,7 +106,6 @@ fieldset input[type="text"]{
 			</fieldset>
 		</div>
 	</article>
-</section>
 <script type="text/javascript">
 	$(document).ready(function() {
 		$("#create_migration").click(function() {
@@ -137,24 +135,18 @@ fieldset input[type="text"]{
 			return false;
 		});
 		$("#modelschecks").click(function(){
-			var itemcheck = $(this);
-			$(".checkmodel").each(function(){
-				if(itemcheck.attr("checked") == true){
-					$(this).attr("checked",true);
-				} else {
-					$(this).attr("checked",false);
-				}
-			});
+			if($(this).is(":checked")){
+				$(".checkmodel").attr("checked",'checked');
+			} else {
+				$(".checkmodel").removeAttr("checked");
+			}
 		});
 		$("#migrationschecks").click(function(){
-			var itemcheck = $(this);
-			$(".checkmigration").each(function(){
-				if(itemcheck.attr("checked") == true){
-					$(this).attr("checked",true);
-				} else {
-					$(this).attr("checked",false);
-				}
-			});
+			if($(this).is(":checked")){
+				$(".checkmigration").attr("checked",'checked');
+			} else {
+				$(".checkmigration").removeAttr("checked");
+			}
 		});
 	});
 </script>

@@ -1,7 +1,8 @@
 <?php
 //require "Mail.php";
-if(file_exists("Mail.php")):
-	require "Mail.php";
+
+if(file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
+	require PEAR_EXTENSION_DIR."/Mail.php";
 endif;
 
 /**
