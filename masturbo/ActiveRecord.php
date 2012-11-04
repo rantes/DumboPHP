@@ -614,12 +614,12 @@ require "Driver.php";
 // 					$value = $cast($contents[$row['Field']]);
 					$value = $toCast ? (integer)$contents[$row['Field']] : $contents[$row['Field']];
 					$this->_counter = 1;
+					$this->{$row['Field']} = $value;
+					$this[0]->{$row['Field']} = $value;
 // 				else:
 // 					continue;
 				endif;
 			endif;
-			$this->{$row['Field']} = $value;
-			$this[0]->{$row['Field']} = $value;
 		endforeach;
 		return clone($this);
 	}
