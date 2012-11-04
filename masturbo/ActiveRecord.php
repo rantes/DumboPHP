@@ -395,7 +395,7 @@ require "Driver.php";
 						$type = $regs->getColumnMeta($column);
 // 						$this[$j]->{$property} = new ActiveRegister($value, $type);//$value;
 						$deftype = 'VAR_CHAR';
-						$type['native_type'] = $deftype;
+						$type['native_type'] = empty($type['native_type'])?$deftype:$type['native_type'];
 						$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 						$type['native_type'] = strtoupper($type['native_type']);
 						$cast = 'toString';
@@ -426,7 +426,7 @@ require "Driver.php";
 		if($this->_counter === 1):
 			foreach ($this[0]->_data as $field => $value):
 				$this->{$field} = $value;
-				$this->_dataAttributes[$field]['native_type'] = $type['native_type'];
+				$this->_dataAttributes[$field]['native_type'] = $this[0]->_dataAttributes[$field]['native_type'];
 			endforeach;
 		endif;
 		if($this->_counter === 0):
@@ -581,6 +581,10 @@ require "Driver.php";
 		$this->Connect();
 		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`");
 		$type = array();
+		$classToUse = get_class($this);
+
+		$this->offsetSet(0, NULL);
+		$this[0] = new $classToUse();
 		foreach($result as $row):
 			$type['native_type'] = $row['Type'];
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
@@ -604,18 +608,18 @@ require "Driver.php";
 			endswitch;
 			$value = '';
 			$this->_counter = 0;
-			if(isset($contents) and $contents !== NULL and is_array($contents)):
+			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
+			if(!empty($contents) and is_array($contents)):
 				if(isset($contents[$row['Field']])):
 // 					$value = $cast($contents[$row['Field']]);
 					$value = $toCast ? (integer)$contents[$row['Field']] : $contents[$row['Field']];
 					$this->_counter = 1;
-				else:
-					continue;
+// 				else:
+// 					continue;
 				endif;
 			endif;
 			$this->{$row['Field']} = $value;
 			$this[0]->{$row['Field']} = $value;
-			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
 		endforeach;
 		return clone($this);
 	}
