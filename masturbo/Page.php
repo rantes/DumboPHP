@@ -1,35 +1,75 @@
 <?php
-
 /**
- *
- * Clase Page.
+ *Page.
  *
  * Clase que administra los controladores.
- *
+ * 
  * Se encarga de cargar todos los modelos y demas funciones generales.
  * @author Javier Serrano
  * @package Core
  * @subpackage Controllers
  * @Version 3.0 November 18 2009
+ * @extends Core_General_Class
+ */
+/**
+ *Page.
+ *
+ * Clase que administra los controladores.
+ *
+ * Se encarga de cargar todos los modelos y demas funciones generales.
+ * @extends Core_General_Class
  */
 abstract class Page extends Core_General_Class{
-
+	/**
+	 * 
+	 * @var string
+	 */
 	protected $layout = "";
+	/**
+	 * 
+	 * @var array
+	 */
 	protected $render = NULL;
+	/**
+	 * 
+	 * @var string
+	 */
 	protected $flash = "";
+	/**
+	 * 
+	 * @var string
+	 */
 	protected $content = "";
+	/**
+	 * 
+	 * @var array
+	 */
 	protected $params = array();
+	/**
+	 * 
+	 * @var string
+	 */
 	protected $metaDescription = '';
+	/**
+	 * 
+	 * @var string
+	 */
 	protected $pageTitle = '';
+	/**
+	 * 
+	 * @var string
+	 */
 	protected $controller = '';
+	/**
+	 *
+	 * @var string
+	 */
 	protected $action = '';
-	private $_respondToAJAX = '';
-	private $_canrespondtoajax = false;
-	
-	public function __construct(){
-		//loads of helpers
-	}
-
+	/**
+	 * 
+	 * @param unknown $var
+	 * @return unknown
+	 */
 	public function __get($var){
 		$model = unCamelize($var);
 		if(file_exists(INST_PATH.'app/models/'.$model.'.php')):
@@ -37,15 +77,19 @@ abstract class Page extends Core_General_Class{
 				require INST_PATH.'app/models/'.$model.'.php';
 			endif;
 			$obj = new $var();
-			return $obj;
+			return $obj; 
 		endif;
 	}
+	/**
+	 * 
+	 * @param unknown $view
+	 */
 	public function display($view){
 		$renderPage = TRUE;
 		$this->action = _ACTION;
 		$this->controller = _CONTROLLER;
 		if(property_exists($this, 'noTemplate') and in_array($view['action'], $this->noTemplate)) $renderPage = FALSE;
-
+		
 		if(isset($this->render) and is_array($this->render)):
 			if(isset($this->render['file'])):
 				$view = $this->render['file'];
@@ -60,22 +104,22 @@ abstract class Page extends Core_General_Class{
 		else:
 			$view = $view['controller'].'/'.$view['action'].'.phtml';
 		endif;
-
+		
 		if($renderPage):
 			ob_start();
 			include_once(INST_PATH."app/templates/".$view);
 			$this->content = ob_get_clean();
 		endif;
-
-
+		
+		
 		if(isset($this->render['layout']) and $this->render['layout'] !== false):
 			$this->layout = $this->render['layout'];
 		endif;
-
+		
 		if(isset($this->render['layout']) and $this->render['layout'] === false):
 			$this->layout = '';
 		endif;
-
+		
 		if(strlen($this->layout)>0):
 			ob_start();
 			include_once(INST_PATH."app/templates/".$this->layout.".phtml");
@@ -85,7 +129,10 @@ abstract class Page extends Core_General_Class{
 			echo $this->content;
 		endif;
 	}
-
+	/**
+	 * 
+	 * @param string $helper
+	 */
 	public function LoadHelper($helper=NULL){
 		if(isset($helper) and is_array($helper)):
 			foreach($helper as $file){
@@ -95,19 +142,12 @@ abstract class Page extends Core_General_Class{
 			 require_once(INST_PATH."app/helpers/".$helper."_Helper.php");
 		endif;
 	}
+	/**
+	 * 
+	 * @param string $params
+	 */
 	public function params($params = NULL){
 		$this->params = $params;
-	}
-	public function respondToAJAX($val = null){
-		if($val === null):
-			return $this->_respondToAJAX;
-		else:
-			$this->_respondToAJAX = $val;
-			$this->_canrespondtoajax = true;
-		endif;
-	}
-	public function canRespondToAJAX(){
-		return $this->_canrespondtoajax;
 	}
 }
 
