@@ -1,6 +1,8 @@
 <?php
-require "Mail.php";
-
+//require "Mail.php";
+if(!class_exists('Mail') and file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
+	require_once "Mail.php";
+endif;
 
 /**
  *
@@ -73,7 +75,7 @@ require "Mail.php";
 			 if (PEAR::isError($mail)):
 			   $sent = false;
 //			   echo $mail->getMessage();
-//			   file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $arr['to'].' not sent'.$mail->getMessage());
+			   file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $arr['to'].' not sent'.$mail->getMessage());
 			 else:
 			   $sent = true;
 //			   file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $arr['to'].' sent');

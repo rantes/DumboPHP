@@ -1,8 +1,6 @@
 <?php
-require 'errors.php';
-require "Driver.php";
 /**
- * Clase ActiveRecord.
+ * ActiveRecord.
  *
  * @author Javier Serrano <rantes.javier@gmail.com>
  * @version 1.0
@@ -11,6 +9,9 @@ require "Driver.php";
  * @package Core
  * @extends Core_General_Class
  */
+require 'errors.php';
+require "Driver.php";
+
 /**
  * Clase ActiveRecord.
  *
@@ -22,8 +23,8 @@ require "Driver.php";
  * @license   http://opensource.org/licenses/gpl-license.php GNU Public License
  * @copyright Javier Serrano <http://www.rantes.info/>
  * @package Core
- * @extends Core_General_Class
  * @access abstract
+ * @extends Core_General_Class
  */
  abstract class ActiveRecord extends Core_General_Class{
 	/**
@@ -115,6 +116,15 @@ require "Driver.php";
 	 * @var array $before_insert
 	 */
 	protected $before_insert = array();
+	/**
+	 * Variable de tipo array $after_insert.
+	 *
+	 * ('despues de insertar') Indica cada una de las funciones a ejecutar despues de crear un registro nuevo.
+	 * Este callback se invoca despues de ejecutar una consulta de inserci&oacute;n.
+	 * Cada posici&oacute;n de arreglo es el nombre de una funci&oacute;n.
+	 * Cada funci&oacute;n implicada debe ser definida dentro del modelo, desp&uacute;es de el metodo {@link __construct()}.
+	 * @var array $before_insert
+	 */
 	protected $after_insert = array();
 	/**
 	 * Variable de tipo array $after_find.
@@ -186,11 +196,20 @@ require "Driver.php";
 	 * @var array
 	 */
 	protected $_data = array();
-
+	/**
+	 * Variable de tipo array $_dataAttributes.
+	 *
+	 * Este arreglo contiene los datos de propiedades (atributos) de los campos.
+	 * @var array
+	 */
 	protected $_dataAttributes = array();
-
+	/**
+	 * Variable de tipo array $_models.
+	 *
+	 * Este arreglo contiene los modelos, para no mesclarlos con {@link $_data}.
+	 * @var array
+	 */
 	protected $_models = array();
-
 	/**
 	*
 	* Objeto de tipo Error $_error
@@ -199,21 +218,21 @@ require "Driver.php";
 	* @var Error $_error
 	**/
 	public $_error = NULL;
-
+	/**
+	 * Almacena la construcci&oacute;n del query.
+	 * @var string
+	 */
 	public $_sqlQuery = '';
 
 	/**
 	 * Constructor
 	 *
-	 * Realiza conecci?n a la base de datos mediante el m?todo {@link connect()}
+	 * Realiza conexi&oacute;n a la base de datos mediante el m&eacute;todo {@link connect()}
 	 */
 	function __construct(){
-		//parent::__construct(array(), ArrayObject::ARRAY_AS_PROPS);
 		$this->_data = NULL;
 		$this->_data = array();
-		//$this->_TableName();
 		$this->Connect();
-
 	}
 	/**
 	 * Destructor
@@ -225,45 +244,46 @@ require "Driver.php";
 		$this->_error = NULL;
 	}
 	/**
-	 * m?todo m?gico __set()
+	 * metodo magico __set()
 	 *
-	 * Este m?todo se ejecuta cuando se crea un nuevo atributo al objeto.
+	 * Se ejecuta cuando se crea un nuevo atributo al objeto.
 	 * Carga datos en la variable {@link $data}.
 	 *
-	 * Los valores creados, luego pueden ser accedidos directamente gracias al m?todo {@link __get()}
+	 * Los valores creados, luego pueden ser accedidos directamente gracias al m&eacute;todo {@link __get()}
 	 * @param string $name Nombre del atributo a crear.
 	 * @param mixed $value Valor del atributo.
 	 */
 	public function __set($name, $value) {
-		try{
-//		if(is_object($value) and strcmp(get_parent_class($value),'ActiveRecord')===0):
-//			$this->_models[$name] = $value;
-//		else:
-			$this->_data[$name] = $value;
-//		endif;
-
-		}
-		catch(Exception $e){
-			$trace = debug_backtrace();
-			trigger_error(
-				'error:'.$e,
-				E_USER_NOTICE);
-		}
-		//$this->ksort();
+		$this->_data[$name] = $value;
 	}
+	/**
+	 * Metodo magico
+	 * Elimina un campo almacenado en {@link $data}
+	 * @param string $name
+	 */
 	public function __unset($name) {
 		$this->_data[$name] = NULL;
 		unset($this->_data[$name]);
 	}
+	/**
+	 * Metodo magico
+	 * Verifica si un campo existe o est&aacute; seteado en {@link $data}
+	 * @param string $var
+	 * @return bool
+	 */
 	public function __isset($var){
 		if(!empty($this->_data) and array_key_exists($var, $this->_data)) return TRUE;
 		return FALSE;
 	}
+	/**
+	 * (non-PHPdoc)
+	 * @see ArrayObject::getIterator()
+	 */
 	public function getIterator() {
             return new ArrayIterator($this);
     }
 	/**
-	 * m?todo m?gico __get()
+	 * m&eacute;todo m&aacute;gico __get()
 	 *
 	 * Este m?todo se ejecuta cuando se accede a un attributo directamente del objeto y que no existe.
 	 *
@@ -271,10 +291,7 @@ require "Driver.php";
 	 * @param string $name Nombre del atributo que se quiere acceder.
 	 */
 	public function __get($name) {
-//		if (isset($this->_models[$name])):
-//			return $this->_models[$name];
-//		else:
-			switch($name):
+			switch($name){
 				case '_ObjTable':
 					return $this->_TableName();
 				break;
@@ -283,23 +300,22 @@ require "Driver.php";
 				break;
 				default:
 
-					if (isset($this->_data[$name])):
+					if (isset($this->_data[$name])){
 						return $this->_data[$name];
-					else:
+					}else{
 						$model = unCamelize($name);
-						if(file_exists(INST_PATH.'app/models/'.$model.'.php')):
-							if(!class_exists($name)):
+						if(file_exists(INST_PATH.'app/models/'.$model.'.php')){
+							if(!class_exists($name)){
 								require INST_PATH.'app/models/'.$model.'.php';
-							endif;
+							}
 							$this->_data[$name] = new $name();
 							return $this->_data[$name];
-						else:
+						}else{
 							return null;
-						endif;
-					endif;
+						}
+					}
 				break;
-			endswitch;
-//		endif;
+			}
 		throw new Exception('Undefined variable to get: ' . $name);
 		return null;
 	}
@@ -314,30 +330,10 @@ require "Driver.php";
 		/**
 		 * El archivo driver.php es el archivo controlador para la conexi?n y tratamiento de la base de datos.
 		 */
-
-		if($this->driver === NULL and !is_object($this->driver) and get_class($this->driver) != 'Driver'):
+		if($this->driver === NULL and !is_object($this->driver) and get_class($this->driver) != 'Driver'){
 			$this->driver = new Driver(INST_PATH.'config/db_settings.ini');
-		endif;
-		//$this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
+		}
 		$this->_error = new Errors();
-//		$pathModels=INST_PATH.'app/models/';
-//		$directorio=dir($pathModels);
-//		$objects = array();
-//		$classes = get_declared_classes();
-//		while (($archivo = $directorio->read()) != FALSE):
-//			if($archivo !="." and $archivo != ".." and $archivo != "_notes" and preg_match('/.php/', $archivo)):
-
-//				$nameTable = str_replace('.php', '', $archivo);
-//				$nameCons = strtoupper($nameTable);
-//				$class = Camelize($nameTable);
-//				if(!in_array($class, $classes)) include($pathModels.$archivo);
-//				global $$class;
-//				$this->{$class} = new $class();
-				//$objects[$nameCons] = $nameTable;
-//			endif;
-//		endwhile;
-
-//		$directorio->close();
 	}
 
 	/**
@@ -347,31 +343,32 @@ require "Driver.php";
 	* Lee los nombres de los campos y sus valores de la consulta realizada y de acuerdo con eso
 	* genera los nuevos atributos al objeto propio a trav?s de $this, siendo en el caso de un resultado de un
 	* solo registro o un arreglo de objetos de este mismo tipo como atributo de este objeto.
+	* @param string $query
 	*/
 	private function getData($query){
 
 		$this->_data = NULL;
 		$this->_data = array();
 
-		if(sizeof($this) >0):
-			for($k = 0; $k<sizeof($this); $k++):
+		if(sizeof($this) >0){
+			for($k = 0; $k<sizeof($this); $k++){
 				if(isset($this[$k])) $this->offsetUnSet($k);
-			endfor;
-		endif;
-		for($k = 0; $k<sizeof($this->_data); $k++):
+			}
+		}
+		for($k = 0; $k<sizeof($this->_data); $k++){
 			array_pop($this->_data);
-		endfor;
-		foreach($this as $index => $obj):
+		}
+		foreach($this as $index => $obj){
 			$obj = null;
 			unset($obj);
 			$this->offsetUnSet($index);
-		endforeach;
-		if(isset($this->_data)):
-			foreach($this->_data as $key => $val):
+		}
+		if(isset($this->_data)){
+			foreach($this->_data as $key => $val){
 				$this->_data[$key] = NULL;
 				unset($this->_data[$key]);
-			endforeach;
-		endif;
+			}
+		}
 
 		$result = array();
 		$i=0;
@@ -383,57 +380,59 @@ require "Driver.php";
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset = $regs->fetchAll();
 
-		if(sizeof($resultset) > 0):
-			for($j = 0; $j < sizeof($resultset); $j++):
+		if(sizeof($resultset) > 0){
+			for($j = 0; $j < sizeof($resultset); $j++){
 				$classToUse = get_class($this);
 
 				$this->offsetSet($i, NULL);
 				$this[$j] = new $classToUse();
 				$column = 0;
-				foreach($resultset[$j] as $property => $value):
-					if(!is_numeric($property)):
+				foreach($resultset[$j] as $property => $value){
+					if(!is_numeric($property)){
 						$type = $regs->getColumnMeta($column);
-// 						$this[$j]->{$property} = new ActiveRegister($value, $type);//$value;
 						$deftype = 'VAR_CHAR';
-						$type['native_type'] = empty($type['native_type'])?$deftype:$type['native_type'];
+						$type['native_type'] = $deftype;
 						$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 						$type['native_type'] = strtoupper($type['native_type']);
 						$cast = 'toString';
-						switch($type['native_type']):
+						switch($type['native_type']){
 							case 'LONG':
 							case 'INTEGER':
 							case 'INT':
-								$cast = 'toInteger';
+// 								$cast = 'toInteger';
+								$this[$j]->_data[$property] = (integer)$value;
 							break;
 							case 'FLOAT':
 							case 'VAR_STRING':
 							case 'BLOB':
 							case 'TEXT':
 							case 'VARCHAR':
-								$cast = 'toString';
+							default:
+// 								$cast = 'toString';
+								$this[$j]->_data[$property] = (string)$value;
 							break;
-						endswitch;
-						$this[$j]->_data[$property] = $cast($value);//$value;
+						}
+// 						$this[$j]->_data[$property] = $cast($value);//$value;
 						$this[$j]->_dataAttributes[$property]['native_type'] = $type['native_type'];
 						$column++;
-					endif;
-				endforeach;
+					}
+				}
 				$i++;
-			endfor;
-		endif;
+			}
+		}
 
 		$this->_counter = $i;
-		if($this->_counter === 1):
-			foreach ($this[0]->_data as $field => $value):
+		if($this->_counter === 1){
+			foreach ($this[0]->_data as $field => $value){
 				$this->{$field} = $value;
-				$this->_dataAttributes[$field]['native_type'] = $this[0]->_dataAttributes[$field]['native_type'];
-			endforeach;
-		endif;
-		if($this->_counter === 0):
+				$this->_dataAttributes[$field]['native_type'] = $type['native_type'];
+			}
+		}
+		if($this->_counter === 0){
 			$this[0] = NULL;
 			$this->_data = NULL;
 			unset($this[0]);
-		endif;
+		}
 	}
 
 	/**
@@ -453,20 +452,18 @@ require "Driver.php";
 	*
 	* o Cuando el par?metro $conditions es nulo o no se pasa ning?n par?metro, se selecciona todo sin condici?n.
 	*
-	* @todo completar la implementacion de la opcion sort.
-	* @param array|integer $conditions (opcional) Puede ser entero o array y sirve para el condicionamiento de la consulta, este arreglo es de la forma 'campo' => 'valor'.
-	* @param string $fields (opcional) Cadena que contiene los campos separados por comas.
+	* @param array|integer $params (opcional) Puede ser entero o array y sirve para el condicionamiento de la consulta, este arreglo es de la forma 'campo' => 'valor'.
 	* @access public
 	*/
 	public function Find($params = NULL){
 		$this->_data = null;
 		$this->__destruct();
 		$this->__construct();
-		if(sizeof($this->before_find) >0):
-			foreach($this->before_find as $functiontoRun):
+		if(sizeof($this->before_find) >0){
+			foreach($this->before_find as $functiontoRun){
 				$this->{$functiontoRun}();
-			endforeach;
-		endif;
+			}
+		}
 
 		//if(empty($this->_ObjTable)) $this->_TableName(); //$this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
 
@@ -474,75 +471,75 @@ require "Driver.php";
 		if(is_array($params) and isset($params['fields'])) $fields = $params['fields'];
 		$sql = "SELECT $fields FROM `".$this->_TableName()."` WHERE 1=1";
 
-		if(isset($params) and !empty($params)):
+		if(isset($params) and !empty($params)){
 			if(is_numeric($params)) $params = (integer)$params;
 			$type = gettype($params);
 			$strint = '';
-			switch($type):
+			switch($type){
 				case 'integer':
 					$sql .= " and id in ($params)";
 				break;
 				case 'string':
-					if(strpos($params,',')!== FALSE):
+					if(strpos($params,',')!== FALSE){
 						$sql .= " and id in ($params)";
-					endif;
+					}
 				break;
 				case 'array':
-					if(isset($params['conditions'])):
-						if(is_array($params['conditions'])):
+					if(isset($params['conditions'])){
+						if(is_array($params['conditions'])){
 							$NotOnlyInt = FALSE;
-							while(!$NotOnlyInt and (list($key, $value) = each($params['conditions']))):
+							while(!$NotOnlyInt and (list($key, $value) = each($params['conditions']))){
 								$NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
-							endwhile;
-							if(!$NotOnlyInt):
+							}
+							if(!$NotOnlyInt){
 								$sql .= " and id in (".$this->ToList($params['conditions']).")";
-							else:
+							}else{
 								foreach($params['conditions'] as $field => $value){
 									if(is_numeric($field)) $sql .= " and ".$value;
 									else $sql .= " and $field='$value'";
 								}
-							endif;
-						elseif(is_string($params['conditions'])):
+							}
+						}elseif(is_string($params['conditions'])){
 							$sql .= " and ".$params['conditions'];
-						endif;
-					endif;
-					if(isset($params['group'])):
+						}
+					}
+					if(isset($params['group'])){
 						$sql .= " GROUP BY `".$params['group']."`";
-					endif;
-					if(isset($params['sort'])):
-						switch (gettype($params['sort'])):
+					}
+					if(isset($params['sort'])){
+						switch (gettype($params['sort'])){
 							case 'string':
 								$sql .= " ORDER BY ".$params['sort'];
 							break;
 							case 'array':
 								null;
 							break;
-						endswitch;
-					endif;
+						}
+					}
 
-					if(isset($params['limit'])):
+					if(isset($params['limit'])){
 						$sql .= " LIMIT ".$params['limit'];
-					endif;
-					if(isset($params[0])):
-						switch($params[0]):
+					}
+					if(isset($params[0])){
+						switch($params[0]){
 						case ':first':
 							$sql .= " LIMIT 1";
 						break;
-						endswitch;
-					endif;
+						}
+					}
 				break;
-			endswitch;
-		endif;
+			}
+		}
 		//$this->Connect();
 		$this->getData($sql);
 		$this->_sqlQuery = $sql;
 
 		//$this->__construct();
-		if(sizeof($this->after_find)>0):
-			foreach($this->after_find as $functiontoRun):
+		if(sizeof($this->after_find)>0){
+			foreach($this->after_find as $functiontoRun){
 				$this->{$functiontoRun}();
-			endforeach;
-		endif;
+			}
+		}
 		return clone($this);
 	}
 
@@ -555,15 +552,15 @@ require "Driver.php";
 	 * @param string $query Cadena con la consulta SQL.
 	 */
 	public function Find_by_SQL($query = NULL){
-	if(!$query):
+	if(!$query){
 		trigger_error( "The query can not be NULL", E_USER_ERROR );
 		exit;
-	else:
+	}else{
 		//$this->Connect();
 		$this->getData($query);
 		//$this->__construct();
 		return clone $this;
-	endif;
+	}
 	}
 
 	/**
@@ -577,50 +574,37 @@ require "Driver.php";
 		$this->__destruct();
 		$this->__construct();
 		$this->_data = NULL;
-		$this->_data = array();
+// 		$this->_data = array();
 		$this->Connect();
 		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`");
 		$type = array();
-		$classToUse = get_class($this);
-
-		$this->offsetSet(0, NULL);
-		$this[0] = new $classToUse();
-		foreach($result as $row):
+		foreach($result as $row){
 			$type['native_type'] = $row['Type'];
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 			$type['native_type'] = strtoupper($type['native_type']);
 			$cast = 'toString';
 			$toCast= false;
-			switch($type['native_type']):
+			switch($type['native_type']){
 				case 'LONG':
 				case 'INTEGER':
 				case 'INT':
 					$toCast = true;
-// 					$cast = 'toInteger';
 				break;
-// 				case 'FLOAT':
-// 				case 'VAR_STRING':
-// 				case 'BLOB':
-// 				case 'TEXT':
-// 				case 'VARCHAR':
-// 					$cast = 'toString';
-// 				break;
-			endswitch;
+			}
 			$value = '';
 			$this->_counter = 0;
-			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
-			if(!empty($contents) and is_array($contents)):
-				if(isset($contents[$row['Field']])):
-// 					$value = $cast($contents[$row['Field']]);
+			if(isset($contents) and $contents !== NULL and is_array($contents)){
+				if(isset($contents[$row['Field']])){
 					$value = $toCast ? (integer)$contents[$row['Field']] : $contents[$row['Field']];
 					$this->_counter = 1;
-					$this->{$row['Field']} = $value;
-					$this[0]->{$row['Field']} = $value;
-// 				else:
-// 					continue;
-				endif;
-			endif;
-		endforeach;
+				}else{
+					continue;
+				}
+			}
+			$this->{$row['Field']} = $value;
+			$this[0]->{$row['Field']} = $value;
+			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
+		}
 		return clone($this);
 	}
 	/**
@@ -641,21 +625,16 @@ require "Driver.php";
 		$this->Connect();
 		$className = get_class($this);
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
-		if(isset($this->validate) and is_array($this->validate)):
+		if(isset($this->validate) and is_array($this->validate)){
 			foreach($this->validate as $evaluation => $content){
-				switch($evaluation):
+				switch($evaluation){
 					case 'presence_of':
 						$empty = false;
 						foreach($content as $field){
 							$val = $this->{$field};
-							if(!isset($val) or $val == "" or $val == " "):
+							if(!isset($val) or $val == "" or $val == " "){
 								$this->_error->add(array('field'=>$field,'message'=>'This field cannot be empty or null.'));
-//                                $trace = debug_backtrace();
-//								trigger_error(
-//									'This Field cannot be empty or null: ' . $field,
-//									E_USER_NOTICE);
-//								$empty = true;
-							endif;
+							}
 						}
 						if($this->_error->isActived()) return false;
 					break;
@@ -673,35 +652,35 @@ require "Driver.php";
 					case 'numeric':
 						$noNumber = false;
 						foreach($content as $field){
-							if(isset($this->{$field}) and (!is_numeric($this->{$field}))):
+							if(isset($this->{$field}) and (!is_numeric($this->{$field}))){
 								$this->_error->add(array('field' => $field,'message'=>'This Field must be numeric'));
-							endif;
+							}
 						}
 						if($this->_error->isActived()) return false;
 					break;
 					case 'is_email':
 
 						foreach($content as $field){
-							if(count(preg_match("/(@+)/",$this->{$field})) > 1):
+							if(count(preg_match("/(@+)/",$this->{$field})) > 1){
 								$trace = debug_backtrace();
 										trigger_error(
 											'The email provided is not a valid email address: ' . $field,
 											E_USER_NOTICE);
 								return false;
-							endif;
+							}
 						}
 					break;
-				endswitch;
+				}
 			}
-		endif;
+		}
 		$this->__construct();
-		if(sizeof($this->before_save)>0):
+		if(sizeof($this->before_save)>0){
 			foreach($this->before_save as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
-		endif;
+		}
 		if($this->_error->isActived()) return FALSE;
-		if($this->id and !empty($this->id) and $this->id != ''):
+		if($this->id and !empty($this->id) and $this->id != ''){
 			$kind = "update";
 			$query = "UPDATE `".$this->_TableName()."` SET ";
 			$ThisClass = get_class($this);
@@ -711,74 +690,73 @@ require "Driver.php";
 
 			$arraux = array();
 			$i=0;
-			foreach($existing_data as $key => $data):
-				if(is_array($data)):
+			foreach($existing_data as $key => $data){
+				if(is_array($data)){
 
-					foreach($data as $field => $value):
-						if(!is_array($value)):
-							if(isset($this->{$field}) and $value !== $this->{$field} and strcmp($field, "created_at") !== 0 and strcmp($field, "updated_at") !== 0 and strcmp($field, "id") !== 0):
+					foreach($data as $field => $value){
+						if(!is_array($value)){
+							if(isset($this->{$field}) and $value !== $this->{$field} and strcmp($field, "created_at") !== 0 and strcmp($field, "updated_at") !== 0 and strcmp($field, "id") !== 0){
 								$arraux[$field] = $this->{$field};
-							endif;
-						endif;
-					endforeach;
-				else:
-					if(isset($this->_data[$key]) and $data != $this->_data[$key] and strcmp($key, "created_at") !== 0 and strcmp($key, "updated_at") !== 0 and strcmp($key, "id") !== 0):
+							}
+						}
+					}
+				}else{
+					if(isset($this->_data[$key]) and $data != $this->_data[$key] and strcmp($key, "created_at") !== 0 and strcmp($key, "updated_at") !== 0 and strcmp($key, "id") !== 0){
 						$arraux[$key] = $this->_data[$key];
-					endif;
-				endif;
-			endforeach;
+					}
+				}
+			}
 				$arraux['updated_at'] = time();
-			foreach($arraux as $key => $value):
+			foreach($arraux as $key => $value){
 				$query .= "`$key` = '$value',";
-			endforeach;
+			}
 			$query = substr($query, 0,-1);
 			$query .= " WHERE id = ".$this->id;
-		else:
+		}else{
 			$kind = "insert";
 			$query = "INSERT INTO `".$this->_TableName()."` ";
-			if(isset($this->before_insert[0])):
+			if(isset($this->before_insert[0])){
 				foreach($this->before_insert as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
-			endif;
+			}
 			$fields = "";
 			$values = "";
 			$i=1;
 			$this->created_at = time();
-			$this->updated_at = 0;
 			foreach($this->_data as $field => $value){
-				if(!is_array($value)):
-					if($field != 'id'):
+				if(!is_array($value)){
+					if($field != 'id'){
 						$fields .= "`$field`, ";
 						$values .= "'$value', ";
-					endif;
+					}
 					$i++;
-				endif;
+				}
 			}
 			$fields = substr($fields, 0, -2);
 			$values = substr($values, 0, -2);
 			$query .= "($fields) VALUES ($values)";
-		endif;
+		}
 		//$this->Connect();
 		$this->_sqlQuery = $query;
-		if(!$this->driver->exec($query)):
+		if(!$this->driver->exec($query)){
 		    $e = $this->driver->errorInfo();
 		    $this->_error->add(array('field' => $this->_TableName(),'message'=>$e[2]."\n $query"));
 		    return FALSE;
-		endif;
-		if($kind == "insert"):
+		}
+		if($kind == "insert"){
 			$this->id = $this->driver->lastInsertId();
-			if(sizeof($this->after_insert)>0):
-				foreach($this->after_insert as $functiontoRun):
+			if(sizeof($this->after_insert)>0){
+				foreach($this->after_insert as $functiontoRun){
 					$this->{$functiontoRun}();
-				endforeach;
-			endif;
-		endif;
-		if(sizeof($this->after_save)>0):
-			foreach($this->after_save as $functiontoRun):
+				}
+			}
+		}
+		if(sizeof($this->after_save)>0){
+			foreach($this->after_save as $functiontoRun){
 				$this->{$functiontoRun}();
-			endforeach;
-		endif;
+			}
+		}
 		return true;
 	}
 
@@ -795,16 +773,17 @@ require "Driver.php";
 		$values = "";
 		$this->created_at = time();
 		foreach($this->_data as $field => $value){
-			if(!is_array($value)):
+			if(!is_array($value)){
 					$fields .= "`$field`,";
 					$values .= "'$value',";
-			endif;
+			}
 		}
 
 		$fields = substr($fields, 0,-1);
 		$values = substr($values, 0,-1);
+		//echo 'Inserting '.$values.' in '.$this->_TableName().PHP_EOL;
 		$query .= "($fields) VALUES ($values)";
-		$this->driver->exec($query) or die(print_r($this->driver->errorInfo(), true));
+		$this->driver->exec($query) or die($query.'-'.print_r($this->driver->errorInfo(), true));
 		return true;
 	}
 
@@ -821,38 +800,38 @@ require "Driver.php";
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
 
 		if($conditions === NULL and isset($this->id)) $conditions = $this->id;
-		if($conditions === NULL and (!isset($this->id) or $this->id == '')):
+		if($conditions === NULL and (!isset($this->id) or $this->id == '')){
 			$this->_error->add(array('field' => $this->_TableName(),'message'=>"Must specify a register to delete"));
 			return FALSE;
-		else:
+		}else{
 			$query = "DELETE FROM `".$this->_TableName()."` ";
-			if(is_numeric($conditions)):
+			if(is_numeric($conditions)){
 				$this->id = $conditions;
 				$query .= "WHERE id='$conditions'";
 				$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
-			elseif(is_array($conditions)):
+			}elseif(is_array($conditions)){
 				foreach($conditions as $field => $value){
 					$query .= " and $field='$value'";
 				}
-			endif;
-			if(sizeof($this->before_delete) >0):
+			}
+			if(sizeof($this->before_delete) >0){
 				foreach($this->before_delete as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
-			endif;
+			}
 			$this->Connect();
-			if(!$this->driver->exec($query)):
+			if(!$this->driver->exec($query)){
 			    $e = $this->driver->errorInfo();
 			    $this->_error->add(array('field' => $this->_TableName(),'message'=>$e[2]."\n $query"));
 			    return FALSE;
-			endif;
-			if(sizeof($this->after_delete) >0):
+			}
+			if(sizeof($this->after_delete) >0){
 				foreach($this->after_delete as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
-			endif;
+			}
 			return TRUE;
-		endif;
+		}
 	}
 	/**
 	 *
@@ -862,32 +841,31 @@ require "Driver.php";
 	 */
 	protected function _delete_or_nullify_dependents($id){
 		//verifyng dependencies
-		if (!empty($this->dependents) and $id != 0):
-			foreach ($this->has_many as $model):
+		if (!empty($this->dependents) and $id != 0){
+			foreach ($this->has_many as $model){
 				$model1 = Camelize($model);
 				//$dependentObject = new $model1();
 				$children = $this->{$model1}->Find(array('conditions'=>Singulars($this->_TableName())."_id='".$id."'"));
-
-				foreach ($children as $child):
-					switch ($this->dependents):
+				foreach ($children as $child){
+					switch ($this->dependents){
 						case 'destroy':
-							if(!$child->Delete()):
+							if(!$child->Delete()){
 							    $this->_error->add(array('field' => $this->_TableName(),'message'=>"Cannot delete dependents"));
 							    return FALSE;
-							endif;
+							}
 						break;
 						case 'nullify':
 							$child->{$this->_TableName().'_id'}='';
-							if(!$child->Save()):
+							if(!$child->Save()){
 							    $this->_error->add(array('field' => $this->_TableName(),'message'=>"Cannot nullify dependents"));
 							    return FALSE;
-							endif;
+							}
 						break;
-					endswitch;
+					}
 
-				endforeach;
-			endforeach;
-		endif;
+				}
+			}
+		}
 		return true;
 	}
 	/**
@@ -902,12 +880,10 @@ require "Driver.php";
 		echo "\n".get_class($this)." ".gettype($this).": ".$this;
 	}
 	/**
-	* M?todo p?blico m?gico __toString()
-	*
-	* Este m?todo es quien se encarga de tomar los atributos y sus valores contenidos en el objeto.
-	* @return string $listProperties Cadena de texto con el listado de atributos y sus valores.
-	*/
-	//protected $tabs;
+	 * Se encarga de formar la cadena para mostrar cuando se invoca {@link __toString()}
+	 * @param number $i
+	 * @return string
+	 */
 	public function ListProperties_ToString($i=0){
 		$listProperties = "";
 		$l = $i+1;
@@ -917,27 +893,35 @@ require "Driver.php";
 			$listProperties .= "\t";
 		}
 		$listProperties .= "{\n";
-		foreach($this as $obj):
-			$listProperties .= "\t".get_class($obj)."{\n";
-			$l = $i+2;
-			if(sizeof($obj->_data)>0):
-				foreach($obj->_data as $prop => $value):
-						for($j=0; $j<$l; $j++):
-							$listProperties .= "\t";
-						endfor;
-						$listProperties .= "[$prop] => ".((is_object($value) and get_parent_class($value) == 'ActiveRecord')?get_class($value)." ".gettype($value).": ".$value->ListProperties_ToString(($i+1)):$value)."\n";
-					$k++;
-				endforeach;
-			endif;
-			$listProperties .= "\t}\n";
-		endforeach;
+		foreach($this as $obj){
+			if(is_object($obj)){
+				$listProperties .= "\t".get_class($obj)."{\n";
+				$l = $i+2;
+				if(!empty($obj->_data)){
+					foreach($obj->_data as $prop => $value){
+							for($j=0; $j<$l; $j++){
+								$listProperties .= "\t";
+							}
+							$listProperties .= "[$prop] => ".((is_object($value) and get_parent_class($value) == 'ActiveRecord')?get_class($value)." ".gettype($value).": ".$value->ListProperties_ToString(($i+1)):$value)."\n";
+						$k++;
+					}
+				}
+				$listProperties .= "\t}\n";
+			}
+		}
 
-		for($j=0; $j<$i; $j++):
+		for($j=0; $j<$i; $j++){
 			$listProperties .= "\t";
-		endfor;
+		}
 		$listProperties .= "}";
 		return $listProperties;
 	}
+	/**
+	 * Metodo magico __toString()
+	 *
+	 * Este metodo es quien se encarga de tomar los atributos y sus valores contenidos en el objeto.
+	 * @return string $a Cadena de texto con el listado de atributos y sus valores.
+	 */
 	public function __toString(){
 		$a = $this->ListProperties_ToString();
 		return $a;
@@ -953,17 +937,17 @@ require "Driver.php";
 		$arraux = array();
 		$arraux1 = array();
 
-		if($this->counter() > 0):
+		if($this->counter() > 0){
 				$n=0;
-		        for($t = 0; $t < $this->counter(); $t++):
-		        	if(isset($this[$t]->_data)):
-				        foreach($this[$t]->_data as $property => $value):
+		        for($t = 0; $t < $this->counter(); $t++){
+		        	if(isset($this[$t]->_data)){
+				        foreach($this[$t]->_data as $property => $value){
 					        $arraux[$n][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
-				        endforeach;
+				        }
 				        $n++;
-			        endif;
-		        endfor;
-		endif;
+			        }
+		        }
+		}
 		return $arraux;
 	}
 	/**
@@ -971,7 +955,7 @@ require "Driver.php";
 	*
 	* Crea un archivo Xml con el contenido de $data, en la ruta $path. Ideal para bajar datos a disco antes de
 	* resetear una tabla.
-	* @param array $data Arreglo que contiene los datos para dumpear.
+	* @param array $dataDump Arreglo que contiene los datos para dumpear.
 	* @param string $path Cadena que contiene la ruta a guardar el archivo Xml.
 	*/
 	function Dump($dataDump = array(), $path){
@@ -980,31 +964,31 @@ require "Driver.php";
 		$dom = new DOMDocument('1.0', 'utf-8');
 
 		$sroot = $dom->appendChild(new DOMElement('table_'.$model));
-		if(isset($dataDump[0])):
-			foreach($dataDump as $reg):
+		if(isset($dataDump[0])){
+			foreach($dataDump as $reg){
 				$root = $sroot->appendChild(new DOMElement($model));
-				foreach($reg as $element => $value):
-					if(preg_match("(&|<|>)", $value)):
+				foreach($reg as $element => $value){
+					if(preg_match("(&|<|>)", $value)){
 						$value = $dom->createCDATASection($value);
 						$element = $root->appendChild(new DOMElement($element, ""));
 						$element->appendChild($value);
-					else:
+					}else{
 						$element = $root->appendChild(new DOMElement($element, $value));
-					endif;
-				endforeach;
-			endforeach;
-		else:
+					}
+				}
+			}
+		}else{
 			$root = $sroot->appendChild(new DOMElement($model));
 			foreach($dataDump as $element => $value){
-				if(preg_match("(&|<|>)", $value)):
+				if(preg_match("(&|<|>)", $value)){
 					$value = $dom->createCDATASection($value);
 					$element = $root->appendChild(new DOMElement($element, ""));
 					$element->appendChild($value);
-				else:
+				}else{
 					$element = $root->appendChild(new DOMElement($element, $value));
-				endif;
+				}
 			}
-		endif;
+		}
 
 		$fp = fopen($path.$model.'.xml', 'w+b');
 		fwrite($fp, $dom->saveXML());
@@ -1021,7 +1005,7 @@ require "Driver.php";
 		$doc->load(INST_PATH.'migrations/dumps/'.$docXml);
 		$tblName = str_replace('.xml', '', $docXml);
 		$items = $doc->getElementsByTagName($tblName);
-		foreach( $items as $xitem ):
+		foreach( $items as $xitem ){
 			$idfield = $xitem->getElementsByTagName("id");
 			$id  = $idfield->item(0)->nodeValue;
 			$Obj = Camelize(Singulars($tblName));
@@ -1029,14 +1013,14 @@ require "Driver.php";
 			$Obj->Niu();
 			$arrObj = $Obj->GetFields();
 			$Obj->id = $id;
-			foreach($arrObj as $key => $value):
-				if($key != 'table'):
+			foreach($arrObj as $key => $value){
+				if($key != 'table'){
 					$field = $xitem->getElementsByTagName("$key");
 					$Obj->{$key} = (is_object($field->item(0)))?addslashes($field->item(0)->nodeValue):'';
-				endif;
-			endforeach;
+				}
+			}
 			$Obj->Insert();
-		endforeach;
+		}
 
 	}
 	/**
@@ -1050,15 +1034,15 @@ require "Driver.php";
 		$createFile = FALSE;
 		$stringtoINI = '';
 		$file = INST_PATH.'migrations/Schema.ini';
-		if (!$schema = parse_ini_file($file, TRUE)):
+		if (!$schema = parse_ini_file($file, TRUE)){
 			$createFile = TRUE;
-		endif;
-		if($createFile):
+		}
+		if($createFile){
 			$stringtoINI .= "[$tableName] \n";
 			$fp = fopen($file, "w+b");
 			fwrite($fp, $stringtoINI);
 			fclose($fp);
-		elseif(!in_array($tableName, $schema)):
+		}elseif(!in_array($tableName, $schema)){
 			$schema[$tableName] = "";
 			$stringtoINI = "";
 			foreach($schema as $table => $val){
@@ -1067,7 +1051,7 @@ require "Driver.php";
 			$fp = fopen($file, "w+b");
 			fwrite($fp, $stringtoINI);
 			fclose($fp);
-		endif;
+		}
 	}
 	/**
 	* Metodo publico WriteModel($table)
@@ -1078,17 +1062,17 @@ require "Driver.php";
 	function WriteModel($table){
 		$file = Singulars($table).".php";
 		$modelpath = INST_PATH.'app/models/';
-		if(!file_exists($modelpath.$file)):
-			$newModel = "<?php \n";
+		if(!file_exists($modelpath.$file)){
+			$newModel = "<?php\n";
 			$newModel .= "class ".Camelize(str_replace('.php', '', $file))." extends ActiveRecord {\n";
-			$newModel .= "\tfunction __construct(){ \n";
-			$newModel .= "\t} \n";
-			$newModel .= "} \n";
+			$newModel .= "\tfunction __construct(){\n";
+			$newModel .= "\t}\n";
+			$newModel .= "}\n";
 			$newModel .= "?>";
 			$fp=fopen($modelpath.$file, "w+b");
 			fputs($fp, $newModel);
 			fclose($fp);
-		endif;
+		}
 	}
 	/**
 	* Metodo publico GetFields()
@@ -1122,10 +1106,17 @@ require "Driver.php";
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(get_class($this)));
 
 	}
-
+	/**
+	 * Retorna los errores ocurridos en la consulta
+	 * @return Error
+	 */
 	public function getError(){
 		return $this->_errors;
 	}
+	/**
+	 * Retorna el numero de registros en el objeto actual
+	 * @return number
+	 */
 	public function counter(){
 		return (integer)$this->_counter;
 	}
@@ -1141,61 +1132,47 @@ require "Driver.php";
 	 * @param string $name
 	 */
 	public function _TableName($name = null){
-		if(!empty($name)):
+		if(!empty($name)){
 			$this->_ObjTable = $name;
-		elseif(empty($this->_ObjTable) or strlen($this->_ObjTable) < 1):
+		}elseif(empty($this->_ObjTable) or strlen($this->_ObjTable) < 1){
 			$className =  unCamelize(get_class($this));
 			$words = explode("_", $className);
 			$i = sizeof($words) - 1;
 			$words[$i] = Plurals($words[$i]);
 			$this->_ObjTable = implode("_", $words);
-		endif;
+		}
 		return $this->_ObjTable;
 	}
 	/**
-	 *
-	 * Gets the executed query.
+	 * Retorna el query ejecutado
+	 * @return string
 	 */
 	public function _sqlQuery(){
 	    return $this->_sqlQuery;
 	}
 	/**
-	 * Gets the native type of an element or attribute of the recordset
-	 * @param mixed $field
+	 * Retorna el tipo nativo del campo especifico
+	 * @param string $field
 	 */
 	public function _nativeType($field){
 		return $this->_dataAttributes[$field]['native_type'];
 	}
 	/**
-	 * Gets the JSON of an ActiveRecord set
-	 * @return string JSON
+	 * Slices an Active Record object resulset into pieces delimited by start and length
+	 * @param integer $start
+	 * @param integer $length
 	 */
-	function toJSON(){
-		$jsonString = "";
-		if($this->_counter > 1):
-			$jsonString .= "[";
-			foreach($this as $record):
-				$jsonString .= $record->toJSON().",";
-			endforeach;
-			$jsonString = substr($jsonString, 0, -1);
-			$jsonString .= "]";
-		else:
-			$jsonString .= "{";
-			foreach($this->_data as $index => $element):
-				if(is_object($element) and get_parent_class($element) == 'ActiveRecord'):
-					$jsonString .= "'".$index."':".$element->toJSON();
-				elseif(is_array($element)):
-					$jsonString .= "'".$index."':".json_encode($element);
-				else:
-					$jsonString .= "'".$index."':'".$element."'";
-				endif;
-				$jsonString .= ",";
-			endforeach;
-			$jsonString = substr($jsonString, 0, -1);
-// 			$jsonString = substr($jsonString, 0, (substr($jsonString, -1,1) == ',')?-1:-3);
-			$jsonString .= "}";
-		endif;
-		return $jsonString;
+	public function slice($start = null, $length = null){
+		if(empty($length)) $length = $this->_counter;
+		if($start === null) $start = 0;
+		$end = $start + $length;
+		if ($end > $this->_counter) $end = $this->_counter;
+		$name = get_class($this);
+		$arr = new $name();
+		for($i=$start; $i<$end; $i++){
+			$arr[] = $this[$i];
+		}
+		return $arr;
 	}
 }
 ?>

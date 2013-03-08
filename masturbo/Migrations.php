@@ -1,8 +1,18 @@
 <?php
+/**
+ * Migraciones
+ * 
+ * @author Javier Serrano <rantes.javier@gmail.com>
+ * @version 1.0
+ * @license   http://opensource.org/licenses/gpl-license.php GNU Public License
+ * @copyright Javier Serrano <http://www.rantes.info/>
+ * @package Core
+ * @extends Core_General_Class
+ */
 require_once('GeneralCore.php');
 require_once('ActiveRecord.php');
 
-/*
+/**
 * Clase NewAr.
 *
 * Clase heredada de {@link ActiveRecord} y solo se usa para implementacion de las funciones de active records.
@@ -20,7 +30,7 @@ class NewAr extends ActiveRecord{}
  * @Version 3.0 November 18 2009
  */
 abstract class Migrations extends Core_General_Class{
-	/*
+	/**
 	* Atributo protegido $create_table;
 	* 
 	* Este atributo es un arreglo que contiene los datos necesarios para la creacion de la tabla que luego
@@ -29,30 +39,30 @@ abstract class Migrations extends Core_General_Class{
 	*/
 	//protected $create_table = array();
 	
-	/*
+	/**
 	* Metodo constructor.
 	*/
 	function __construct(){}
-	/*
+	/**
 	* Metodo destructor.
 	*/
 	function __destruct(){}
-	/*
+	/**
 	* Metodo abstracto Up().
 	* 
-	* Este metodo se define luego en la clase migracion y sirve para la creacion de la tabla en la base de datos.
+	* Este metodo se define luego en la clase migraci&oacute;n y sirve para la creacion de la tabla en la base de datos.
 	*/
 	public function up(){}
-	/*
+	/**
 	* Metodo abstracto Down().
 	* 
-	* Este metodo se define luego en la clase migracion y sirve para la eliminacion de la tabla en la base de datos.
+	* Este metodo se define luego en la clase migraci&oacute;n y sirve para la eliminacion de la tabla en la base de datos.
 	*/
 	public function down(){}
-	/*
+	/**
 	* Metodo publico Reset().
 	* 
-	* Este metodo sirve para la eliminacion y creacion de la tabla en la base de datos.
+	* Este metodo sirve para la eliminaci&oacute;n y creacion de la tabla en la base de datos.
 	*/
 	function Reset(){
 		$this->down();
@@ -61,7 +71,7 @@ abstract class Migrations extends Core_General_Class{
 	}
 	//Creaciones de tablas
 	
-	/*
+	/**
 	* Metodo protegido Create_Table($table=NULL).
 	* 
 	* Este metodo se encarga de crear la tabla con el parametro $table que contiene el nombre de la tabla y los
@@ -110,7 +120,6 @@ abstract class Migrations extends Core_General_Class{
 	//Alteraciones sobre las tablas
 	
 	/**
-	* 
 	* Este metodo se encarga de alterar la tabla con el parametro $columns que contiene el nombre de la tabla y el campo 
 	* con sus respectivos atributos.
 	* @param array $columns Arreglo que contiene el nombre de la tabla, campo y atributos.
@@ -145,7 +154,7 @@ abstract class Migrations extends Core_General_Class{
 			throw new Exception('Cannot add a column with '.gettype($columns).'.');
 		endif;
 	}
-	/*
+	/**
 	* Metodo protegido Remove_Column($column=NULL).
 	* 
 	* Este metodo se encarga de eliminar la columna con el parametro $column que contiene el nombre de la tabla y la columna.

@@ -1,4 +1,8 @@
-<?
+<?php
+/**
+* Generaci&oacute;n de los archivos controlador y vistas.
+* @package Core
+*/
 $arraux = (isset($arraux))? $arraux: NULL;
 $path=INST_PATH;
 				$_POST['migrations'][$arraux['Table']] = 'on';
@@ -9,60 +13,74 @@ $path=INST_PATH;
 				$Obj = new NewAr();
 				$Obj->WriteModel($arraux['Table']);
 				
-				
-				// Creation of the list view
+				$name = Singulars($arraux['Table']);
+				$fileModel = $name.".php";
 				$ClassName = Camelize($arraux['Table']);
 				$ClassToUse = Camelize(Singulars($arraux['Table']));
+				require_once(INST_PATH.'app/models/'.$fileModel);
+				
+				$objModel = new $ClassToUse();
+				
+				$fields = $objModel->GetFields();
+				
+				
+				// Creation of the list view
+				
 				$directory = INST_PATH."app/templates/$file/";
 				if(!is_dir($directory)) mkdir($directory);
 				$fp = fopen($directory.'index.phtml', 'w+b');
-				$content = '<div style="float:left; width:100%;">'."\n";
-				$content .= "\t".'<div align="center">'."\n";
-				$content .= "\t\t".'<table width="100%">'."\n";
-				$content .= "\t\t\t".'<? foreach($this->data as $row){ ?>'."\n";
-				$content .= "\t\t\t<tr>\n";
-				$content .= "\t\t\t".'<? foreach($row->getArray() as $col){ ?>'."\n";
-				$content .= "\t\t\t\t".'<td><?=$col;?></td>'."\n";
-				$content .= "\t\t\t<? } ?>\n";
-				$content .= "\t\t\t\t<td><a href=\"<?=INST_URI;?>$file/delete/<?=\$row->id;?>\">delete</a>&nbsp;<a href=\"<?=INST_URI;?>$file/addedit/<?=\$row->id;?>\">Edit</a></td>\n";
-				$content .= "\t\t\t</tr>\n";
-				$content .= "\t\t\t<? } ?>\n";
-				$content .= "\t\t</table>\n";
-				$content .= "\t</div>\n";
-				$content .= "<a href=\"<?=INST_URI;?>$file/addedit/\">Add new...</a>\n</div>";
+				$columnNames = '';
+				$dataRow = '';
+				$formContent = '';
+				foreach($fields as $field => $type){
+					$columnNames .= "<th>$field</th>\n";
+					$dataRow .= "<td><?=\$row->$field;?></td>\n\t\t\t\t\t";
+					$formContent .= "<label>$field :</label>\n<?=\$this->data->input_for(array('$field'));?>\n";
+				}
+				
+				$content = <<<PLUSTURBO
+				<div style="float:left; width:100%;text-align:center;">
+					<div style="float:left;">
+						<table>
+							<thead>
+							<tr>
+								$columnNames
+								<th>Actions</th>
+							</tr>
+							</thead>
+							<tbody>
+							<? foreach(\$this->data as \$row): ?>
+							<tr>
+								$dataRow
+								<td>
+									<a href="<?=INST_URI;?>$file/delete/<?=\$row->id;?>" style="margin-right:10px;">delete</a>
+									<a href="<?=INST_URI;?>$file/addedit/<?=\$row->id;?>">Edit</a>
+								</td>
+							</tr>
+							<? endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+					<a href="<?=INST_URI;?>$file/addedit/">Add new...</a>
+				</div>
+PLUSTURBO;
 				fwrite($fp, $content);
 				fclose($fp);
 				
 				//Creation of add/edit template
-				$name = Singulars($arraux['Table']);
-				$fileModel = $name.".php";
-				include_once(INST_PATH.'app/models/'.$fileModel);
 				
-				$objModel = new $ClassToUse();
-
-				$fields = $objModel->GetFields();
 
 				$fp = fopen(INST_PATH.'app/templates/'.$file.'/addedit.phtml', 'w+b');
-				$content = '<div style="float:left; width:100%;">'."\n";
-				$content .= "\t".'<div align="center">'."\n";
-				$content .= "\t\t<form action=\"<?=INST_URI;?>{$file}/create/\" method=\"post\" name=\"$name\" id=\"{$ClassToUse}_id\">\n";
-				
-				foreach($fields as $field => $type){
-					$content .= "\t\t\t<label>$field:\n";
-					$input = $this->GetInput($type);
-
-					if($input == 'text'):
-						$content .= "\t\t\t\t<input type=".'"text" name="'.$name."[$field]\" value=\"<?=\$this->data->$field;?>\" />\n";
-					elseif($input == 'textarea'):
-						$content .= "\t\t\t\t<textarea name=".'"'.$name."[$field]\"><?=\$this->data->$field;?></textarea>\n";
-					endif;
-					$content .= "\t\t\t</label><br />\n";				
-				}
-				$content .= "\t\t\t <input name=\"submit\" type=\"submit\" id=\"submit\" value=\"Submit\" />\n";
-				$content .= "\t\t\t <input type=\"reset\" name=\"Reset\" id=\"reset\" value=\"Reset\" />\n";
-				$content .= "\t\t</form>\n";
-				$content .= "\t</div>\n";
-				$content .= "</div>";
+				$content = <<<PLUSTURBO
+				<div style="float:left; width:100%;text-align:center;">
+					<div style="float:left;">
+						<?=\$this->data->form_for(array('action'=>INST_URI.'$file/create/'));?>
+						$formContent
+						<input name="submit" type="submit" id="submit" value="Submit" />
+						<?=end_form_for();?>
+					</div>
+				</div>
+PLUSTURBO;
 				fwrite($fp, $content);
 				fclose($fp);
 				

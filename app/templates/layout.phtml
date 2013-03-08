@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8"/>
+	<base href="<?=INST_URI;?>">
+	<title>+Turbo Console</title>
+	<?=stylesheet_link_tag('adminlayout.css');?>
+	<!--[if lt IE 9]>
+	<?=stylesheet_link_tag('ie.css');?>
+	<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+	<?=javascript_include_tag(array('jquery-1.6.4','hideshow','jquery.tablesorter','jquery.equalHeight','functions'));?>
+<script type="text/javascript">
+	jQuery(document).ready(function($){
+		$(".tablesorter").tablesorter();
+		//When page loads...
+		$(".tab_content").hide(); //Hide all content
+		$("ul.tabs li:first").addClass("active").show(); //Activate first tab
+		$(".tab_content:first").show(); //Show first tab content
+
+		//On Click Event
+		$("ul.tabs li").click(function() {
+
+			$("ul.tabs li").removeClass("active"); //Remove any "active" class
+			$(this).addClass("active"); //Add "active" class to selected tab
+			$(".tab_content").hide(); //Hide all tab content
+
+			var activeTab = $(this).find("a").attr("href"); //Find the href attribute value to identify the active tab + content
+			$(activeTab).fadeIn(); //Fade in the active ID content
+			return false;
+		});
+		$('.column').equalHeight();
+	});
+</script>
+</head>
+<body>
+	<header id="header">
+		<hgroup>
+			<h1 class="site_title"><a href="index.html">Quedicen.de Admin</a></h1>
+			<h2 class="section_title"><?=$this->title;?></h2>
+		</hgroup>
+		<div class="btn_view_site"><?=link_to(array('Ver sitio','url'=>INST_URI));?></div>
+	</header> <!-- end of header bar -->
+	<section id="secondary_bar">
+		<div class="user">
+			<p>John Doe (<a href="#">3 Messages</a>)</p>
+			<!-- <a class="logout_user" href="#" title="Logout">Logout</a> -->
+		</div>
+		<div class="breadcrumbs_container">
+			<article class="breadcrumbs">
+				<? 	if(_ACTION == 'index' and _CONTROLLER == 'admin'):
+						echo link_to(array('Admin', 'html'=>array('class'=>'current')));
+					else:
+						echo link_to(array('Admin', 'controller'=>'admin'));?>
+				<div class="breadcrumb_divider"></div>
+				<? 		echo link_to(array($this->title, 'html'=>array('class'=>'current')));
+					endif; ?>
+			</article>
+		</div>
+	</section><!-- end of secondary bar -->
+	<aside id="sidebar" class="column">
+		<form class="quick_search">
+			<input type="text" value="Quick Search" onfocus="if(!this._haschanged){this.value=''};this._haschanged=true;">
+		</form>
+		<hr/>
+		<h3>Content</h3>
+		<ul class="toggle">
+			<li class="icn_new_article"><a href="#">New Article</a></li>
+			<li class="icn_edit_article"><a href="#">Edit Articles</a></li>
+			<li class="icn_categories"><a href="#">Categories</a></li>
+			<li class="icn_tags"><a href="#">Tags</a></li>
+		</ul>
+		<h3>Users</h3>
+		<ul class="toggle">
+			<li class="icn_view_users"><?=link_to(array('Ver usuarios','action'=>'users','controller'=>'admin'));?></li>
+			<li class="icn_profile"><a href="#">Your Profile</a></li>
+		</ul>
+		<h3>Admin</h3>
+		<ul class="toggle">
+			<li class="icn_database"><?=link_to(array('Consola DB','controller'=>'console','action'=>'index'));?></li>
+			<li class="icn_settings"><?=link_to(array('Par&aacute;metros','controller'=>'admin','action'=>'params'));?></li>
+			<li class="icn_security"><a href="#">Security</a></li>
+			<li class="icn_jump_back"><a href="#">Logout</a></li>
+		</ul>
+		<footer>
+			<hr />
+			<p><strong>Powered by +Turbo</strong></p>
+		</footer>
+	</aside><!-- end of sidebar -->
+	<?=$this->content;?>
+</body>
+</html>
