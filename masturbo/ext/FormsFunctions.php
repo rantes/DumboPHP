@@ -1,11 +1,13 @@
 <?php
 /**
-* Extensi&oacute;n de Formularios
+* Extension de Formularios
 * 
 * Este archivo contiene funciones para el manejo de formularios.
 * @version 1.0
 * @author Javier Serrano.
-* @package Extensions
+* @package Core
+* @subpackage Extensions
+* @Version 3.0 November 18 2009
 */
 
 	/**
@@ -111,7 +113,7 @@
 	 * Establece un campo en el formulario segun el tipo de datos
 	 * @todo implementar para checkbox, radiobutton
 	 * @todo implementar validaciones
-	 * @param array $arr
+	 * @param array $params Los parametros adicionales como los elementos html.
 	 * @param ActiveRecord $obj
 	 * @throws Exception segun si no se usa un objeto active record o no se brinda el campo
 	 */

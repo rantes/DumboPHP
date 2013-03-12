@@ -1,8 +1,32 @@
 <?php
+/**
+ * Definiciones de las palabras irregulares para singular y plural.
+ *
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage Extensions
+ * @Version 3.0 November 18 2009
+ */
+/**
+ * Gestiona las palabras irregulares para convertir singular/plural
+ * @package Core
+ * @subpackage Extensions
+ * @author Javier Serrano
+ */
 class IrregularNouns {
+	/**
+	 * Contiene todas las palabras en singular.
+	 * @var array $singular
+	 */
 	public $singular = array();
+	/**
+	 * Contiene las palabras en plural.
+	 * @var array $plural
+	 */
 	public $plural = array();
-
+	/**
+	 * Establece los arreglos de palabras en singular y plural.
+	 */
 	function __construct(){
 		$this->singular[] =	'abyss';
 		$this->singular[] =	'alumnus';

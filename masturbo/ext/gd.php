@@ -1,6 +1,14 @@
 <?php
 /**
- * Función para aplicar el efecto polaroid a una imagen.
+ * Funciones para gestion de imagenes.
+ *
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage Extensions
+ * @Version 3.0 November 18 2009
+ */
+/**
+ * Funcion para aplicar el efecto polaroid a una imagen.
  *
  * @param string $path Ruta de la imagen
  * @param float $giro Angulo de giro de la imagen
@@ -38,7 +46,7 @@ function efectoPolaroid($path, $giro, $rfondo, $gfondo, $bfondo)
 	$gris2 = imagecolorallocate($img, 224,224,224);
 	$gris3 = imagecolorallocate($img, 240,240,240);
 
-	//Le añadimos una pequeña sombra
+	//Le aï¿½adimos una pequeï¿½a sombra
 	imageline($img, 2, imagesy($img)-3, imagesx($img)-1,imagesy($img)-3,$gris1);
 	imageline($img, 4, imagesy($img)-2, imagesx($img)-1,imagesy($img)-2,$gris2);
 	imageline($img, 6, imagesy($img)-1, imagesx($img)-1,imagesy($img)-1,$gris3);

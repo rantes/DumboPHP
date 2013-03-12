@@ -7,7 +7,7 @@
  * @license   http://opensource.org/licenses/gpl-license.php GNU Public License
  * @copyright Javier Serrano <http://www.rantes.info/>
  * @package Core
- * @extends Core_General_Class
+ * @subpackage ActiveRecord
  */
 require 'errors.php';
 require "Driver.php";
@@ -15,15 +15,15 @@ require "Driver.php";
 /**
  * Clase ActiveRecord.
  *
- * Contiene todos los m?todos para la implementaci?n de Active Records
- * y Mapeo de Objetos a trav?s de relaciones. No tiene instanciamiento.
+ * Contiene todos los metodos para la implementacion de Active Records
+ * y Mapeo de Objetos a traves de relaciones. No tiene instanciamiento.
  *
  * @author Javier Serrano <rantes.javier@gmail.com>
  * @version 1.0
- * @license   http://opensource.org/licenses/gpl-license.php GNU Public License
+ * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @copyright Javier Serrano <http://www.rantes.info/>
  * @package Core
- * @access abstract
+ * @subpackage ActiveRecord
  * @extends Core_General_Class
  */
  abstract class ActiveRecord extends Core_General_Class{
@@ -32,7 +32,6 @@ require "Driver.php";
 	*
 	* Es una cadena de texto que contiene el nombre de la tabla del objeto actual.
 	* @var array $ObjTable
-	* @access protected
 	*/
 	protected $_ObjTable;
 	/**
@@ -43,7 +42,7 @@ require "Driver.php";
 	/**
 	 * Variable protegida $driver
 	 *
-	 * Objeto de tipo pdo para la conexi?n global de bases de datos.
+	 * Objeto de tipo pdo para la conexion global de bases de datos.
 	 * @var Object_PDO $driver
 	 */
 	public $driver = NULL;
@@ -51,27 +50,24 @@ require "Driver.php";
 	/**
 	 * Variable protegida $_counter
 	 *
-	 * La Variable p?blica counter es para obtener el n?mero de registros existentes en el objeto
-	 * cuando se ha efectuado una b?squeda por el m?todo {@link Find()}.
+	 * La Variable publica counter es para obtener el numero de registros existentes en el objeto
+	 * cuando se ha efectuado una busqueda por el metodo {@link Find()}.
 	 * @var integer $counter
-	 * @default 0
-	 * @access protected
 	 */
 	protected $_counter = 0;
 
 	/**
 	 * Variable de tipo array $has_many.
 	 *
-	 * ('Tiene varios') Indica cada una de las tablas con las que tiene relaci?n de tipo uno a muchos.
-	 * Cada posici?n de arreglo es una tabla.
+	 * ('Tiene varios') Indica cada una de las tablas con las que tiene relacion de tipo uno a muchos.
+	 * Cada posicion de arreglo es una tabla.
 	 * @var array $has_many
-	 * @access protected
 	 */
 	protected $has_many = array();
 	/**
 	 * Variable de tipo array $has_one.
 	 *
-	 * ('Tiene uno') Indica cada una de las tablas con las que tiene relaci?n de tipo uno a uno.
+	 * ('Tiene uno') Indica cada una de las tablas con las que tiene relacion de tipo uno a uno.
 	 * Cada posicion de arreglo es una tabla.
 	 * @var array $has_one
 	 * @access protected
@@ -80,39 +76,36 @@ require "Driver.php";
 	/**
 	 * Variable de tipo array $belongs_to.
 	 *
-	 * ('pertenece a') Indica cada una de las tablas con las que tiene relaci?n de pertenencia.
-	 * Cada posici?n de arreglo es una tabla.
+	 * ('pertenece a') Indica cada una de las tablas con las que tiene relacion de pertenencia.
+	 * Cada posicion de arreglo es una tabla.
 	 * @var array $belongs_to
-	 * @access protected
 	 */
 	protected $belongs_to = array();
 	/**
 	 * Variable de tipo array $has_many_and_belongs_to.
 	 *
-	 * ('Tiene varios y Pertenece a') Indica cada una de las tablas con las que tiene relaci?n de uno a muchos y de pertenencia al mismo tiempo.
-	 * Se utiliza generalmente con tablas que se relacionan consigo mismas. Cada posici?n de arreglo es una tabla.
+	 * ('Tiene varios y Pertenece a') Indica cada una de las tablas con las que tiene relacion de uno a muchos y de pertenencia al mismo tiempo.
+	 * Se utiliza generalmente con tablas que se relacionan consigo mismas. Cada posicion de arreglo es una tabla.
 	 * @var array $has_many_and_belongs_to
-	 * @access protected
 	 */
 	protected $has_many_and_belongs_to = array();
 	/**
 	 * Variable de tipo array $validate.
 	 *
-	 * ('Validar') Indica cada uno de los tipos de validaci?n que se requieran y los campos a validar.
-	 * Cada llave del arreglo indica el tipo de validaci?n y cada elemento contenido
-	 * entre cada arreglo de validaci?n es un campo para validar.
+	 * ('Validar') Indica cada uno de los tipos de validacion que se requieran y los campos a validar.
+	 * Cada llave del arreglo indica el tipo de validacion y cada elemento contenido
+	 * entre cada arreglo de validacion es un campo para validar.
 	 * ejemplo: <pre>$this->validate = array("typo_de_validacion"=> array('campo1','campo2','campon'));</pre>
 	 * @var array $validate
-	 * @access protected
 	 */
 	protected $validate = array();
 	/**
 	 * Variable de tipo array $before_insert.
 	 *
 	 * ('antes de insertar') Indica cada una de las funciones a ejecutar antes de crear un registro nuevo.
-	 * Este callback se invoca antes de ejecutar una consulta de inserci?n.
-	 * Cada posici?n de arreglo es el nombre de una funci?n.
-	 * Cada funci?n implicada debe ser definida dentro del modelo, desp?es de el metodo __construct().
+	 * Este callback se invoca antes de ejecutar una consulta de insercion.
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $before_insert
 	 */
 	protected $before_insert = array();
@@ -120,9 +113,9 @@ require "Driver.php";
 	 * Variable de tipo array $after_insert.
 	 *
 	 * ('despues de insertar') Indica cada una de las funciones a ejecutar despues de crear un registro nuevo.
-	 * Este callback se invoca despues de ejecutar una consulta de inserci&oacute;n.
-	 * Cada posici&oacute;n de arreglo es el nombre de una funci&oacute;n.
-	 * Cada funci&oacute;n implicada debe ser definida dentro del modelo, desp&uacute;es de el metodo {@link __construct()}.
+	 * Este callback se invoca despues de ejecutar una consulta de insercion.
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $before_insert
 	 */
 	protected $after_insert = array();
@@ -130,9 +123,9 @@ require "Driver.php";
 	 * Variable de tipo array $after_find.
 	 *
 	 * ('despues de buscar') Indica cada una de las funciones a ejecutar despues de buscar en la BD.
-	 * Este callback se invoca despues de ejecutar una consulta de selecci?n.
-	 * Cada posici?n de arreglo es el nombre de una funci?n.
-	 * Cada funci?n implicada debe ser definida dentro del modelo, desp?es de el metodo __construct().
+	 * Este callback se invoca despues de ejecutar una consulta de seleccion.
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $after_find
 	 */
 	protected $after_find = array();
@@ -140,9 +133,9 @@ require "Driver.php";
 	 * Variable de tipo array $before_find.
 	 *
 	 * ('antes de buscar') Indica cada una de las funciones a ejecutar antes de buscar en la BD.
-	 * Este callback se invoca antes de ejecutar una consulta de selecci?n.
-	 * Cada posici?n de arreglo es el nombre de una funci?n.
-	 * Cada funci?n implicada debe ser definida dentro del modelo, desp?es de el metodo __construct().
+	 * Este callback se invoca antes de ejecutar una consulta de seleccion.
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $before_find
 	 */
 	protected $before_find = array();
@@ -150,8 +143,8 @@ require "Driver.php";
 	 * Variable de tipo array $after_save.
 	 *
 	 * ('despues de guardar') Indica cada una de las funciones a ejecutar despues de guardar un registro en la BD.
-	 * Cada posici?n de arreglo es el nombre de una funci?n.
-	 * Cada funci?n implicada debe ser definida dentro del modelo, desp?es de el metodo __construct().
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $after_save
 	 */
 	protected $after_save = array();
@@ -160,8 +153,8 @@ require "Driver.php";
 	 * Variable de tipo array $before_save.
 	 *
 	 * ('antes de guardar') Indica cada una de las funciones a ejecutar antes de guardar un registro en la BD.
-	 * Cada posici?n de arreglo es el nombre de una funci?n.
-	 * Cada funci?n implicada debe ser definida dentro del modelo, desp?es de el metodo __construct().
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $before_save
 	 */
 	protected $before_save = array();
@@ -169,8 +162,8 @@ require "Driver.php";
 	 * Variable de tipo array $after_delete.
 	 *
 	 * ('despues de borrar') Indica cada una de las funciones a ejecutar despues de borrar un registro en la BD.
-	 * Cada posici?n de arreglo es el nombre de una funci?n.
-	 * Cada funci?n implicada debe ser definida dentro del modelo, desp?es de el metodo __construct().
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $after_delete
 	 */
 	protected $after_delete = array();
@@ -178,8 +171,8 @@ require "Driver.php";
 	 * Variable de tipo array $before_delete.
 	 *
 	 * ('antes de borrar') Indica cada una de las funciones a ejecutar antes de borrar un registro en la BD.
-	 * Cada posici?n de arreglo es el nombre de una funci?n.
-	 * Cada funci?n implicada debe ser definida dentro del modelo, desp?es de el metodo __construct().
+	 * Cada posicion de arreglo es el nombre de una funcion.
+	 * Cada funcion implicada debe ser definida dentro del modelo, despues de el metodo __construct().
 	 * @var array $before_delete
 	 */
 	protected $before_delete = array();
@@ -206,7 +199,7 @@ require "Driver.php";
 	/**
 	 * Variable de tipo array $_models.
 	 *
-	 * Este arreglo contiene los modelos, para no mesclarlos con {@link $_data}.
+	 * Este arreglo contiene los modelos, para no mesclarlos con $_data.
 	 * @var array
 	 */
 	protected $_models = array();
@@ -219,7 +212,7 @@ require "Driver.php";
 	**/
 	public $_error = NULL;
 	/**
-	 * Almacena la construcci&oacute;n del query.
+	 * Almacena la construccion del query.
 	 * @var string
 	 */
 	public $_sqlQuery = '';
@@ -227,7 +220,7 @@ require "Driver.php";
 	/**
 	 * Constructor
 	 *
-	 * Realiza conexi&oacute;n a la base de datos mediante el m&eacute;todo {@link connect()}
+	 * Realiza conexion a la base de datos mediante el metodo connect()
 	 */
 	function __construct(){
 		$this->_data = NULL;
@@ -249,7 +242,7 @@ require "Driver.php";
 	 * Se ejecuta cuando se crea un nuevo atributo al objeto.
 	 * Carga datos en la variable {@link $data}.
 	 *
-	 * Los valores creados, luego pueden ser accedidos directamente gracias al m&eacute;todo {@link __get()}
+	 * Los valores creados, luego pueden ser accedidos directamente gracias al metodo {@link __get()}
 	 * @param string $name Nombre del atributo a crear.
 	 * @param mixed $value Valor del atributo.
 	 */
@@ -267,7 +260,7 @@ require "Driver.php";
 	}
 	/**
 	 * Metodo magico
-	 * Verifica si un campo existe o est&aacute; seteado en {@link $data}
+	 * Verifica si un campo existe o esta seteado en {@link $data}
 	 * @param string $var
 	 * @return bool
 	 */
@@ -283,11 +276,11 @@ require "Driver.php";
             return new ArrayIterator($this);
     }
 	/**
-	 * m&eacute;todo m&aacute;gico __get()
+	 * metodo magico __get()
 	 *
-	 * Este m?todo se ejecuta cuando se accede a un attributo directamente del objeto y que no existe.
+	 * Este mutodo se ejecuta cuando se accede a un attributo directamente del objeto y que no existe.
 	 *
-	 * Retorna el valor del atributo din?mico.
+	 * Retorna el valor del atributo dinamico.
 	 * @param string $name Nombre del atributo que se quiere acceder.
 	 */
 	public function __get($name) {
@@ -328,7 +321,7 @@ require "Driver.php";
 	 */
 	public function Connect(){
 		/**
-		 * El archivo driver.php es el archivo controlador para la conexi?n y tratamiento de la base de datos.
+		 * El archivo driver.php es el archivo controlador para la conexion y tratamiento de la base de datos.
 		 */
 		if($this->driver === NULL and !is_object($this->driver) and get_class($this->driver) != 'Driver'){
 			$this->driver = new Driver(INST_PATH.'config/db_settings.ini');
@@ -341,7 +334,7 @@ require "Driver.php";
 	*
 	* Este metodo se encarga de recrear los atributos del objeto.
 	* Lee los nombres de los campos y sus valores de la consulta realizada y de acuerdo con eso
-	* genera los nuevos atributos al objeto propio a trav?s de $this, siendo en el caso de un resultado de un
+	* genera los nuevos atributos al objeto propio a traves de $this, siendo en el caso de un resultado de un
 	* solo registro o un arreglo de objetos de este mismo tipo como atributo de este objeto.
 	* @param string $query
 	*/
@@ -436,21 +429,21 @@ require "Driver.php";
 	}
 
 	/**
-	* M?todo p?blico Find()
+	* Metodo publico Find()
 	*
-	* Este m?todo se encarga de construir una consulta SQL de tipo selecci?n.
-	* Retorna este objeto luego de ejecutar el m?todo {@link getData()} y los
-	* par?metros que recibe son $conditions, que puede ser:
+	* Este metodo se encarga de construir una consulta SQL de tipo selecciun.
+	* Retorna este objeto luego de ejecutar el metodo @link getData() y los
+	* parametros que recibe son $conditions, que puede ser:
 	* o un arreglo de forma 'nombre_campo' => 'valor'.
 	*
 	* o un valor entero.
 	*
 	* Para el condicionamiento de la consulta y $fields, que es un string
-	* con un listado de campos, separados por comas, para la selecci?n de campos espec?ficos.
+	* con un listado de campos, separados por comas, para la seleccion de campos especificos.
 	*
-	* o Cuando el par?metro $conditions es un entero, se realiza una consulta por el campo id.
+	* o Cuando el parametro $conditions es un entero, se realiza una consulta por el campo id.
 	*
-	* o Cuando el par?metro $conditions es nulo o no se pasa ning?n par?metro, se selecciona todo sin condici?n.
+	* o Cuando el parametro $conditions es nulo o no se pasa ningun parametro, se selecciona todo sin condicion.
 	*
 	* @param array|integer $params (opcional) Puede ser entero o array y sirve para el condicionamiento de la consulta, este arreglo es de la forma 'campo' => 'valor'.
 	* @access public
@@ -545,10 +538,10 @@ require "Driver.php";
 
 
 	/**
-	 * M?todo p?blico Find_by_SQL
+	 * Metodo publico Find_by_SQL
 	 *
-	 * Ejecuta una consulta de tipo selecci?n con la instrucci?n SQL pasada por par?metro.
-	 * Este m?todo es muy ?til cuando se requiere hacer una consulta muy compleja.
+	 * Ejecuta una consulta de tipo seleccion con la instruccion SQL pasada por parametro.
+	 * Este metodo es muy util cuando se requiere hacer una consulta muy compleja.
 	 * @param string $query Cadena con la consulta SQL.
 	 */
 	public function Find_by_SQL($query = NULL){
@@ -564,7 +557,7 @@ require "Driver.php";
 	}
 
 	/**
-	* M?todo p?blico Niu()
+	* Metodo publico Niu()
 	*
 	* Prepara un nuevo objeto para insertar a la base de datos.
 	* @param array $contents Arreglo de tipo 'campo'=>'valor' para pasar al objeto, para que al crear, le adicione datos.
@@ -608,15 +601,15 @@ require "Driver.php";
 		return clone($this);
 	}
 	/**
-	* M?todo p?blico Save()
+	* Metodo publico Save()
 	*
 	* Guarda los datos en la base de datos.
 	* Es capaz de diferenciar cuando realizar una consulta de tipo insert y cuando una de tipo update.
-	* Si todo resulta bien, devuelve true, sino devuelve falso y no termina la ejecuci?n.
+	* Si todo resulta bien, devuelve true, sino devuelve falso y no termina la ejecucion.
 	*
-	* Realiza validaciones requeridas y definidas en el modelo y ejecuta funciones definidas en el modelo tambi?n.
+	* Realiza validaciones requeridas y definidas en el modelo y ejecuta funciones definidas en el modelo tambien.
 	*
-	* Cuando se realiza una actualizaci?n, solo verifica los campos alterados y estos son los que se incluyen
+	* Cuando se realiza una actualizacion, solo verifica los campos alterados y estos son los que se incluyen
 	* en la consulta.
 	* @return boolean
 	**/
@@ -788,12 +781,12 @@ require "Driver.php";
 	}
 
 	/**
-	* M?todo Delete()
+	* Metodo Delete()
 	*
 	* Elimina registros en la Base de datos, dependiendo de las condiciones.
 	*
-	* El par?metro de condiciones $conditions puede ser un arreglo de tipo 'nombre_campo'=>'valor' o
-	* puede ser un valor entero, en este caso, se condicionar? la b?squeda por el id del registro.
+	* El parametro de condiciones $conditions puede ser un arreglo de tipo 'nombre_campo'=>'valor' o
+	* puede ser un valor entero, en este caso, se condicionara la busqueda por el id del registro.
 	* @param array|numeric $conditions Condiciones para la eliminacion.
 	**/
 	function Delete($conditions = NULL){
@@ -869,11 +862,11 @@ require "Driver.php";
 		return true;
 	}
 	/**
-	* M?todo p?blico inspect()
+	* Metodo publico inspect()
 	*
-	* Este m?todo sirve para realizar debugging del objeto. Es muy ?til para rastrear contenido del objeto y
-	* no se puede usar print_r() o echo o var_dump(). Este m?todo llama al m?todo {@link __toString()} para
-	* completar la impresi?n del contenido.
+	* Este metodo sirve para realizar debugging del objeto. Es muy util para rastrear contenido del objeto y
+	* no se puede usar print_r() o echo o var_dump(). Este metodo llama al metodo __toString() para
+	* completar la impresion del contenido.
 	*
 	*/
 	public function inspect(){
@@ -1026,7 +1019,7 @@ require "Driver.php";
 	/**
 	* Metodo publico WriteSchema($tableName)
 	*
-	* Este metodo se encarga de ir creando el schema de la base de datos para posterior indexaci?n sin necesidad de
+	* Este metodo se encarga de ir creando el schema de la base de datos para posterior indexacion sin necesidad de
 	* consultarlo a la base de datos.
 	* @param string $tableName Nombre de la tabla para registrar en el schema.
 	*/
@@ -1097,10 +1090,10 @@ require "Driver.php";
 	/**
 	 * Metodo publico BuildMigration()
 	 *
-	 * Construye un archivo de migraci?n en base del modelo.
+	 * Construye un archivo de migracion en base del modelo.
 	 *
 	 * Esto se usa cuando la base de datos ya exista y no se requiera hacer los archivos de
-	 * migraci?n para ahorrar tiempo.
+	 * migracion para ahorrar tiempo.
 	 */
 	function BuildMigration(){
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(get_class($this)));

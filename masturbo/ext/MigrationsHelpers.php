@@ -1,4 +1,19 @@
 <?php
+/**
+ * Migrations Helpers.
+ *
+ * Funciones auxiliares para trabajar las migraciones.
+ *
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage Extensions
+ * @Version 3.0 November 18 2009
+ */
+/**
+ * Se encarga de redireccionar la accion a la migracion es decir, segun el comportamiento en la consola, ejecuta la accion solicitada.
+ * @param string $params
+ * @param string $obj
+ */
 	function MigrationsActions($params = NULL, &$obj = NULL){
 		if(isset($_POST['migrations'])):
 			$path=INST_PATH.'migrations/';

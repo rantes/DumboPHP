@@ -5,15 +5,17 @@
  * Se encarga de la paginacion de los items en las vistas.
  * @version 1.0
  * @author Javier Serrano.
- * @package Extensions
+ * @package Core
+ * @subpackage Extensions
  */
 	/**
 	 * Paginate($params[per_page, page, conditions, fields, group, sort, varPageName])
 	 * 
 	 * Pagina resultados, embebiendo Find() con condiciones.
 	 * @param array $params
-	 * @throws Exception Si no se llama desde un objeto modelo {@link ActiveRecord}.
-	 * @return {@link ActiveRecord}
+	 * @param object $model el objeto de donde se est&acute; invocando la funcion.
+	 * @throws Exception Si no se llama desde un objeto modelo ActiveRecord.
+	 * @return ActiveRecord
 	 */
 	function Paginate($params = NULL, &$model = NULL){
 		if($model === NULL):
@@ -39,7 +41,13 @@
 		$obj->PaginatePageNumber = $page_num;
 		return clone($obj);
 	}
-	
+	/**
+	 * Construye el html para mostrar las paginas segun resultados.
+	 * @param array $params
+	 * @param object $page
+	 * @throws Exception
+	 * @return NULL|string
+	 */
 	function WillPaginate($params = NULL, &$page = NULL){
 //		if($page === NULL):
 //			throw new Exception("WillPaginate must be called in instace of a page object.");

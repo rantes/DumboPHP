@@ -1,6 +1,6 @@
 <?php
 /**
- *Page.
+ * Page.
  *
  * Clase que administra los controladores.
  * 
@@ -18,55 +18,61 @@
  *
  * Se encarga de cargar todos los modelos y demas funciones generales.
  * @extends Core_General_Class
+ * @package Core
+ * @subpackage Controllers
  */
 abstract class Page extends Core_General_Class{
 	/**
-	 * 
+	 * Define el layout a renderizar por controlador. Tambien se puede definir en una accion.
 	 * @var string
 	 */
 	protected $layout = "";
 	/**
-	 * 
+	 * Define el comportamiento de la renderizacio;n.
+	 * Puede contener:
+	 * 'layout' => boolean [true|false] para indicar si renderiza o no un layout.
+	 * 'text' => string [texto] para renderizar solo texto. No intenta renderizar una vista asociada.
+	 * 'partial' => string [ruta/hacia/el/partial] intenta renderizar un partial expresado.
 	 * @var array
 	 */
 	protected $render = NULL;
 	/**
-	 * 
+	 * Establece el mensaje global a mostrar en la vista.
 	 * @var string
 	 */
 	protected $flash = "";
 	/**
-	 * 
+	 * El contenido renderizado de la accion para mostrar en el layout;
 	 * @var string
 	 */
 	protected $content = "";
 	/**
-	 * 
+	 * Arreglo que contiene los parametros que se envian por $_GET.
 	 * @var array
 	 */
 	protected $params = array();
 	/**
-	 * 
+	 * Etiqueta description del meta encabezado.
 	 * @var string
 	 */
 	protected $metaDescription = '';
 	/**
-	 * 
+	 * T&acute;tulo de la pagina.
 	 * @var string
 	 */
 	protected $pageTitle = '';
 	/**
-	 * 
+	 * Controlador actual.
 	 * @var string
 	 */
 	protected $controller = '';
 	/**
-	 *
+	 * Accion actual.
 	 * @var string
 	 */
 	protected $action = '';
 	/**
-	 * 
+	 * Metodo magico para el auto cargado de los modelos.
 	 * @param unknown $var
 	 * @return unknown
 	 */
@@ -81,7 +87,7 @@ abstract class Page extends Core_General_Class{
 		endif;
 	}
 	/**
-	 * 
+	 * Metodo para renderizar la accion.
 	 * @param unknown $view
 	 */
 	public function display($view){
@@ -130,7 +136,7 @@ abstract class Page extends Core_General_Class{
 		endif;
 	}
 	/**
-	 * 
+	 * Metodo para cargar los helpers definidos en el controlador.
 	 * @param string $helper
 	 */
 	public function LoadHelper($helper=NULL){
@@ -143,7 +149,7 @@ abstract class Page extends Core_General_Class{
 		endif;
 	}
 	/**
-	 * 
+	 * Establece parametros GET.
 	 * @param string $params
 	 */
 	public function params($params = NULL){

@@ -1,21 +1,22 @@
 <?php
 /**
- *
- * Clase Driver.
- *
- * Clase heredada de la clase PDO que se encarga de toda la conexion a las bases de datos, cualquiera que sea,
- * y las consultas a ellas.
+ * Clase heredada de la clase PDO que se encarga de toda la conexion a las bases de datos, cualquiera que sea, y las consultas a ellas.
  *
  * @author Javier Serrano
  * @package Core
- * @subpackage ActiveRecords
+ * @subpackage ActiveRecord
  * @Version 3.0 November 18 2009
+ */
+/**
+ * Controlador de la conexion a la base de datos, segun el archivo de configuracion ubicado en /config/db.ini
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage ActiveRecord
+ * @extends PDO
  */
 class Driver extends PDO
 {
 	/**
-	* Metodo publico __construct
-	* 
 	* Metodo constructor.
 	* @param string $file (Default) String que contiene la ruta del archivo de configuracion de la base de datos.
 	*/

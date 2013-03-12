@@ -2,6 +2,8 @@
 /**
  * Dispatcher class; handles the process of get the url and show what is needed
  * @author rantes
+ * @package Core
+ * @subpackage Controllers
  * @todo routes to handle different errors
  * @todo handles the different requires
  */
@@ -11,7 +13,8 @@ endif;
 /**
  * Se encarga de la captura de los requests y encapsula todo el proceso de hacer los llamado y responder al navegador.
  * @author rantes
- *
+ * @package Core
+ * @subpackage Controllers
  */
 class index{
 	/**

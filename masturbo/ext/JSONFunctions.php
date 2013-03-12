@@ -1,4 +1,18 @@
 <?php
+/**
+ * Funciones para la gestion de elementos JSON.
+ *
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage Extensions
+ * @Version 3.0 November 18 2009
+ */
+/**
+ * Convierte un objeto ActiveRecord a JSON.
+ * @param array $arr
+ * @param string $obj
+ * @return string
+ */
 	function toJSON(&$arr, &$obj=NULL){
 		$arr = $obj->getArray();
 		$jsonString = "{";
@@ -19,7 +33,12 @@
 		$jsonString .= "}";
 		return $jsonString;
 	}
-	
+	/**
+	 * Convierte un dataset de tipo ActiveRecord a un arreglo JSON.
+	 * @param unknown $arr
+	 * @param string $obj
+	 * @return string
+	 */
 	function toJSArray(&$arr, &$obj=NULL){
 		$arr = $obj->getArray();
 		$String = "[";

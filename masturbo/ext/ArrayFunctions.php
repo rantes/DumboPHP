@@ -1,10 +1,20 @@
 <?php
 /**
+ * Array functions.
+ *
+ * Funciones para el manejo de arreglos.
+ *
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage Extensions
+ * @Version 3.0 November 18 2009
+ */
+/**
  * Convierte un objeto en arreglo.
  * @deprecated
- * @param string $type Tipo de dato para validar (integer, varchar, text).
+ * @param array $arr Arreglo de parametros que contiene el objeto a convertir.
  * @param object $obj En caso de ser invocado desde un objeto
- * @return multitype:|NULL
+ * @return array|NULL
  */
 	function toArray(&$arr, &$obj=NULL){
 		$arrob=NULL;

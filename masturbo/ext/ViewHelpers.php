@@ -1,8 +1,19 @@
 <?php
+/**
+ * View Helpers.
+ *
+ * Funciones auxiliares para trabajar en las vistas.
+ *
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage Extensions
+ * @Version 3.0 November 18 2009
+ */
 	/**
-	 * Crea una etiqueta html para la inclusi&oacute;n de una imagen
+	 * Crea una etiqueta html para la inclusion de una imagen
 	 *
 	 * @param string|array $params los parametros de construccion que puede ser un string con la ruta de la imagen o un array de opciones.
+	 * @param object $obj Este parametro es otorgado cuando es invocado en el contexto de una instancia, por manejo del metodo magico __call.
 	 */
 	function image_tag($params, &$obj=NULL){
 		$rute = 'images/';
@@ -36,6 +47,14 @@
 			return '<img src="'.INST_URI.'images/'.$image.'" />';
 		endif;
 	}
+	/**
+	 * Crea una etiqueta para inclusion de una hoja de estilos externa. Por defecto, incluye archivos ubicados en /app/webroot/css/.
+	 * Incluye un archivo por definicion.
+	 * @param array $params Los parametros para la construccion, [0]= string El archivo a incluir; [type]= string Atributo type; [rel]= string atributo rel; [media]= string atributo media.
+	 * @param object $obj Este parametro es otorgado cuando es invocado en el contexto de una instancia, por manejo del metodo magico __call.
+	 * @throws Exception Si no existe el archivo a vincular o cuando no se especifica el archivo.
+	 * @return string
+	 */
 	function stylesheet_link_tag($params, &$obj=NULL){
 		$css = NULL;
 		if(!is_array($params) and is_string($params)) $css = $params;
@@ -61,13 +80,10 @@
 	/**
 	 * Recibe un arreglo como parametro en el que se define la url y otras opciones.
 	 *
-	 * @param array $params[0]= string $content
-	 * @param array $params[url]= string $url
-	 * @param array $params[url]= array $url[action]
-	 * @param array $params[url]= array $url[controller]
-	 * @param array $params[html]= array $html[attribute] = string $value
+	 * @param array $params Parametros para la construccion, [0]= string el contenido a mostrar entre las etiquetas <a></a>; [url]= string La url del atributo href; [action] accion a vincular, no se necesita especificar el parametro 'url' y es relativo al controlador que se encuentre; [controller] controlador a vincular; [html] = arreglo de parametros html, segun el atributo, ej. id, class, title.
+	 * @param object $obj Este parametro es otorgado cuando es invocado en el contexto de una instancia, por manejo del metodo magico __call.
 	 */
-	function link_to($params, &$obj = NULL){
+	function link_to($params = array(), &$obj = NULL){
 //		if($obj === NULL):
 //			throw new Exception("link_tag must be called in instace of object by \$this.");
 //			return NULL;
@@ -142,6 +158,14 @@
 //			throw new Exception("Must provide content for link.");
 		endif;
 	}
+	/**
+	 * Crea una etiqueta de inclusion de archivos externos, si se envia un string, vincula un archivo segun la ruta dada, si se envia un arreglo, vincula tantos archivos se definan en cada posicion del arreglo.
+	 * Por defecto, incluye archivos en /app/webroot/js, tambien se puede utilizar para cargar plugins en /app/webroot/plugins.
+	 * @param string|array $params definiciones de cargas y parametros relacionados con los atributos de la etiqueta.
+	 * @param object $obj Este parametro es otorgado cuando es invocado en el contexto de una instancia, por manejo del metodo magico __call.
+	 * @throws Exception Si el archivo vinculado no existe o si no se define el nombre del archivo.
+	 * @return string|NULL
+	 */
 	function javascript_include_tag($params, &$obj = NULL){
 //		$params = $params[0];
 		$js = '';
