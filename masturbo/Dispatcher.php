@@ -1,26 +1,11 @@
 <?php
 /**
- * Dispatcher class; handles the process of get the url and show what is needed
+ * Dispatcher class; handles the proces of get the url and show what is needed
  * @author rantes
- * @package Core
- * @subpackage Controllers
  * @todo routes to handle different errors
- * @todo handles the different requires
- */
-if(!empty($argv)):
-	parse_str(implode('&', array_slice($argv, 1)), $_GET);
-endif;
-/**
- * Se encarga de la captura de los requests y encapsula todo el proceso de hacer los llamado y responder al navegador.
- * @author rantes
- * @package Core
- * @subpackage Controllers
+ *
  */
 class index{
-	/**
-	 * Se captura la url y se maneja seg&uacute;n el request. Los parametros via $_GET, pasan al arreglo @link $params.
-	 * @todo manejo de vistas para los errores
-	 */
 	function __construct(){
 		if(isset($_GET['_error'])):
 			switch($_GET['_error']):
@@ -33,7 +18,6 @@ class index{
 			endswitch;
 			die();
 		endif;
-
 		if(isset($_GET['url'])):
 			$request = explode("/", $_GET['url']);
 			unset($_GET['url']);
@@ -51,7 +35,7 @@ class index{
 		$action = array_shift($request);
 
 		foreach($request as $key => $value):
-			if(!is_numeric($value) and empty($value)) unset($request[$key]);
+			if(empty($value)) unset($request[$key]);
 		endforeach;
 		$params = array();
 
@@ -97,46 +81,36 @@ class index{
 				$controllerFile = $controller.'_controller.php';
 			endif;
 		endif;
-		// verificacion de requisitos para masturbo
-		if($controller === 'InstallMasTurbo'):
-			// Contenido de la verificacion de requisitos de masturbo
-			$verifyContent = array('PDO'=>array('installed'=>false,'message'=>'No tienes instalada la extension PDO, es necesaria para continuar y de una vez, la extension del motor DB que vas a usar.'),
-									'PEAR::Mail'=>array('installed'=>false,'message'=>'No tienes instalado el plugin PEAR::Mail, es requerido para la funcionalidad de envio de emails por smtp para que nunca pasen tus email por spam.'));
-			if (extension_loaded ('PDO')):
-				$verifyContent['PDO']['istalled'] = true;
-				$verifyContent['PDO']['message'] = 'Extension PDO cargada, por favor verifique que este cargada la libreria PDO necesaria para el motor BD que se va a utilizar.';
-			endif;
-			if((require 'Mail.php') !== false and class_exists('Mail')):
-				$verifyContent['PEAR::Mail']['istalled'] = true;
-				$verifyContent['PEAR::Mail']['message'] = 'Libreria PEAR::Mail cargada.';
-			endif;
-			$controller = 'console';
-			$controllerFile = $controller.'_controller.php';
-		endif;
+
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
 		define("_FULL_URL", INST_URI._CONTROLLER.'/'._ACTION.'/'.implode('/', $params));
-
 		if(file_exists($path.$controllerFile)):
 			require($path.$controllerFile);
 			$classPage = Camelize($controller)."Controller";
-
 			$page = new $classPage();
-
 			$page->params($params);
-
-			$page->Controller = $controller;
-			$page->Action = $action;
+// 			$page->__controller = $controller;
+// 			$page->__action = $action;
 			//loads of helpers
 			if(isset($page->helper) and sizeof($page->helper) > 0):
 				$page->LoadHelper($page->helper);
 			endif;
-
+			//before filter, executed before the action execution
+			if(method_exists($page,"before_filter")):
+				$page->before_filter();
+			endif;
 			if(method_exists($page,$action."Action")):
-
 				$page->{$action."Action"}();
-
-				$page->display(array('controller'=>$controller,'action'=>$action));
+				//before render, executed after the action execution and before the data renderize
+				if(method_exists($page,"before_render")):
+					$page->before_render();
+				endif;
+				if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) and $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest' and $page->canRespondToAJAX()):
+					echo $page->respondToAJAX();
+				else:
+					$page->display(array('controller'=>$controller,'action'=>$action));
+				endif;
 			else:
 				echo "Missing Action";
 			endif;
