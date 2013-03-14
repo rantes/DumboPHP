@@ -76,6 +76,9 @@ abstract class Page extends Core_General_Class{
 	 * @param unknown $var
 	 * @return unknown
 	 */
+	private $_respondToAJAX = '';
+	private $_canrespondtoajax = false;
+	
 	public function __get($var){
 		$model = unCamelize($var);
 		if(file_exists(INST_PATH.'app/models/'.$model.'.php')):
@@ -154,6 +157,17 @@ abstract class Page extends Core_General_Class{
 	 */
 	public function params($params = NULL){
 		$this->params = $params;
+	}
+	public function respondToAJAX($val = null){
+		if($val === null):
+			return $this->_respondToAJAX;
+		else:
+			$this->_respondToAJAX = $val;
+			$this->_canrespondtoajax = true;
+		endif;
+	}
+	public function canRespondToAJAX(){
+		return $this->_canrespondtoajax;
 	}
 }
 
