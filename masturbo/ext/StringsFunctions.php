@@ -7,7 +7,7 @@
 * @version 3.0
 * @author Javier Serrano <rantes.javier@gmail.com
 * @package Core
-* @subpackage extensions
+* @subpackage Extensions
 */
 
 //carga de los arreglos de los plurales irregulares

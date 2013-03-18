@@ -1,5 +1,14 @@
 <?php
-//require "Mail.php";
+/**
+ * Mailing functions.
+ *
+ * Funciones para la gestion de correos electronicos.
+ *
+ * @author Javier Serrano
+ * @package Core
+ * @subpackage Extensions
+ * @Version 3.0 November 18 2009
+ */
 if(!class_exists('Mail') and file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
 	require_once "Mail.php";
 endif;
@@ -8,7 +17,7 @@ endif;
  *
  * Envia emails con templates. Incluye encabezados completos para evitar que sea tomado como spam.
  * Utiliza PEAR::Mail para la conexion smtp
- * @param mixed $params Arreglo de parametros
+ * @param mixed $arr Arreglo de parametros
  * @param object $obj El objeto, en caso de invocarse en la instancia de un objeto
  * @return boolean
  */

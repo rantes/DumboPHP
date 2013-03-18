@@ -10,8 +10,6 @@ set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendors', INST_PATH 
  */
 include("GeneralCore.php");
  /**
- * Archivo {@link ActiveRecord.php}
- * 
  * Archivo que contiene la clase de Active Records, requerido para poder cargar todos los objetos.
  */
 include("ActiveRecord.php");
