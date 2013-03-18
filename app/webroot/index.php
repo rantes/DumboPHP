@@ -1,7 +1,7 @@
 <?php
 session_start();
 include_once '../../config/host.php';
-set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendors', INST_PATH . 'masturbo', get_include_path(),)));
+set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendors', INST_PATH . 'masturbo', get_include_path(),PEAR_EXTENSION_DIR)));
 
 
 /**
@@ -12,8 +12,8 @@ include("GeneralCore.php");
  /**
  * Archivo que contiene la clase de Active Records, requerido para poder cargar todos los objetos.
  */
-include("ActiveRecord.php");
-				 
+require_once "ActiveRecord.php";
+
 include("Page.php");
 
 require 'Dispatcher.php';

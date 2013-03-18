@@ -90,9 +90,10 @@ abstract class Page extends Core_General_Class{
 	public $excepts_before_filter = array();
 	/**
 	 * Metodo magico para el auto cargado de los modelos.
-	 * @param unknown $var
-	 * @return unknown
+	 * @param string $var
+	 * @return ActiveRecord $obj
 	 */
+
 	public function __get($var){
 		$model = unCamelize($var);
 		if(file_exists(INST_PATH.'app/models/'.$model.'.php')):

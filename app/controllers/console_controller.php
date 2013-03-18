@@ -19,14 +19,7 @@ class ConsoleController extends Page{
 	public $hasPEARMail = true;
 
 	function __construct(){
-		if (!extension_loaded ('PDO')):
-			$this->hasPDO = false;
-			die('No tienes instalada la extension PDO, es necesaria para continuar y de una vez, la extension del motor DB que vas a usar.');
-		endif;
-		if(!(include 'Mail.php')):
-			$this->hasPEARMail = false;
-			die('No tienes instalado el plugin PEAR::Mail, es requerido para la funcionalidad de envio de emails por smtp para que nunca pasen tus email por spam.');
-		endif;
+
 	}
 	function indexAction(){
 		$this->title = 'Consola DB';

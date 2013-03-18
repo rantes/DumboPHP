@@ -1,6 +1,6 @@
 <?php
 /**
- * Dispatcher class; handles the process of get the url and show what is needed
+ * Dispatcher class; handles the proces of get the url and show what is needed
  * @author rantes
  * @todo routes to handle different errors
  * @todo handles the different requires
@@ -11,7 +11,6 @@ if(!empty($argv)){
 /**
  * Se encarga de la captura de los requests y encapsula todo el proceso de hacer los llamado y responder al navegador.
  * @author rantes
- *
  */
 class index{
 	function __construct(){
@@ -93,6 +92,7 @@ class index{
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
 		define("_FULL_URL", INST_URI._CONTROLLER.'/'._ACTION.'/'.implode('/', $params));
+
 		if(file_exists($path.$controllerFile)){
 			require($path.$controllerFile);
 			$classPage = Camelize($controller)."Controller";
