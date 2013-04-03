@@ -674,7 +674,7 @@ require "Driver.php";
 				}
 			}
 		}
-		$this->__construct();
+		//$this->__construct();
 		if(sizeof($this->before_save)>0){
 			foreach($this->before_save as $functiontoRun){
 				$this->{$functiontoRun}();
