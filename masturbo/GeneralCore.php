@@ -37,9 +37,9 @@ $directory->close();
  */
 abstract class Core_General_Class extends ArrayObject{
 	/**
-	 * método mágico __call()
+	 * metodo magico __call()
 	 *
-	 * Este método es ejecutado por PHP cuando se accede a un m?todo que no existe.
+	 * Este metodo es ejecutado por PHP cuando se accede a un m?todo que no existe.
 	 * A través de este método mágico se realiza el mapeo relacional, asumiendo que el llamado
 	 * a un método, es el llamado a un modelo realiza la subconsulta según las condiciones de relación y devuelve el
 	 * objeto del modelo requerido.
@@ -56,11 +56,28 @@ abstract class Core_General_Class extends ArrayObject{
 	public function __call($ClassName, $val = NULL){
 		$field = Singulars(strtolower($ClassName));
 		$classFromCall = Camelize($ClassName);
+		$conditions = '';
+		$params = array();
 		if(preg_match('/Find_by_/', $ClassName)){
 			$nustring = str_replace("Find_by_", '',$ClassName);
 			return $this->Find(array('conditions'=>'`'.$nustring."`='".$val[0]."'"));
 		}elseif (file_exists(INST_PATH.'app/models/'.$field.'.php')){
-			$way = (isset($val[0]))? $val[0] : 'down';
+			$way = 'down';
+			if(!empty($val[0])){
+				switch ($val[0]){
+					case 'up':
+					case 'down':
+						$way = $val[0];
+					break;
+					case ':first':
+						$params = array(':first');
+					break;
+					default:
+						$params = $val[0];
+					break;
+						
+				}
+			}
 			$foreign = strtolower($field)."_id";
 			$prefix = unCamelize(get_class($this));
 			if(!class_exists($classFromCall)){
@@ -68,13 +85,15 @@ abstract class Core_General_Class extends ArrayObject{
 			}
 			$obj1 = new $classFromCall();
 			$conditions = "`".$prefix."_id`='".$this->id."'";
-			if(get_parent_class($obj1) == 'ActiveRecord'){
+			if(method_exists($obj1,'Find')){
 				if($classFromCall == get_class($this) and in_array($ClassName,$this->has_many_and_belongs_to)){
-					$conditions = ($way=='up')? "id='".$this->{$foreign}."'" : $conditions;
+					$conditions = ($way=='up')? "`id`='".$this->{$foreign}."'" : $conditions;
 				}elseif(in_array($ClassName, $this->belongs_to)){
-					$conditions = "id='".$this->{$foreign}."'";
+					$conditions = "`id`='".$this->{$foreign}."'";
 				}
-				return ($conditions !== NULL)?$obj1->Find(array('conditions'=>$conditions)):$obj1->Niu();
+				
+				$params['conditions'] = empty($params['conditions'])? $conditions : ' AND '.$conditions;
+				return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
 			}
 			return NULL;
 		}else{

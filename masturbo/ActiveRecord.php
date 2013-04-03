@@ -216,6 +216,11 @@ require "Driver.php";
 	 * @var string
 	 */
 	public $_sqlQuery = '';
+	/**
+	 * Guarda los parametros pasados al modelo para busquedas
+	 * @var array
+	 */
+	protected $_params = array('fields'=>'*','conditions'=>'');
 
 	/**
 	 * Constructor
@@ -452,6 +457,7 @@ require "Driver.php";
 		$this->_data = null;
 		$this->__destruct();
 		$this->__construct();
+		if(!empty($params)) $this->_params = $params;
 		if(sizeof($this->before_find) >0){
 			foreach($this->before_find as $functiontoRun){
 				$this->{$functiontoRun}();
@@ -460,49 +466,49 @@ require "Driver.php";
 
 		//if(empty($this->_ObjTable)) $this->_TableName(); //$this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
 
-		$fields = '*';
-		if(is_array($params) and isset($params['fields'])) $fields = $params['fields'];
-		$sql = "SELECT $fields FROM `".$this->_TableName()."` WHERE 1=1";
+// 		$fields = '*';
+// 		if(is_array($params) and isset($params['fields'])) $fields = $params['fields'];
+		$sql = '';
 
-		if(isset($params) and !empty($params)){
-			if(is_numeric($params)) $params = (integer)$params;
-			$type = gettype($params);
+		if(!empty($this->_params)){
+			if(is_numeric($this->_params)) $this->_params = (integer)$this->_params;
+			$type = gettype($this->_params);
 			$strint = '';
 			switch($type){
 				case 'integer':
-					$sql .= " and id in ($params)";
+					$sql .= " and `id` in ($this->_params)";
 				break;
 				case 'string':
-					if(strpos($params,',')!== FALSE){
-						$sql .= " and id in ($params)";
+					if(strpos($this->_params,',')!== FALSE){
+						$sql .= " and `id` in ($this->_params)";
 					}
 				break;
 				case 'array':
-					if(isset($params['conditions'])){
-						if(is_array($params['conditions'])){
+					if(!empty($this->_params['conditions'])){
+						if(is_array($this->_params['conditions'])){
 							$NotOnlyInt = FALSE;
-							while(!$NotOnlyInt and (list($key, $value) = each($params['conditions']))){
+							while(!$NotOnlyInt and (list($key, $value) = each($this->_params['conditions']))){
 								$NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
 							}
 							if(!$NotOnlyInt){
-								$sql .= " and id in (".$this->ToList($params['conditions']).")";
+								$sql .= " AND `id` in (".implode(',',$this->_params['conditions']).")";
 							}else{
-								foreach($params['conditions'] as $field => $value){
-									if(is_numeric($field)) $sql .= " and ".$value;
-									else $sql .= " and $field='$value'";
+								foreach($this->_params['conditions'] as $field => $value){
+									if(is_numeric($field)) $sql .= " AND ".$value;
+									else $sql .= " AND $field='$value'";
 								}
 							}
-						}elseif(is_string($params['conditions'])){
-							$sql .= " and ".$params['conditions'];
+						}elseif(is_string($this->_params['conditions'])){
+							$sql .= " AND ".$this->_params['conditions'];
 						}
 					}
-					if(isset($params['group'])){
-						$sql .= " GROUP BY `".$params['group']."`";
+					if(isset($this->_params['group'])){
+						$sql .= " GROUP BY `".$this->_params['group']."`";
 					}
-					if(isset($params['sort'])){
-						switch (gettype($params['sort'])){
+					if(isset($this->_params['sort'])){
+						switch (gettype($this->_params['sort'])){
 							case 'string':
-								$sql .= " ORDER BY ".$params['sort'];
+								$sql .= " ORDER BY ".$this->_params['sort'];
 							break;
 							case 'array':
 								null;
@@ -510,11 +516,11 @@ require "Driver.php";
 						}
 					}
 
-					if(isset($params['limit'])){
-						$sql .= " LIMIT ".$params['limit'];
+					if(isset($this->_params['limit'])){
+						$sql .= " LIMIT ".$this->_params['limit'];
 					}
-					if(isset($params[0])){
-						switch($params[0]){
+					if(isset($this->_params[0])){
+						switch($this->_params[0]){
 						case ':first':
 							$sql .= " LIMIT 1";
 						break;
@@ -523,6 +529,8 @@ require "Driver.php";
 				break;
 			}
 		}
+		$fields = empty($this->_params['fields'])? '*' : $this->_params['fields'];
+		$sql = "SELECT {$fields} FROM `{$this->_TableName()}` WHERE 1=1" . $sql;
 		//$this->Connect();
 		$this->getData($sql);
 		$this->_sqlQuery = $sql;

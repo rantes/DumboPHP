@@ -9,9 +9,9 @@
  * @subpackage Extensions
  * @Version 3.0 November 18 2009
  */
-if(!class_exists('Mail') and file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
+//if(!class_exists('Mail') and file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
 	require_once "Mail.php";
-endif;
+//endif;
 
 /**
  *
@@ -64,9 +64,10 @@ endif;
 //			file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $plain.$html);
 			//$sent = mail($arr['to'], $arr['subject'], $plain.$html, $header);
 
-			 $host = isset($arr['smtp_host'])? $arr['smtp_host']:_CONTACT_SMTP_HOST;
-			 $username = isset($arr['smtp_user'])? $arr['smtp_user']:_CONTACT_SMTP_USER;
-			 $password = isset($arr['smtp_password'])? $arr['smtp_password']:_CONTACT_SMTP_PASSWORD;
+			 $host = !empty($arr['smtp_host'])? $arr['smtp_host']:_CONTACT_SMTP_HOST;
+			 $username = !empty($arr['smtp_user'])? $arr['smtp_user']:_CONTACT_SMTP_USER;
+			 $password = !empty($arr['smtp_password'])? $arr['smtp_password']:_CONTACT_SMTP_PASSWORD;
+			 $port = !empty($arr['smtp_port'])? $arr['smtp_port'] : _CONTACT_SMTP_PORT;
 
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before smpt');
 
@@ -75,7 +76,7 @@ endif;
 			     'auth' => true,
 			     'username' => $username,
 			     'password' => $password,
-			   	 'port'=>26));
+			   	 'port'=>$port));
 
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before mail');
 			 $mail = $smtp->send($arr['to'], $headers, $plain.$html);
