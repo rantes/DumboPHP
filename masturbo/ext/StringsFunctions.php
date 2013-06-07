@@ -176,7 +176,7 @@ include(dirname(__FILE__).'/StringFunctionsLibrary/IrregularNouns.php');
     	$normalChars =  array('A','A','A','A','A','A','A','C','E','E','E','E','I','I','I','I','D','N',
     			'O','O','O','O','O','O','O','U','U','U','U','Y','B','Ss','a','a','a','a','a','a','a',
     			'c','e','e','e','e','i','i','i','i','o','n','o','o','o','o','o','o','o','u','u','u','u','y','b','y');
-		$string = str_replace($specialChars, $normalChars, utf8_decode($string));
+		$string = preg_replace($specialChars, $normalChars, $string);
 		$string = strtolower($string);
 		$string = preg_replace('/[\s]+/', '-', $string);
 		$string = preg_replace('/[^a-zA-Z0-9-]/', '', $string);
@@ -204,5 +204,17 @@ include(dirname(__FILE__).'/StringFunctionsLibrary/IrregularNouns.php');
 	 	}else{
 	 		throw new Exception('Must to give params to get the dataURI');
 	 	}
+	 }
+	 /**
+	  * Cuando las funciones nativas htmlentities y htmlspecialchars no funcionan,
+	  * esta funcion lo resuelve identificando el valor hexadecimal del caracter
+	  * especial a transformar en entidades.
+	  * @param string $string
+	  * @return string
+	  */
+	 function cleanASCII($string){
+	 	$patterns = array("/\xd1/","/\xf1/","/\xc1/","/\xe1/","/\xc9/","/\xe9/","/\xcd/","/\xed/","/\xd3/","/\xf3/","/\xfa/","/\x22/","/\x27/");
+	 	$replaces = array('&Ntilde','&ntilde','&Aacute;','&aacute;','&Eacute;','&eacute;','&Iacute;','&iacute;','&Oacute;','&oacute;','&Uacute;','&uacute;','&quot;','&#39;');
+	 	return preg_replace($patterns, $replaces, $string);
 	 }
 ?>

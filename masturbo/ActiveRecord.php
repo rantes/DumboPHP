@@ -190,6 +190,13 @@ require "Driver.php";
 	 */
 	protected $_data = array();
 	/**
+	 * Variable de tipo array $_attrs.
+	 *
+	 * Este arreglo contiene las propiedades o atributos seteados magicamente y que no son de la bd.
+	 * @var array
+	 */
+	protected $_attrs = array();
+	/**
 	 * Variable de tipo array $_dataAttributes.
 	 *
 	 * Este arreglo contiene los datos de propiedades (atributos) de los campos.
@@ -221,6 +228,12 @@ require "Driver.php";
 	 * @var array
 	 */
 	protected $_params = array('fields'=>'*','conditions'=>'');
+	
+	/**
+	 * Define si puede o no realizar dumps
+	 * @var boolean
+	 */
+	public $candump = true;
 
 	/**
 	 * Constructor
@@ -230,6 +243,8 @@ require "Driver.php";
 	function __construct(){
 		$this->_data = NULL;
 		$this->_data = array();
+		$this->_attrs = NULL;
+		$this->_attrs = array();
 		$this->Connect();
 	}
 	/**
@@ -239,6 +254,8 @@ require "Driver.php";
 	function __destruct(){
 		$this->_data = NULL;
 		$this->_data = array();
+		$this->_attrs = NULL;
+		$this->_attrs = array();
 		$this->_error = NULL;
 	}
 	/**
@@ -252,7 +269,11 @@ require "Driver.php";
 	 * @param mixed $value Valor del atributo.
 	 */
 	public function __set($name, $value) {
-		$this->_data[$name] = $value;
+		if(isset($this->_data[$name])){
+			$this->_data[$name] = $value;
+		} else {
+			$this->_attrs[$name] = $value;
+		}
 	}
 	/**
 	 * Metodo magico
@@ -260,8 +281,8 @@ require "Driver.php";
 	 * @param string $name
 	 */
 	public function __unset($name) {
-		$this->_data[$name] = NULL;
-		unset($this->_data[$name]);
+		$this->_attrs[$name] = NULL;
+		unset($this->_attrs[$name]);
 	}
 	/**
 	 * Metodo magico
@@ -270,8 +291,7 @@ require "Driver.php";
 	 * @return bool
 	 */
 	public function __isset($var){
-		if(!empty($this->_data) and array_key_exists($var, $this->_data)) return TRUE;
-		return FALSE;
+		return ((!empty($this->_attrs) and array_key_exists($var, $this->_attrs)) || (!empty($this->_data) and array_key_exists($var, $this->_data)));
 	}
 	/**
 	 * (non-PHPdoc)
@@ -289,6 +309,7 @@ require "Driver.php";
 	 * @param string $name Nombre del atributo que se quiere acceder.
 	 */
 	public function __get($name) {
+			
 			switch($name){
 				case '_ObjTable':
 					return $this->_TableName();
@@ -300,14 +321,16 @@ require "Driver.php";
 
 					if (isset($this->_data[$name])){
 						return $this->_data[$name];
+					} elseif(isset($this->_attrs[$name])){
+						return $this->_attrs[$name];
 					}else{
 						$model = unCamelize($name);
 						if(file_exists(INST_PATH.'app/models/'.$model.'.php')){
 							if(!class_exists($name)){
 								require INST_PATH.'app/models/'.$model.'.php';
 							}
-							$this->_data[$name] = new $name();
-							return $this->_data[$name];
+							$this->_attrs[$name] = new $name();
+							return $this->_attrs[$name];
 						}else{
 							return null;
 						}
@@ -388,16 +411,15 @@ require "Driver.php";
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
 						$type = $regs->getColumnMeta($column);
-						$deftype = 'VAR_CHAR';
-						$type['native_type'] = $deftype;
+						if(empty($type['native_type'])) $type['native_type'] = 'VAR_CHAR';
 						$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 						$type['native_type'] = strtoupper($type['native_type']);
 						$cast = 'toString';
+						$this[$j]->_counter = 1;
 						switch($type['native_type']){
 							case 'LONG':
 							case 'INTEGER':
 							case 'INT':
-// 								$cast = 'toInteger';
 								$this[$j]->_data[$property] = (integer)$value;
 							break;
 							case 'FLOAT':
@@ -406,8 +428,7 @@ require "Driver.php";
 							case 'TEXT':
 							case 'VARCHAR':
 							default:
-// 								$cast = 'toString';
-								$this[$j]->_data[$property] = (string)$value;
+								$this[$j]->_data[$property] = $value;
 							break;
 						}
 // 						$this[$j]->_data[$property] = $cast($value);//$value;
@@ -418,11 +439,10 @@ require "Driver.php";
 				$i++;
 			}
 		}
-
 		$this->_counter = $i;
 		if($this->_counter === 1){
 			foreach ($this[0]->_data as $field => $value){
-				$this->{$field} = $value;
+				$this->_data[$field] = $value;
 				$this->_dataAttributes[$field]['native_type'] = $type['native_type'];
 			}
 		}
@@ -471,7 +491,7 @@ require "Driver.php";
 		$sql = '';
 
 		if(!empty($this->_params)){
-			if(is_numeric($this->_params)) $this->_params = (integer)$this->_params;
+			if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = (integer)$this->_params;
 			$type = gettype($this->_params);
 			$strint = '';
 			switch($type){
@@ -529,7 +549,7 @@ require "Driver.php";
 				break;
 			}
 		}
-		$fields = empty($this->_params['fields'])? '*' : $this->_params['fields'];
+		$fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
 		$sql = "SELECT {$fields} FROM `{$this->_TableName()}` WHERE 1=1" . $sql;
 		//$this->Connect();
 		$this->getData($sql);
@@ -602,8 +622,8 @@ require "Driver.php";
 					continue;
 				}
 			}
-			$this->{$row['Field']} = $value;
-			$this[0]->{$row['Field']} = $value;
+			$this->_data[$row['Field']] = $value;
+			$this[0]->_data[$row['Field']] = $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
 		}
 		return clone($this);
@@ -885,7 +905,7 @@ require "Driver.php";
 	 * @param number $i
 	 * @return string
 	 */
-	public function ListProperties_ToString($i=0){
+	protected function ListProperties_ToString($i=0){
 		$listProperties = "";
 		$l = $i+1;
 		$k=0;
@@ -894,27 +914,44 @@ require "Driver.php";
 			$listProperties .= "\t";
 		}
 		$listProperties .= "{\n";
-		foreach($this as $obj){
-			if(is_object($obj)){
-				$listProperties .= "\t".get_class($obj)."{\n";
-				$l = $i+2;
-				if(!empty($obj->_data)){
-					foreach($obj->_data as $prop => $value){
-							for($j=0; $j<$l; $j++){
-								$listProperties .= "\t";
-							}
-							$listProperties .= "[$prop] => ".((is_object($value) and get_parent_class($value) == 'ActiveRecord')?get_class($value)." ".gettype($value).": ".$value->ListProperties_ToString(($i+1)):$value)."\n";
-						$k++;
+		if($i>0){
+			$listProperties .= $this->_counter;
+		}
+		if($this->_counter <= 1){
+			foreach ($this->_data as $var => $value){
+				ob_start();
+				var_dump($value);
+				$buffer = ob_get_clean();
+				$listProperties .= "\t{$var} => ".$buffer;
+			}
+		} else {
+			for ($m = 0; $m < $this->_counter; $m++){
+				if(is_object($this[$m]) && get_parent_class($this[$m]) == 'ActiveRecord'){
+					$listProperties .= "[$m] ";
+					if(is_object($this[$m])){
+						$listProperties .= get_class($this[$m]).' ';
 					}
+					$listProperties .= gettype($this[$m]);
+					
+					$listProperties .= "{\n";
+					foreach ($this[$m]->_data as $var => $value){
+						ob_start();
+						var_dump($value);
+						$buffer = ob_get_clean();
+						$listProperties .= "\t{$var} => ".$buffer;
+					}
+					$listProperties .= "\t}\n";
+				} else {
+					$listProperties .= "[$m] =>".gettype($this[$m]).": ".$this[$m].PHP_EOL;
 				}
-				$listProperties .= "\t}\n";
+				
 			}
 		}
 
 		for($j=0; $j<$i; $j++){
 			$listProperties .= "\t";
 		}
-		$listProperties .= "}";
+		$listProperties .= "}\n";
 		return $listProperties;
 	}
 	/**
@@ -1120,6 +1157,12 @@ require "Driver.php";
 	 */
 	public function counter(){
 		return (integer)$this->_counter;
+	}
+	/**
+	 * Obtiene el primer registro
+	 */
+	public function first(){
+		return $this[0];
 	}
 	/**
 	 * Obtiene el utlimo registro

@@ -9,9 +9,9 @@
  * @subpackage Extensions
  * @Version 3.0 November 18 2009
  */
-//if(!class_exists('Mail') and file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
+if(!class_exists('Mail')):// and file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
 	require_once "Mail.php";
-//endif;
+endif;
 
 /**
  *

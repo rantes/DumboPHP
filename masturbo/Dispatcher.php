@@ -5,7 +5,7 @@
  * @todo routes to handle different errors
  * @todo handles the different requires
  */
-if(!empty($argv)){
+if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
 	parse_str(implode('&', array_slice($argv, 1)), $_GET);
 }
 /**

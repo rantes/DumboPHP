@@ -17,7 +17,7 @@
  */
 function geoLocator($params = array('address'=>'','city'=>'', 'state'=>'', 'country'=>''), &$obj = null){
 	if($obj !== null):
-		$params = $params[0];
+		if(!empty($params[0])) $params = $params[0];
 		if(!empty($obj->address) and empty($params['address'])):
 			$params['address'] = $obj->address;
 		endif;
