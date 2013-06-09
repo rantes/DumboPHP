@@ -1,27 +1,35 @@
 <?php
 /**
- * Dispatcher class; handles the proces of get the url and show what is needed
+ * Dispatcher class; handles the process of get the url and show what is needed
  * @author rantes
  * @todo routes to handle different errors
+ * @todo handles the different requires
+ */
+if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
+	parse_str(implode('&', array_slice($argv, 1)), $_GET);
+}
+/**
+ * Se encarga de la captura de los requests y encapsula todo el proceso de hacer los llamado y responder al navegador.
+ * @author rantes
  *
  */
 class index{
 	function __construct(){
-		if(isset($_GET['_error'])):
-			switch($_GET['_error']):
+		if(isset($_GET['_error'])){
+			switch($_GET['_error']){
 				case '401':
 				case '403':
 				case '404':
 				case '500':
 					echo 'Error! ('.$_GET['_error'].')';
 				break;
-			endswitch;
+			}
 			die();
-		endif;
-		if(isset($_GET['url'])):
+		}
+		if(isset($_GET['url'])){
 			$request = explode("/", $_GET['url']);
 			unset($_GET['url']);
-		endif;
+		}
 
 		$path=INST_PATH.'app/controllers/';
 
@@ -34,58 +42,58 @@ class index{
 		$controller=array_shift($request);
 		$action = array_shift($request);
 
-		foreach($request as $key => $value):
+		foreach($request as $key => $value){
 			if(empty($value)) unset($request[$key]);
-		endforeach;
+		}
 		$params = array();
 
-		if(sizeof($request) === 1 and !strstr($request[0], "=") and is_numeric($request[0])):
+		if(sizeof($request) === 1 and !strstr($request[0], "=") and is_numeric($request[0])){
 			$params['id'] = $request[0];
-		elseif(sizeof($request)>0 and strstr($request[0], "=")):
-			for($i=0; $i<sizeof($request); $i++):
+		}elseif(sizeof($request)>0 and strstr($request[0], "=")){
+			for($i=0; $i<sizeof($request); $i++){
 				$p = explode('=',$request[$i]);
-				if(isset($p[1])):
+				if(isset($p[1])){
 					$params[$p[0]] = $p[1];
-				else:
+				}else{
 					$params[] = $p[0];
-				endif;
+				}
 				unset($request[$i]);
-			endfor;
-		elseif(sizeof($request)>0):
-			foreach($request as $index => $varParam):
+			}
+		}elseif(sizeof($request)>0){
+			foreach($request as $index => $varParam){
 				$params[] = $varParam;
 				unset($request[$index]);
-			endforeach;
-		endif;
-		if(is_array($params)):
+			}
+		}
+		if(is_array($params)){
 			$params = array_merge($params, $_GET);
-		else:
+		}else{
 			$params = $_GET;
-		endif;
+		}
 
 
-		if(defined('SITE_STATUS') and SITE_STATUS == 'MAINTENANCE'):
+		if(defined('SITE_STATUS') and SITE_STATUS == 'MAINTENANCE'){
 			$urlToLand = explode('/',LANDING_PAGE);
 			$replace = false;
-			if (LANDING_REPLACE == 'ALL'):
+			if (LANDING_REPLACE == 'ALL'){
 				$replace = true;
-			else:
+			}else{
 				$locations = explode(',',LANDING_REPLACE);
-				if(in_array($controller.'/'.$action, $locations)):
+				if(in_array($controller.'/'.$action, $locations)){
 					$replace = true;
-				endif;
-			endif;
-			if($replace):
+				}
+			}
+			if($replace){
 				$controller = $urlToLand[0];
 				$action = $urlToLand[1];
 				$controllerFile = $controller.'_controller.php';
-			endif;
-		endif;
+			}
+		}
 
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
 		define("_FULL_URL", INST_URI._CONTROLLER.'/'._ACTION.'/'.implode('/', $params));
-		if(file_exists($path.$controllerFile)):
+		if(file_exists($path.$controllerFile)){
 			require($path.$controllerFile);
 			$classPage = Camelize($controller)."Controller";
 			$page = new $classPage();
@@ -93,30 +101,52 @@ class index{
 // 			$page->__controller = $controller;
 // 			$page->__action = $action;
 			//loads of helpers
-			if(isset($page->helper) and sizeof($page->helper) > 0):
+			if(isset($page->helper) and sizeof($page->helper) > 0){
 				$page->LoadHelper($page->helper);
-			endif;
+			}
 			//before filter, executed before the action execution
-			if(method_exists($page,"before_filter")):
-				$page->before_filter();
-			endif;
-			if(method_exists($page,$action."Action")):
+			if(method_exists($page,"before_filter")){
+				$actionsToExclude = $controllersToExclude = array();
+				
+				if(!empty($page->excepts_before_filter) && is_array($page->excepts_before_filter)){
+					if(!empty($page->excepts_before_filter['actions']) && is_string($page->excepts_before_filter['actions'])){
+						$actionsToExclude = explode(',', $page->excepts_before_filter['actions']);
+						foreach($actionsToExclude as $index => $act){
+							$actionsToExclude[$index] = trim($act);
+						}
+					}
+					if(!empty($page->excepts_before_filter['controllers']) && is_string($page->excepts_before_filter['controllers'])){
+						$controllersToExclude = explode(',', $page->excepts_before_filter['controllers']);
+						foreach($controllersToExclude as $index => $cont){
+							$controllersToExclude[$index] = trim($cont);
+						}
+					}
+				}
+				if(!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)){
+					$page->before_filter();
+				}
+			}
+			if(method_exists($page,$action."Action")){
 				$page->{$action."Action"}();
 				//before render, executed after the action execution and before the data renderize
-				if(method_exists($page,"before_render")):
+				if(method_exists($page,"before_render")){
 					$page->before_render();
-				endif;
-				if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) and $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest' and $page->canRespondToAJAX()):
+				}
+				if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) and $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest' and $page->canRespondToAJAX()){
+					header('Cache-Control: no-cache, must-revalidate');
+					header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+					header('Content-type: application/json');
 					echo $page->respondToAJAX();
-				else:
+					exit();
+				}else{
 					$page->display(array('controller'=>$controller,'action'=>$action));
-				endif;
-			else:
+				}
+			}else{
 				echo "Missing Action";
-			endif;
-		else:
+			}
+		}else{
 			echo "Missing Controller";
-		endif;
+		}
 	}
 
 }

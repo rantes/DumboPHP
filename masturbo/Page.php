@@ -72,13 +72,27 @@ abstract class Page extends Core_General_Class{
 	 */
 	protected $action = '';
 	/**
+	 * Respuesta que se va a dar en un evento AJAX
+	 * @var string
+	 */
+	private $_respondToAJAX = '';
+	/**
+	 * Verificacion si se puede responder a un evento AJAX
+	 * @var boolean
+	 */
+	private $_canrespondtoajax = false;
+	/**
+	 * Arreglo que contiene las acciones y controladores en las que no se van a ajecutar el metodo before_filter
+	 * los controladores y acciones, deben estar descritas en un string separados por comas (,)
+	 * de tipo [controllers]=>'controladores,que_no,ejecutara_el_metodo', [actions] => 'acciones, que_no_ejecutaran, el_metodo';
+	 * @var array
+	 */
+	public $excepts_before_filter = array();
+	/**
 	 * Metodo magico para el auto cargado de los modelos.
 	 * @param unknown $var
 	 * @return unknown
 	 */
-	private $_respondToAJAX = '';
-	private $_canrespondtoajax = false;
-	
 	public function __get($var){
 		$model = unCamelize($var);
 		if(file_exists(INST_PATH.'app/models/'.$model.'.php')):
@@ -98,7 +112,7 @@ abstract class Page extends Core_General_Class{
 		$this->action = _ACTION;
 		$this->controller = _CONTROLLER;
 		if(property_exists($this, 'noTemplate') and in_array($view['action'], $this->noTemplate)) $renderPage = FALSE;
-		
+
 		if(isset($this->render) and is_array($this->render)):
 			if(isset($this->render['file'])):
 				$view = $this->render['file'];
@@ -113,22 +127,22 @@ abstract class Page extends Core_General_Class{
 		else:
 			$view = $view['controller'].'/'.$view['action'].'.phtml';
 		endif;
-		
+
 		if($renderPage):
 			ob_start();
 			include_once(INST_PATH."app/templates/".$view);
 			$this->content = ob_get_clean();
 		endif;
-		
-		
+
+
 		if(isset($this->render['layout']) and $this->render['layout'] !== false):
 			$this->layout = $this->render['layout'];
 		endif;
-		
+
 		if(isset($this->render['layout']) and $this->render['layout'] === false):
 			$this->layout = '';
 		endif;
-		
+
 		if(strlen($this->layout)>0):
 			ob_start();
 			include_once(INST_PATH."app/templates/".$this->layout.".phtml");
