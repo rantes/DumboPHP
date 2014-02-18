@@ -49,14 +49,25 @@ define('LANDING_REPLACE','ALL'); //instead of these pages, show landing ALL or c
 // rutas
 /**
  * Controlador por defecto
- * @var String|CONSTANT
+ * @var String|CONSTANT string
  */
 define('DEF_CONTROLLER', 'console'); //default controller/
 /**
  * Acci&oacute;n por defecto.
- * @var String|CONSTANT
+ * @var String|CONSTANT string
  */
 define('DEF_ACTION', 'index'); //default view/
+/**
+* Define si va a utilizar url alternas en vez del convencional controlador/accion.
+* Si el controlador/accion llamado existe, entonces lo ejecuta.
+* @var String|CONSTANT boolean
+*/
+define('USE_ALTER_URL', false);
+/**
+ * Controlador que se va a encargar de los enrutamientos alternos.
+ * @var String|CONSTANT string
+ */
+define('ALTER_URL_CONTROLLER_ACTION','alter/index');
 
 // configuraciones generales sobre PHP
 ini_set('display_errors', 1); // Para mostrar errores, en caso de no querer visualizarlos, cambiar a 0.

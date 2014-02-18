@@ -1,0 +1,214 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+<meta charset="utf-8">
+<title>phpDocumentor » Core\extensions</title>
+<meta name="author" content="Mike van Riel">
+<meta name="description" content="">
+<link href="../css/template.css" rel="stylesheet" media="all">
+<script src="../js/jquery-1.7.1.min.js" type="text/javascript"></script><script src="../js/jquery-ui-1.8.2.custom.min.js" type="text/javascript"></script><script src="../js/jquery.mousewheel.min.js" type="text/javascript"></script><script src="../js/bootstrap.js" type="text/javascript"></script><script src="../js/template.js" type="text/javascript"></script><script src="../js/prettify/prettify.min.js" type="text/javascript"></script><link rel="shortcut icon" href="../img/favicon.ico">
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="72x72" href="../img/apple-touch-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="114x114" href="../img/apple-touch-icon-114x114.png">
+</head>
+<body>
+<div class="navbar navbar-fixed-top">
+<div class="navbar-inner"><div class="container">
+<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></a><a class="brand" href="../index.html">phpDocumentor</a><div class="nav-collapse"><ul class="nav">
+<li class="dropdown">
+<a href="#api" class="dropdown-toggle" data-toggle="dropdown">
+                                    API Documentation <b class="caret"></b></a><ul class="dropdown-menu">
+<li><a>Packages</a></li>
+<li><a href="../packages/Core.html"><i class="icon-folder-open"></i> Core</a></li>
+<li><a href="../packages/Default.html"><i class="icon-folder-open"></i> Default</a></li>
+<li><a href="../packages/Extensions.html"><i class="icon-folder-open"></i> Extensions</a></li>
+</ul>
+</li>
+<li class="dropdown" id="charts-menu">
+<a href="#charts" class="dropdown-toggle" data-toggle="dropdown">
+                                    Charts <b class="caret"></b></a><ul class="dropdown-menu"><li><a href="../graph_class.html"><i class="icon-list-alt"></i> Class hierarchy diagram</a></li></ul>
+</li>
+<li class="dropdown" id="reports-menu">
+<a href="#reports" class="dropdown-toggle" data-toggle="dropdown">
+                                    Reports <b class="caret"></b></a><ul class="dropdown-menu">
+<li><a href="../errors.html"><i class="icon-remove-sign"></i> Errors 
+                <span class="label label-info">62</span></a></li>
+<li><a href="../markers.html"><i class="icon-map-marker"></i> Markers 
+                <ul><li>todo 
+                <span class="label label-info">5</span>
+</li></ul></a></li>
+<li><a href="../deprecated.html"><i class="icon-stop"></i> Deprecated elements 
+                <span class="label label-info">1</span></a></li>
+</ul>
+</li>
+</ul></div>
+</div></div>
+<div class="go_to_top"><a href="#___" style="color: inherit">Back to top  <i class="icon-upload icon-white"></i></a></div>
+</div>
+<div id="___" class="container">
+<noscript><div class="alert alert-warning">
+                            Javascript is disabled; several features are only available
+                            if Javascript is enabled.
+                        </div></noscript>
+<div class="row">
+<div class="span4">
+<div class="btn-group view pull-right" data-toggle="buttons-radio">
+<button class="btn details" title="Show descriptions and method names"><i class="icon-list"></i></button><button class="btn simple" title="Show only method names"><i class="icon-align-justify"></i></button>
+</div>
+<ul class="side-nav nav nav-list">
+<li class="nav-header">
+<i class="icon-map-marker"></i> Packages</li>
+<li>
+<a href="../packages/Core.extensions.html" title="extensions"><i class="icon-folder-open"></i>extensions</a><ul class="nav nav-list nav-packages"></ul>
+</li>
+<li class="nav-header">
+<i class="icon-custom icon-function"></i> Functions</li>
+<li class="function  "><a href="#function_Camelize" title="Camelize :: Metodo publico Camelize()"><span class="description">Metodo publico Camelize()</span><pre>Camelize</pre></a></li>
+<li class="function  "><a href="#function_Plurals" title="Plurals :: Metodo publico Plurals()"><span class="description">Metodo publico Plurals()</span><pre>Plurals</pre></a></li>
+<li class="function  "><a href="#function_Singulars" title="Singulars :: Metodo publico Singulars()"><span class="description">Metodo publico Singulars()</span><pre>Singulars</pre></a></li>
+<li class="function  "><a href="#function_ToList" title="ToList :: ToList($array)"><span class="description">ToList($array)</span><pre>ToList</pre></a></li>
+<li class="function  "><a href="#function_cleanToSEO" title="cleanToSEO :: Metodo cleanToSEO()"><span class="description">Metodo cleanToSEO()</span><pre>cleanToSEO</pre></a></li>
+<li class="function  "><a href="#function_getDataURI" title="getDataURI :: Converts a file to DataURI (for no more request to server)
+Can recieve a string of the full path file or can accept an array with 2 positions: 'file'=&gt;FULL_PATH_FILE, 'mime'=&gt;MIME_TYPE"><span class="description">Converts a file to DataURI (for no more request to server)
+Can recieve a string of the full path file or can accept an array with 2 positions: 'file'=&gt;FULL_PATH_FILE, 'mime'=&gt;MIME_TYPE</span><pre>getDataURI</pre></a></li>
+<li class="function  "><a href="#function_unCamelize" title="unCamelize :: Metodo publico unCamelize()"><span class="description">Metodo publico unCamelize()</span><pre>unCamelize</pre></a></li>
+</ul>
+</div>
+<div class="span8 package-contents">
+<ul class="breadcrumb"><li>
+<a href="../index.html"><i class="icon-folder-open"></i></a><span class="divider">\</span><li><a href="../packages/Core.html">Core</a></li>
+<li class="active">
+<span class="divider">\</span><a href="../packages/Core.extensions.html">extensions</a>
+</li>
+</li></ul>
+<div class="package-indent">
+<h3>
+<i class="icon-custom icon-function"></i> Functions</h3>
+<a id="function_Camelize"></a><div class="element clickable function  function_Camelize" data-toggle="collapse" data-target=".function_Camelize .collapse">
+<h2>Metodo publico Camelize()</h2>
+<pre>Camelize(string $params, object $obj) </pre>
+<div class="labels"></div>
+<div class="row collapse"><div class="detail-description">
+<div class="long_description"><p>Este metodo se encarga de cambiar a CamelCase la cadena entregada.</p></div>
+<h3>Parameters</h3>
+<div class="subelement argument">
+<h4>$params</h4>
+<code>string</code><p>La cadena para cambiar a CamelCase.</p></div>
+<div class="subelement argument">
+<h4>$obj</h4>
+<code>object</code><p>el objeto de donde se est invocando la funci</p></div>
+</div></div>
+</div>
+<a id="function_Plurals"></a><div class="element clickable function  function_Plurals" data-toggle="collapse" data-target=".function_Plurals .collapse">
+<h2>Metodo publico Plurals()</h2>
+<pre>Plurals(string $params, object $obj) </pre>
+<div class="labels"></div>
+<div class="row collapse"><div class="detail-description">
+<div class="long_description"><p>Este metodo se encarga de cambiar a plural la cadena entregada.</p></div>
+<h3>Parameters</h3>
+<div class="subelement argument">
+<h4>$params</h4>
+<code>string</code><p>La cadena para cambiar a plural.</p></div>
+<div class="subelement argument">
+<h4>$obj</h4>
+<code>object</code><p>el objeto de donde se est invocando la funcin.</p></div>
+</div></div>
+</div>
+<a id="function_Singulars"></a><div class="element clickable function  function_Singulars" data-toggle="collapse" data-target=".function_Singulars .collapse">
+<h2>Metodo publico Singulars()</h2>
+<pre>Singulars(string $params, object $obj) </pre>
+<div class="labels"></div>
+<div class="row collapse"><div class="detail-description">
+<div class="long_description"><p>Este metodo se encarga de cambiar a singular la cadena entregada.</p></div>
+<h3>Parameters</h3>
+<div class="subelement argument">
+<h4>$params</h4>
+<code>string</code><p>La cadena para cambiar a singular.</p></div>
+<div class="subelement argument">
+<h4>$obj</h4>
+<code>object</code><p>el objeto de donde se est invocando la funci</p></div>
+</div></div>
+</div>
+<a id="function_ToList"></a><div class="element clickable function  function_ToList" data-toggle="collapse" data-target=".function_ToList .collapse">
+<h2>ToList($array)</h2>
+<pre>ToList(array $arr, object $obj) : string</pre>
+<div class="labels"></div>
+<div class="row collapse"><div class="detail-description">
+<div class="long_description"><p>Este metodo se encarga de convertir un arreglo en una lista separada por comas.</p></div>
+<h3>Parameters</h3>
+<div class="subelement argument">
+<h4>$arr</h4>
+<code>array</code><p>La cadena para cambiar a plural.</p></div>
+<div class="subelement argument">
+<h4>$obj</h4>
+<code>object</code><p>el objeto de donde se est invocando la funci</p></div>
+<h3>Returns</h3>
+<div class="subelement response">
+<code>string</code>$list Listado separado por comas.</div>
+</div></div>
+</div>
+<a id="function_cleanToSEO"></a><div class="element clickable function  function_cleanToSEO" data-toggle="collapse" data-target=".function_cleanToSEO .collapse">
+<h2>Metodo cleanToSEO()</h2>
+<pre>cleanToSEO(string $params, object $obj) : string</pre>
+<div class="labels"></div>
+<div class="row collapse"><div class="detail-description">
+<div class="long_description"><p>Cambia caracteres especiales con su equivalente a ascii normal, espacios a raya y los no equivalentes, los elimina.
+Se idealiza para el uso de links descriptivos para SEO.</p></div>
+<h3>Parameters</h3>
+<div class="subelement argument">
+<h4>$params</h4>
+<code>string</code><p>La cadena a cambiar.</p></div>
+<div class="subelement argument">
+<h4>$obj</h4>
+<code>object</code><p>el objeto de donde se est invocando la funci</p></div>
+<h3>Returns</h3>
+<div class="subelement response">
+<code>string</code>$string Cadena convertida.</div>
+</div></div>
+</div>
+<a id="function_getDataURI"></a><div class="element clickable function  function_getDataURI" data-toggle="collapse" data-target=".function_getDataURI .collapse">
+<h2>Converts a file to DataURI (for no more request to server)
+Can recieve a string of the full path file or can accept an array with 2 positions: 'file'=&gt;FULL_PATH_FILE, 'mime'=&gt;MIME_TYPE</h2>
+<pre>getDataURI(mixed $params) : string</pre>
+<div class="labels"></div>
+<div class="row collapse"><div class="detail-description">
+<div class="long_description"></div>
+<h3>Parameters</h3>
+<div class="subelement argument">
+<h4>$params</h4>
+<code>mixed</code><p>[required:full_path_file],[optional:mime_type]</p>
+</div>
+<h3>Returns</h3>
+<div class="subelement response"><code>string</code></div>
+</div></div>
+</div>
+<a id="function_unCamelize"></a><div class="element clickable function  function_unCamelize" data-toggle="collapse" data-target=".function_unCamelize .collapse">
+<h2>Metodo publico unCamelize()</h2>
+<pre>unCamelize(string $params, object $obj) : string</pre>
+<div class="labels"></div>
+<div class="row collapse"><div class="detail-description">
+<div class="long_description"><p>Este metodo se encarga de revertir una camelizaci&oacute;n y devuelve un string en su estado natural de palabras min&uacute;sculas
+y separadas por underscore.</p></div>
+<h3>Parameters</h3>
+<div class="subelement argument">
+<h4>$params</h4>
+<code>string</code><p>La cadena para cconvertir.</p></div>
+<div class="subelement argument">
+<h4>$obj</h4>
+<code>object</code><p>el objeto de donde se est invocando la funci</p></div>
+<h3>Returns</h3>
+<div class="subelement response">
+<code>string</code>$natural Cadena devuelta a su nombre natural en singular.</div>
+</div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="row"><footer class="span12">
+            Template is built using <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap 2</a> and icons provided by <a href="http://glyphicons.com/">Glyphicons</a>.<br>
+            Documentation is powered by <a href="http://www.phpdoc.org/">phpDocumentor 2.0.0a12</a> and<br>
+            generated on 2013-03-01T12:33:31-05:00.<br></footer></div>
+</div>
+</body>
+</html>

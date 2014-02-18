@@ -1,8 +1,235 @@
-ErrorDocument 400 "/app/webroot/index.php?_error=400"
-ErrorDocument 401 "/app/webroot/index.php?_error=401"
-ErrorDocument 403 "/app/webroot/index.php?_error=403"
-ErrorDocument 404 "/app/webroot/index.php?_error=404"
-ErrorDocument 500 "/app/webroot/index.php?_error=500"
+<IfModule mod_mime.c>
+    AddType text/css .css
+    AddType application/x-javascript .js
+    AddType application/json .json
+    AddType text/x-component .htc
+    AddType text/html .html .htm
+    AddType text/richtext .rtf .rtx
+    AddType image/svg+xml .svg .svgz
+    AddType text/plain .txt
+    AddType text/xsd .xsd
+    AddType text/xsl .xsl
+    AddType text/xml .xml
+    AddType video/asf .asf .asx .wax .wmv .wmx
+    AddType video/avi .avi
+    AddType image/bmp .bmp
+    AddType application/java .class
+    AddType video/divx .divx
+    AddType application/msword .doc .docx
+    AddType application/vnd.ms-fontobject .eot
+    AddType application/x-msdownload .exe
+    AddType image/gif .gif
+    AddType application/x-gzip .gz .gzip
+    AddType image/x-icon .ico
+    AddType image/jpeg .jpg .jpeg .jpe
+    AddType application/vnd.ms-access .mdb
+    AddType audio/midi .mid .midi
+    AddType video/quicktime .mov .qt
+    AddType audio/mpeg .mp3 .m4a
+    AddType video/mp4 .mp4 .m4v
+    AddType video/mpeg .mpeg .mpg .mpe
+    AddType application/vnd.ms-project .mpp
+    AddType application/x-font-otf .otf
+    AddType application/vnd.oasis.opendocument.database .odb
+    AddType application/vnd.oasis.opendocument.chart .odc
+    AddType application/vnd.oasis.opendocument.formula .odf
+    AddType application/vnd.oasis.opendocument.graphics .odg
+    AddType application/vnd.oasis.opendocument.presentation .odp
+    AddType application/vnd.oasis.opendocument.spreadsheet .ods
+    AddType application/vnd.oasis.opendocument.text .odt
+    AddType audio/ogg .ogg
+    AddType application/pdf .pdf
+    AddType image/png .png
+    AddType application/vnd.ms-powerpoint .pot .pps .ppt .pptx
+    AddType audio/x-realaudio .ra .ram
+    AddType application/x-shockwave-flash .swf
+    AddType application/x-tar .tar
+    AddType image/tiff .tif .tiff
+    AddType application/x-font-ttf .ttf .ttc
+    AddType audio/wav .wav
+    AddType audio/wma .wma
+    AddType application/vnd.ms-write .wri
+    AddType application/vnd.ms-excel .xla .xls .xlsx .xlt .xlw
+    AddType application/zip .zip
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css A31536000
+    ExpiresByType application/x-javascript A31536000
+    ExpiresByType text/x-component A31536000
+    ExpiresByType text/html A3600
+    ExpiresByType text/richtext A3600
+    ExpiresByType image/svg+xml A3600
+    ExpiresByType text/plain A3600
+    ExpiresByType text/xsd A3600
+    ExpiresByType text/xsl A3600
+    ExpiresByType text/xml A3600
+    ExpiresByType video/asf A31536000
+    ExpiresByType video/avi A31536000
+    ExpiresByType image/bmp A31536000
+    ExpiresByType application/java A31536000
+    ExpiresByType video/divx A31536000
+    ExpiresByType application/msword A31536000
+    ExpiresByType application/vnd.ms-fontobject A31536000
+    ExpiresByType application/x-msdownload A31536000
+    ExpiresByType image/gif A31536000
+    ExpiresByType application/x-gzip A31536000
+    ExpiresByType image/x-icon A31536000
+    ExpiresByType image/jpeg A31536000
+    ExpiresByType application/vnd.ms-access A31536000
+    ExpiresByType audio/midi A31536000
+    ExpiresByType video/quicktime A31536000
+    ExpiresByType audio/mpeg A31536000
+    ExpiresByType video/mp4 A31536000
+    ExpiresByType video/mpeg A31536000
+    ExpiresByType application/vnd.ms-project A31536000
+    ExpiresByType application/x-font-otf A31536000
+    ExpiresByType application/vnd.oasis.opendocument.database A31536000
+    ExpiresByType application/vnd.oasis.opendocument.chart A31536000
+    ExpiresByType application/vnd.oasis.opendocument.formula A31536000
+    ExpiresByType application/vnd.oasis.opendocument.graphics A31536000
+    ExpiresByType application/vnd.oasis.opendocument.presentation A31536000
+    ExpiresByType application/vnd.oasis.opendocument.spreadsheet A31536000
+    ExpiresByType application/vnd.oasis.opendocument.text A31536000
+    ExpiresByType audio/ogg A31536000
+    ExpiresByType application/pdf A31536000
+    ExpiresByType image/png A31536000
+    ExpiresByType application/vnd.ms-powerpoint A31536000
+    ExpiresByType audio/x-realaudio A31536000
+    ExpiresByType image/svg+xml A31536000
+    ExpiresByType application/x-shockwave-flash A31536000
+    ExpiresByType application/x-tar A31536000
+    ExpiresByType image/tiff A31536000
+    ExpiresByType application/x-font-ttf A31536000
+    ExpiresByType audio/wav A31536000
+    ExpiresByType audio/wma A31536000
+    ExpiresByType application/vnd.ms-write A31536000
+    ExpiresByType application/vnd.ms-excel A31536000
+    ExpiresByType application/zip A31536000
+</IfModule>
+
+<IfModule mod_deflate.c>
+    <IfModule mod_setenvif.c>
+        BrowserMatch ^Mozilla/4 gzip-only-text/html
+        BrowserMatch ^Mozilla/4\.0[678] no-gzip
+        BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+        BrowserMatch \bMSI[E] !no-gzip !gzip-only-text/html
+    </IfModule>
+
+    <IfModule mod_headers.c>
+        Header append Vary User-Agent env=!dont-vary
+	SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|deflate)\s*,?\s*)+|[X~-]{4,13}$ HAVE_Accept-Encoding
+        RequestHeader append Accept-Encoding "gzip,deflate" env=HAVE_Accept-Encoding
+    </IfModule>
+
+    <IfModule mod_filter.c>
+        AddOutputFilterByType DEFLATE text/css application/x-javascript application/json text/x-component text/html text/richtext image/svg+xml text/plain text/xsd text/xsl text/xml image/x-icon
+		AddOutputFilterByType DEFLATE application/javascript
+    </IfModule>
+
+    <IfModule filter_module>
+	    FilterDeclare   COMPRESS
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $text/html
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $text/css
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $text/plain
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $text/xml
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $text/x-component
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/javascript
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/x-javascript
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/json
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/xml
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/xhtml+xml
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/rss+xml
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/atom+xml
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/vnd.ms-fontobject
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $image/svg+xml
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $application/x-font-ttf
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $font/opentype
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $image/png
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $image/jpg
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $image/jpeg
+	    FilterProvider  COMPRESS  DEFLATE resp=Content-Type $image/gif
+	    FilterChain     COMPRESS
+	    FilterProtocol  COMPRESS  DEFLATE change=yes;byteranges=no
+  </IfModule>
+
+  <IfModule !mod_filter.c>
+    # Legacy versions of Apache
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/json
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+    AddOutputFilterByType DEFLATE text/xml application/xml text/x-component
+    AddOutputFilterByType DEFLATE application/xhtml+xml application/rss+xml
+    AddOutputFilterByType DEFLATE application/atom+xml
+    AddOutputFilterByType DEFLATE image/svg+xml application/vnd.ms-fontobject
+    AddOutputFilterByType DEFLATE image/jpg image/jpeg image/png image/gif
+    AddOutputFilterByType DEFLATE application/x-font-ttf font/opentype
+  </IfModule>
+
+</IfModule>
+
+<FilesMatch "\.(css|js|htc|CSS|JS|HTC)$">
+    <IfModule mod_headers.c>
+        Header set Pragma "cache"
+        Header append Cache-Control "public"
+    </IfModule>
+
+    FileETag MTime Size
+
+    <IfModule mod_headers.c>
+         Header set X-Powered-By "Dumbo - La tuteca"
+    </IfModule>
+
+</FilesMatch>
+
+<FilesMatch "\.(html|htm|rtf|rtx|svg|svgz|txt|xsd|xsl|xml|HTML|HTM|RTF|RTX|SVG|SVGZ|TXT|XSD|XSL|XML)$">
+    <IfModule mod_headers.c>
+        Header set Pragma "cache"
+        Header append Cache-Control "public"
+    </IfModule>
+
+    FileETag MTime Size
+
+    <IfModule mod_headers.c>
+         Header set X-Powered-By "Dumbo - La tuteca"
+    </IfModule>
+
+</FilesMatch>
+
+<FilesMatch "\.(asf|asx|wax|wmv|wmx|avi|bmp|class|divx|doc|docx|eot|exe|gif|gz|gzip|ico|jpg|jpeg|jpe|mdb|mid|midi|mov|qt|mp3|m4a|mp4|m4v|mpeg|mpg|mpe|mpp|otf|odb|odc|odf|odg|odp|ods|odt|ogg|pdf|png|pot|pps|ppt|pptx|ra|ram|svg|svgz|swf|tar|tif|tiff|ttf|ttc|wav|wma|wri|xla|xls|xlsx|xlt|xlw|zip|ASF|ASX|WAX|WMV|WMX|AVI|BMP|CLASS|DIVX|DOC|DOCX|EOT|EXE|GIF|GZ|GZIP|ICO|JPG|JPEG|JPE|MDB|MID|MIDI|MOV|QT|MP3|M4A|MP4|M4V|MPEG|MPG|MPE|MPP|OTF|ODB|ODC|ODF|ODG|ODP|ODS|ODT|OGG|PDF|PNG|POT|PPS|PPT|PPTX|RA|RAM|SVG|SVGZ|SWF|TAR|TIF|TIFF|TTF|TTC|WAV|WMA|WRI|XLA|XLS|XLSX|XLT|XLW|ZIP)$">
+
+    <IfModule mod_headers.c>
+        Header set Pragma "cache"
+        Header append Cache-Control "public"
+    </IfModule>
+
+    FileETag MTime Size
+
+    <IfModule mod_headers.c>
+         Header set X-Powered-By "Dumbo - La tuteca"
+    </IfModule>
+
+</FilesMatch>
+
+FileETag None
+
+AddDefaultCharset UTF-8
+
+<IfModule mod_mime.c>
+    AddType text/html .html_gzip
+    AddEncoding gzip .html_gzip
+    AddType text/xml .xml_gzip
+    AddEncoding gzip .xml_gzip
+</IfModule>
+
+<IfModule mod_deflate.c>
+    SetEnvIfNoCase Request_URI \.html_gzip$ no-gzip
+    SetEnvIfNoCase Request_URI \.xml_gzip$ no-gzip
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set Vary "Accept-Encoding, Cookie"
+</IfModule>
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
