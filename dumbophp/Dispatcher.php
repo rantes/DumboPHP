@@ -93,7 +93,9 @@ class index{
 		if(!file_exists($path.$controllerFile) and defined('USE_ALTER_URL') and USE_ALTER_URL){
 			$params['alter_controller'] = $controller;
 			$params['alter_action'] = $action;
-			list($controller, $action) = each(explode(ALTER_URL_CONTROLLER_ACTION));
+			$parts = explode('/',ALTER_URL_CONTROLLER_ACTION);
+			$controller = $parts[0];
+			$action = $parts[1];
 			$controllerFile = $controller.'_controller.php';
 		}
 		define('_CONTROLLER', $controller);

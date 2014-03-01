@@ -228,7 +228,7 @@ require "Driver.php";
 	 * @var array
 	 */
 	protected $_params = array('fields'=>'*','conditions'=>'');
-	
+
 	/**
 	 * Define si puede o no realizar dumps
 	 * @var boolean
@@ -309,7 +309,7 @@ require "Driver.php";
 	 * @param string $name Nombre del atributo que se quiere acceder.
 	 */
 	public function __get($name) {
-			
+
 			switch($name){
 				case '_ObjTable':
 					return $this->_TableName();
@@ -318,7 +318,6 @@ require "Driver.php";
 					return $this->_errors;
 				break;
 				default:
-
 					if (isset($this->_data[$name])){
 						return $this->_data[$name];
 					} elseif(isset($this->_attrs[$name])){
@@ -327,7 +326,7 @@ require "Driver.php";
 						$model = unCamelize($name);
 						if(file_exists(INST_PATH.'app/models/'.$model.'.php')){
 							if(!class_exists($name)){
-								require INST_PATH.'app/models/'.$model.'.php';
+								require_once INST_PATH.'app/models/'.$model.'.php';
 							}
 							$this->_attrs[$name] = new $name();
 							return $this->_attrs[$name];
@@ -392,7 +391,8 @@ require "Driver.php";
 		}
 
 		$result = array();
-		$i=0;
+// 		$i=0;
+		$j=0;
 		$regs = NULL;
 
 		$this->Connect();
@@ -405,7 +405,7 @@ require "Driver.php";
 			for($j = 0; $j < sizeof($resultset); $j++){
 				$classToUse = get_class($this);
 
-				$this->offsetSet($i, NULL);
+				$this->offsetSet($j, NULL);
 				$this[$j] = new $classToUse();
 				$column = 0;
 				foreach($resultset[$j] as $property => $value){
@@ -420,7 +420,7 @@ require "Driver.php";
 							case 'LONG':
 							case 'INTEGER':
 							case 'INT':
-								$this[$j]->_data[$property] = (integer)$value;
+								$this[$j]->_data[$property] = 0 + $value;
 							break;
 							case 'FLOAT':
 							case 'VAR_STRING':
@@ -431,15 +431,14 @@ require "Driver.php";
 								$this[$j]->_data[$property] = $value;
 							break;
 						}
-// 						$this[$j]->_data[$property] = $cast($value);//$value;
 						$this[$j]->_dataAttributes[$property]['native_type'] = $type['native_type'];
 						$column++;
 					}
 				}
-				$i++;
+// 				$i++;
 			}
 		}
-		$this->_counter = $i;
+		$this->_counter = $j;
 		if($this->_counter === 1){
 			foreach ($this[0]->_data as $field => $value){
 				$this->_data[$field] = $value;
@@ -447,6 +446,7 @@ require "Driver.php";
 			}
 		}
 		if($this->_counter === 0){
+			$this->offsetSet(0, NULL);
 			$this[0] = NULL;
 			$this->_data = NULL;
 			unset($this[0]);
@@ -595,7 +595,7 @@ require "Driver.php";
 		$this->__destruct();
 		$this->__construct();
 		$this->_data = NULL;
-// 		$this->_data = array();
+		$this->_data = array();
 		$this->Connect();
 		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`");
 		$type = array();
@@ -616,10 +616,8 @@ require "Driver.php";
 			$this->_counter = 0;
 			if(isset($contents) and $contents !== NULL and is_array($contents)){
 				if(isset($contents[$row['Field']])){
-					$value = $toCast ? (integer)$contents[$row['Field']] : $contents[$row['Field']];
+					$value = $toCast ?  0 + $contents[$row['Field']] : $contents[$row['Field']];
 					$this->_counter = 1;
-				}else{
-					continue;
 				}
 			}
 			$this->_data[$row['Field']] = $value;
@@ -932,7 +930,7 @@ require "Driver.php";
 						$listProperties .= get_class($this[$m]).' ';
 					}
 					$listProperties .= gettype($this[$m]);
-					
+
 					$listProperties .= "{\n";
 					foreach ($this[$m]->_data as $var => $value){
 						ob_start();
@@ -944,7 +942,7 @@ require "Driver.php";
 				} else {
 					$listProperties .= "[$m] =>".gettype($this[$m]).": ".$this[$m].PHP_EOL;
 				}
-				
+
 			}
 		}
 

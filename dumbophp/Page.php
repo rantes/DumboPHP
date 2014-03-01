@@ -3,7 +3,7 @@
  * Page.
  *
  * Clase que administra los controladores.
- * 
+ *
  * Se encarga de cargar todos los modelos y demas funciones generales.
  * @author Javier Serrano
  * @package Core
@@ -100,7 +100,7 @@ abstract class Page extends Core_General_Class{
 				require INST_PATH.'app/models/'.$model.'.php';
 			endif;
 			$obj = new $var();
-			return $obj; 
+			return $obj;
 		endif;
 	}
 	/**
@@ -114,13 +114,15 @@ abstract class Page extends Core_General_Class{
 		if(property_exists($this, 'noTemplate') and in_array($view['action'], $this->noTemplate)) $renderPage = FALSE;
 
 		if(isset($this->render) and is_array($this->render)):
-			if(isset($this->render['file'])):
+			if(!empty($this->render['file'])):
 				$view = $this->render['file'];
 			elseif(isset($this->render['partial'])):
 				$view = $view['controller'].'/_'.$this->render['partial'].'.phtml';
 			elseif(isset($this->render['text'])):
 				$this->content = $this->render['text'];
 				$renderPage = FALSE;
+			elseif(!empty($this->render['action'])):
+				$view = $view['controller'].'/'.$this->render['action'].'.phtml';
 			else:
 				$view = $view['controller'].'/'.$view['action'].'.phtml';
 			endif;

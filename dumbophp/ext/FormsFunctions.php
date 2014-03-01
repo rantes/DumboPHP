@@ -1,7 +1,7 @@
 <?php
 /**
 * Extension de Formularios
-* 
+*
 * Este archivo contiene funciones para el manejo de formularios.
 * @version 1.0
 * @author Javier Serrano.
@@ -18,7 +18,7 @@
 	 * @param string $type Tipo de dato para validar (integer, varchar, text).
 	 * @param object $obj En caso de ser invocado desde un objeto
 	 * @return string
-	 */	
+	 */
 	function GetInput($type, &$obj=NULL){
 		if($obj!=NULL) $type = $type[0];
 		$type = strtolower($type);
@@ -119,7 +119,7 @@
 	 */
 	function input_for($params, &$obj=null){
 		if(!empty($obj) and get_parent_class($obj) == 'ActiveRecord'):
-			$params = $params[0];
+			$params = is_array($params) ? $params[0] : $params;
 			$stringi = '<input';
 			$stringt = '<textarea';
 			$strings = '<select';
@@ -127,17 +127,21 @@
 			$html = '';
 			$type = '';
 			$input = '';
-			if(!empty($params[0]) or isset($params['field'])):
+			if(!empty($params) or !empty($params[0]) or isset($params['field'])):
 				// getting the field to treatment
-				$field = isset($params['field'])?$params['field']:$params[0];
+				if(is_array($params)){
+					$field = isset($params['field'])?$params['field']:$params[0];
+				} else {
+					$field = $params;
+				}
 				// getting the name
-				if(empty($params['name'])):
-					$name = singulars(strtolower($obj->_TableName())).'['.$field.']';
+				if(empty($params['name']) or !is_array($params)):
+					$name = Singulars(strtolower($obj->_TableName())).'['.$field.']';
 				else:
 					$name = $params['name'];
 				endif;
 				//getting the html attributes
-				if(!empty($params['html']) and is_array($params['html'])):
+				if(is_array($params) and !empty($params['html']) and is_array($params['html'])):
 					foreach($params['html'] as $element => $value):
 						$html .= $element.'="'.$value.'" ';
 					endforeach;
@@ -147,12 +151,13 @@
 					$html = ' '.$html;
 				endif;
 				// getting the type of field for input
-				if(!empty($params['type']) and is_string($params['type'])):
+				if(is_array($params) and !empty($params['type']) and is_string($params['type'])):
 					$type = $params['type'];
 				else:
 					$nattype = $obj->_nativeType($field);
 					switch($nattype):
 						case 'INTEGER':
+						case 'LONG':
 						case 'STRING':
 						case 'INT':
 						case 'VAR_CHAR':
@@ -177,8 +182,7 @@
 						$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$obj->{$field}.'</textarea>';
 					break;
 					case 'select':
-						$first = !empty($params['first']) ? '<option value="">'.$params['first'].'</option>' : '';
-						$cont = '';
+						$cont = !empty($params['first']) ? '<option value="">'.$params['first'].'</option>' : '';
 
 						foreach($params['list'] as $value => $option):
 							$default = '';
