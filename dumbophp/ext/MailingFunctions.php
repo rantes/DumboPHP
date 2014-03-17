@@ -39,7 +39,9 @@ endif;
 				"MIME-Version" => "1.0",
 				"Content-type" => "multipart/alternative;\n boundary=\"".$boundary."\""
 			);
-
+			if(!empty($arr['bcc'])):
+				$headers['Bcc'] = $arr['bcc'];
+			endif;
 			if(!isset($arr['body'])) return false;
 			$body = '';
 			if(isset($arr['template'])):
@@ -79,13 +81,28 @@ endif;
 			   	 'port'=>$port));
 
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before mail');
-			 $mail = $smtp->send($arr['to'], $headers, $plain.$html);
+			$option = 'html';
+			if(!empty($arr['opt_content'])){
+				$option = $arr['opt_content'];
+			}
+			switch ($option){
+				case 'plain':
+					$content = $plain;
+				break;
+				case 'both':
+					$content = $plain.$html;
+				case 'html':
+				default:
+					$content = $html;
+				break;
+			}
+			 $mail = $smtp->send($arr['to'], $headers, $content);
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'after mail');
 
 			 if (PEAR::isError($mail)):
 			   $sent = false;
 //			   echo $mail->getMessage();
-			   file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $arr['to'].' not sent'.$mail->getMessage());
+			   file_put_contents(INST_PATH.'/erroresemail.txt', $arr['to'].' not sent'.$mail->getMessage());
 			 else:
 			   $sent = true;
 //			   file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $arr['to'].' sent');
