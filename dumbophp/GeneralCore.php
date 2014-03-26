@@ -23,7 +23,13 @@ while (($file = $directory->read()) != FALSE){
 	}
 }
 $directory->close();
+//autoloader de clases ActiveRecord
+function loadModels($clase) {
+	$clase = unCamelize($clase);
+	require_once INST_PATH.'app/models/' . $clase . '.php';
+}
 
+spl_autoload_register('loadModels');
  /**
  * Clase Core_General_Class.
  *
@@ -75,7 +81,7 @@ abstract class Core_General_Class extends ArrayObject{
 					default:
 						$params = $val[0];
 					break;
-						
+
 				}
 			}
 			$foreign = strtolower($field)."_id";
@@ -91,7 +97,7 @@ abstract class Core_General_Class extends ArrayObject{
 				}elseif(in_array($ClassName, $this->belongs_to)){
 					$conditions = "`id`='".$this->{$foreign}."'";
 				}
-				
+
 				$params['conditions'] = empty($params['conditions'])? $conditions : ' AND '.$conditions;
 				return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
 			}

@@ -1,7 +1,7 @@
 <?php
 /**
  * Migraciones
- * 
+ *
  * @author Javier Serrano <rantes.javier@gmail.com>
  * @version 1.0
  * @license   http://opensource.org/licenses/gpl-license.php GNU Public License
@@ -32,13 +32,13 @@ class NewAr extends ActiveRecord{}
 abstract class Migrations extends Core_General_Class{
 	/**
 	* Atributo protegido $create_table;
-	* 
+	*
 	* Este atributo es un arreglo que contiene los datos necesarios para la creacion de la tabla que luego
 	* se define en el archivo de migracion.
 	* @var array $create_table
 	*/
 	//protected $create_table = array();
-	
+
 	/**
 	* Metodo constructor.
 	*/
@@ -49,51 +49,51 @@ abstract class Migrations extends Core_General_Class{
 	function __destruct(){}
 	/**
 	* Metodo abstracto Up().
-	* 
+	*
 	* Este metodo se define luego en la clase migraci&oacute;n y sirve para la creacion de la tabla en la base de datos.
 	*/
 	public function up(){}
 	/**
 	* Metodo abstracto Down().
-	* 
+	*
 	* Este metodo se define luego en la clase migraci&oacute;n y sirve para la eliminacion de la tabla en la base de datos.
 	*/
 	public function down(){}
 	/**
 	* Metodo publico Reset().
-	* 
+	*
 	* Este metodo sirve para la eliminaci&oacute;n y creacion de la tabla en la base de datos.
 	*/
 	function Reset(){
 		$this->down();
 		$this->up();
-		
+
 	}
 	//Creaciones de tablas
-	
+
 	/**
 	* Metodo protegido Create_Table($table=NULL).
-	* 
+	*
 	* Este metodo se encarga de crear la tabla con el parametro $table que contiene el nombre de la tabla y los
 	* campos con sus respectivos atributos.
 	* @param array $table Arreglo que contiene el nombre de la tabla, campos y atributos.
 	*/
 	protected function Create_Table($table = NULL){
 		if($table !== NULL):
-			
+
 			$tablName = $table['Table'];
 			$query = "CREATE TABLE `".$tablName."` (
 				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,";
 			foreach($table as $key => $Field){
-				if(strcmp($key, 'Table') != 0):
-					if($Field['type'] == 'VARCHAR' and (!isset($Field['limit']) or $Field['limit'] == '')) $Field['limit'] = 250;
-					$query .= (isset($Field['field']) and isset($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
-					$query .= (isset($Field['limit']) and $Field['limit'] != '')? " (".$Field['limit'].")" : NULL;
+				if(strcmp($key, 'Table') != 0){
+					if($Field['type'] == 'VARCHAR' and empty($Field['limit'])) $Field['limit'] = 250;
+					$query .= (!empty($Field['field']) and !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
+					$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
 					$query .= ($Field['type'] == 'VARCHAR' or $Field['type'] == 'TEXT' or $Field['type'] == 'LONGTEXT')?' CHARACTER SET utf8 COLLATE utf8_general_ci':NULL;
-					$query .= (isset($Field['null']) and $Field['null'] != '')? " NOT NULL" : NULL;
+					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
 					$query .= (isset($Field['default']) and $Field['default'] != '')? " DEFAULT '".$Field['default']."'" : NULL;
 					$query .= " ,";
-				endif;
+				}
 			}
 			$query .= "created_at INT NOT NULL ,";
 			$query .= "updated_at INT NOT NULL ";
@@ -103,11 +103,11 @@ abstract class Migrations extends Core_General_Class{
 			$Ar->driver->exec($query);
 			$Ar->WriteSchema($tablName);
 			$Ar->WriteModel($tablName);
-			
+
 		endif;
 	}
 	/**
-	* 
+	*
 	* Este metodo se encarga de eliminar la tabla con el parametro $table que contiene el nombre de la tabla.
 	* @param string $table Cadena de texto que contiene el nombre de la tabla.
 	*/
@@ -118,9 +118,9 @@ abstract class Migrations extends Core_General_Class{
 		$Ar->driver->exec($query);
 	}
 	//Alteraciones sobre las tablas
-	
+
 	/**
-	* Este metodo se encarga de alterar la tabla con el parametro $columns que contiene el nombre de la tabla y el campo 
+	* Este metodo se encarga de alterar la tabla con el parametro $columns que contiene el nombre de la tabla y el campo
 	* con sus respectivos atributos.
 	* @param array $columns Arreglo que contiene el nombre de la tabla, campo y atributos.
 	*/
@@ -143,7 +143,7 @@ abstract class Migrations extends Core_General_Class{
 //			$query .= "created_at INT NOT NULL ,";
 //			$query .= "updated_at INT NOT NULL ";
 //			$query .= ")";
-			
+
 			$Ar = new NewAr();
 			$Ar->Connect();
 			$Ar->driver->exec($query);
@@ -156,7 +156,7 @@ abstract class Migrations extends Core_General_Class{
 	}
 	/**
 	* Metodo protegido Remove_Column($column=NULL).
-	* 
+	*
 	* Este metodo se encarga de eliminar la columna con el parametro $column que contiene el nombre de la tabla y la columna.
 	* @param array $column Arreglo de 2 posiciones contiene el nombre de la tabla y el nombre de la columna.
 	*/

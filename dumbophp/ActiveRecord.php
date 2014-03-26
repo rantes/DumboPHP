@@ -45,7 +45,7 @@ require "Driver.php";
 	 * Objeto de tipo pdo para la conexion global de bases de datos.
 	 * @var Object_PDO $driver
 	 */
-	public $driver = NULL;
+	private $driver = NULL;
 
 	/**
 	 * Variable protegida $_counter
@@ -234,7 +234,14 @@ require "Driver.php";
 	 * @var boolean
 	 */
 	public $candump = true;
-
+	/**
+	 * Almacena temporalmente las variables para unserialize()
+	 */
+	public $wakedUpVars = array();
+	/**
+	 * recurso de conexion al servidor memcached
+	 */
+	private $memcached = null;
 	/**
 	 * Constructor
 	 *
@@ -245,6 +252,7 @@ require "Driver.php";
 		$this->_data = array();
 		$this->_attrs = NULL;
 		$this->_attrs = array();
+		$this->checkMemcached();
 		$this->Connect();
 	}
 	/**
@@ -258,6 +266,118 @@ require "Driver.php";
 		$this->_attrs = array();
 		$this->_error = NULL;
 	}
+	/**
+	 * Se ejecuta con el llamado de serializacion.
+	 * No se permite el almacenamiento en sesion de objetos ActiveRecords por seguridad y rendimiento.
+	 *
+	 *  @return string Objeto serializado.
+	 */
+	public function serialize() {
+		$name = get_class($this);
+		$countVars = 0;
+		$conts = '';
+		$backtrace = debug_backtrace();
+		if(sizeof($backtrace) <= 1)	throw new Exception('Active Record objects can not be storaged into session due to security reasons.');
+		$serializes = null;
+		$vars = get_class_vars($name);
+		foreach ($vars as $var => $type){
+			if(!empty($this->{$var}) && $var !== 'driver'){
+				$countVars++;
+				$typeof = gettype($this->{$var});
+				$conts .= 's:'.strlen($var).':"'.$var.'";';
+				switch ($typeof){
+					case 'integer':
+						$conts .= 'i:'.$this->{$var}.';';
+						break;
+					case 'string':
+						$conts .= 's:'.strlen($this->{$var}).':"'.$this->{$var}.'";';
+						break;
+					case 'boolean':
+						$conts .= 'b:'.((integer)$this->{$var}).';';
+						break;
+					case 'array':
+					case 'object':
+						$conts .= serialize($this->{$var});
+						break;
+				}
+			}
+		}
+		$serializes = $conts;
+
+		if($this->_counter > 1){
+			$countVars += $this->_counter;
+			for($i = 0; $i < $this->_counter; $i++){
+				$countVars1 = 0;
+				$conts = '';
+				foreach ($vars as $var => $type){
+					if(!empty($this[$i]->{$var}) && $var !== 'driver'){
+						$countVars1++;
+						$typeof = gettype($this[$i]->{$var});
+						$conts .= 's:'.strlen($var).':"'.$var.'";';
+						switch ($typeof){
+							case 'integer':
+								$conts .= 'i:'.$this[$i]->{$var}.';';
+								break;
+							case 'string':
+								$conts .= 's:'.strlen($this[$i]->{$var}).':"'.$this[$i]->{$var}.'";';
+								break;
+							case 'boolean':
+								$conts .= 'b:'.((integer)$this[$i]->{$var}).';';
+								break;
+							case 'array':
+							case 'object':
+								$conts .= serialize($this[$i]->{$var});
+								break;
+						}
+					}
+				}
+				$serializes1 = 'O:'.strlen($name).':"'.$name.'":'.$countVars1.':{'.$conts.'}';
+				$serializes .= 'i:'.$i.';C:'.strlen($name).':"'.$name.'":'.strlen($serializes1).':{'.$serializes1.'}';
+			}
+		}
+		$serializes = 'O:'.strlen($name).':"'.$name.'":'.$countVars.':{'.$serializes.'}';
+		return $serializes;
+	}
+	/**
+	 * Invocado por la funcion unserilize()
+	 */
+	public function unserialize($data) {
+		$a = unserialize($data);
+		if(!empty($a->wakedUpVars['main'][1]['_counter']) && $a->wakedUpVars['main'][1]['_counter'] <= 1){
+			$min = sizeof($a->wakedUpVars['main']) - $a->wakedUpVars['main'][1]['_counter'];
+			for($i = 0; $i < $a->wakedUpVars['main'][1]['_counter']; $i++){
+				$this->offsetSet($i, NULL);
+				$classToUse = get_class($this);
+				$this[$i] = new $classToUse();
+				foreach($a->wakedUpVars['main'][$min+$i] as $obj){
+					$this[$i] = $obj;
+				}
+			}
+		} else {
+			foreach ($a->wakedUpVars['main'] as $var){
+				foreach ($var as $key => $value){
+					if(is_numeric($key)){
+						$this->offsetSet($key, NULL);
+						$classToUse = get_class($this);
+						$this[$key] = $value;
+					} else {
+						$this->{$key} = $value;
+					}
+				}
+			}
+		}
+	}
+	/**
+	 * Invocado por unserialize()
+	 * Establece los valores para el arreglo wakedUpVars
+	 */
+	public function __wakeup(){
+		foreach($this as $key => $value){
+			$this->wakedUpVars['main'][] = array($key => $value);
+		}
+// 		$this->Connect();
+	}
+
 	/**
 	 * metodo magico __set()
 	 *
@@ -354,6 +474,24 @@ require "Driver.php";
 			$this->driver = new Driver(INST_PATH.'config/db_settings.ini');
 		}
 		$this->_error = new Errors();
+	}
+
+	private function checkMemcached(){
+		$memcached = null;
+		if(!defined('CAN_USE_MEMCACHED')){
+			define('CAN_USE_MEMCACHED', false);
+		}
+		if(CAN_USE_MEMCACHED && empty($this->memcached)){
+			$memcached = new Memcached();
+			if(!defined('MEMCACHED_HOST')){
+				define('MEMCACHED_HOST','localhost');
+			}
+			if(!defined('MEMCACHED_PORT')){
+				define('MEMCACHED_PORT','11211');
+			}
+			$memcached->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
+		}
+		return $memcached;
 	}
 
 	/**
@@ -477,6 +615,7 @@ require "Driver.php";
 		$this->_data = null;
 		$this->__destruct();
 		$this->__construct();
+		$memcached = $this->checkMemcached();
 		if(!empty($params)) $this->_params = $params;
 		if(sizeof($this->before_find) >0){
 			foreach($this->before_find as $functiontoRun){
@@ -551,7 +690,16 @@ require "Driver.php";
 		}
 		$fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
 		$sql = "SELECT {$fields} FROM `{$this->_TableName()}` WHERE 1=1" . $sql;
-		//$this->Connect();
+// 		$this->Connect();
+		$this->_sqlQuery = $sql;
+		if(CAN_USE_MEMCACHED){
+			$key = md5($sql);
+			$res = null;
+			$res = $memcached->get($key);
+			if($memcached->getResultCode() == 0 && is_object($res)){
+				return $res;
+			}
+		}
 		$this->getData($sql);
 		$this->_sqlQuery = $sql;
 
@@ -560,6 +708,9 @@ require "Driver.php";
 			foreach($this->after_find as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
+		}
+		if(CAN_USE_MEMCACHED){
+			$memcached->set($key,$this);
 		}
 		return clone($this);
 	}
@@ -609,6 +760,8 @@ require "Driver.php";
 				case 'LONG':
 				case 'INTEGER':
 				case 'INT':
+				case 'FLOAT':
+				case 'DOUBLE':
 					$toCast = true;
 				break;
 			}
@@ -616,11 +769,11 @@ require "Driver.php";
 			$this->_counter = 0;
 			if(isset($contents) and $contents !== NULL and is_array($contents)){
 				if(isset($contents[$row['Field']])){
-					$value = $toCast ?  0 + $contents[$row['Field']] : $contents[$row['Field']];
+					$value = $contents[$row['Field']];
 					$this->_counter = 1;
 				}
 			}
-			$this->_data[$row['Field']] = $value;
+			$this->_data[$row['Field']] = $toCast ?  0 + $value : $value;
 			$this[0]->_data[$row['Field']] = $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
 		}
@@ -764,7 +917,7 @@ require "Driver.php";
 		    return FALSE;
 		}
 		if($kind == "insert"){
-			$this->id = $this->driver->lastInsertId();
+			$this->id = $this->driver->lastInsertId() + 0;
 			if(sizeof($this->after_insert)>0){
 				foreach($this->after_insert as $functiontoRun){
 					$this->{$functiontoRun}();
