@@ -22,7 +22,7 @@ endif;
  * @return boolean
  */
 	function email($arr, &$obj=NULL){
-		if($obj == null or sizeof($arr)>0):
+		if($obj == null or sizeof($arr)>0){
 
 			$headers = array();
 
@@ -39,19 +39,19 @@ endif;
 				"MIME-Version" => "1.0",
 				"Content-type" => "multipart/alternative;\n boundary=\"".$boundary."\""
 			);
-			if(!empty($arr['bcc'])):
+			if(!empty($arr['bcc'])){
 				$headers['Bcc'] = $arr['bcc'];
-			endif;
+			}
 			if(!isset($arr['body'])) return false;
 			$body = '';
-			if(isset($arr['template'])):
+			if(isset($arr['template'])){
 				$content = $arr['body'];
 				ob_start();
 				include $arr['template'];
 				$body = ob_get_clean();
-			else:
+			} else {
 				$body = $arr['body'];
-			endif;
+			}
 //			file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $body);
 			$plain = "--".$boundary."\n";
 			$plain .= "Content-Type: text/plain; charset=utf-8\n";
@@ -72,15 +72,9 @@ endif;
 			 $port = !empty($arr['smtp_port'])? $arr['smtp_port'] : _CONTACT_SMTP_PORT;
 
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before smpt');
-
-			 $smtp = Mail::factory('smtp',
-			   array ('host' => $host,
-			     'auth' => true,
-			     'username' => $username,
-			     'password' => $password,
-			   	 'port'=>$port));
-
-//			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before mail');
+			if(!defined('USE_SMTP')){
+				define('USE_STMP', false);
+			}
 			$option = 'html';
 			if(!empty($arr['opt_content'])){
 				$option = $arr['opt_content'];
@@ -96,22 +90,34 @@ endif;
 					$content = $html;
 				break;
 			}
-			 $mail = $smtp->send($arr['to'], $headers, $content);
-//			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'after mail');
+			if(USE_SMTP){
+			 	$mailo = Mail::factory('smtp',
+			  		array ('host' => $host,
+				     'auth' => true,
+				     'username' => $username,
+				     'password' => $password,
+				   	 'port'=>$port));
 
-			 if (PEAR::isError($mail)):
-			   $sent = false;
-//			   echo $mail->getMessage();
-			   file_put_contents(INST_PATH.'/erroresemail.txt', $arr['to'].' not sent'.$mail->getMessage());
-			 else:
-			   $sent = true;
-//			   file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $arr['to'].' sent');
-			 endif;
+			} else {
+// 				$simplyheaders = '';
+// 				foreach ($headers as $head => $cont){
+// 					$simplyheaders .= $head .':'.$cont."\r\n";
+// 				}
+// 				$sent = mail($arr['to'], $arr['subject'], $content, $simplyheaders);
+				$mailo = Mail::factory('mail', '-f rantes.javier@gmail.com');
+			}
+			 	$mail = $mailo->send($arr['to'], $headers, $content);
 
+				if (PEAR::isError($mail)){
+				   $sent = false;
+				   file_put_contents(INST_PATH.'/erroresemail.txt', date('Y m d H:i:s').'[error]:'.$arr['to'].' not sent'.$mail->getMessage());
+				} else {
+				   $sent = true;
+				}
 
 			return $sent;
 
-		endif;
+		}
 		return false;
 	}
 ?>

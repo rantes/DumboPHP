@@ -99,7 +99,7 @@ class index{
 		}
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
-		define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/'.implode('/', $params));
+		define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/?'.http_build_query($params));
 
 		if(file_exists($path.$controllerFile)){
 			require($path.$controllerFile);

@@ -45,7 +45,7 @@ require "Driver.php";
 	 * Objeto de tipo pdo para la conexion global de bases de datos.
 	 * @var Object_PDO $driver
 	 */
-	private $driver = NULL;
+	public $driver = NULL;
 
 	/**
 	 * Variable protegida $_counter
@@ -630,7 +630,7 @@ require "Driver.php";
 		$sql = '';
 
 		if(!empty($this->_params)){
-			if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = (integer)$this->_params;
+			if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = 0 + $this->_params;
 			$type = gettype($this->_params);
 			$strint = '';
 			switch($type){
@@ -976,6 +976,14 @@ require "Driver.php";
 			$this->_error->add(array('field' => $this->_TableName(),'message'=>"Must specify a register to delete"));
 			return FALSE;
 		}else{
+			if(sizeof($this->before_delete) >0){
+				foreach($this->before_delete as $functiontoRun){
+					$this->{$functiontoRun}();
+				}
+				if($this->_error->isActived()){
+					return false;
+				}
+			}
 			$query = "DELETE FROM `".$this->_TableName()."` ";
 			if(is_numeric($conditions)){
 				$this->id = $conditions;
@@ -984,11 +992,6 @@ require "Driver.php";
 			}elseif(is_array($conditions)){
 				foreach($conditions as $field => $value){
 					$query .= " and $field='$value'";
-				}
-			}
-			if(sizeof($this->before_delete) >0){
-				foreach($this->before_delete as $functiontoRun){
-					$this->{$functiontoRun}();
 				}
 			}
 			$this->Connect();
@@ -1068,7 +1071,7 @@ require "Driver.php";
 		if($i>0){
 			$listProperties .= $this->_counter;
 		}
-		if($this->_counter <= 1){
+		if($this->_counter == 1){
 			foreach ($this->_data as $var => $value){
 				ob_start();
 				var_dump($value);
