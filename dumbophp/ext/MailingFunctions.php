@@ -72,9 +72,6 @@ endif;
 			 $port = !empty($arr['smtp_port'])? $arr['smtp_port'] : _CONTACT_SMTP_PORT;
 
 //			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before smpt');
-			if(!defined('USE_SMTP')){
-				define('USE_STMP', false);
-			}
 			$option = 'html';
 			if(!empty($arr['opt_content'])){
 				$option = $arr['opt_content'];
@@ -89,6 +86,9 @@ endif;
 				default:
 					$content = $html;
 				break;
+			}
+			if(!defined('USE_SMTP')){
+				define('USE_SMTP', false);
 			}
 			if(USE_SMTP){
 			 	$mailo = Mail::factory('smtp',
