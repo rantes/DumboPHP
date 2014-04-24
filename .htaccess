@@ -1,6 +1,6 @@
 Options -Indexes All
 <IfModule mod_rewrite.c>
-   RewriteEngine on
+   RewriteEngine On
    RewriteRule ^(.*)$ app/webroot/$1 [QSA,L]
 
    RewriteRule ^(?:app|core|migrations|vendor|config)\b app/webroot/index.php?url=$0 [L]
