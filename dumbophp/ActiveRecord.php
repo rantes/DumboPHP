@@ -588,6 +588,7 @@ require "Driver.php";
 			$this[0] = NULL;
 			$this->_data = NULL;
 			unset($this[0]);
+			$this->Niu();
 		}
 	}
 
@@ -750,6 +751,7 @@ require "Driver.php";
 		$this->Connect();
 		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`");
 		$type = array();
+		$this->_counter = 0;
 		foreach($result as $row){
 			$type['native_type'] = $row['Type'];
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
@@ -766,15 +768,14 @@ require "Driver.php";
 				break;
 			}
 			$value = '';
-			$this->_counter = 0;
 			if(isset($contents) and $contents !== NULL and is_array($contents)){
 				if(isset($contents[$row['Field']])){
 					$value = $contents[$row['Field']];
-					$this->_counter = 1;
 				}
+				$this->_counter = 1;
 			}
 			$this->_data[$row['Field']] = $toCast ?  0 + $value : $value;
-			$this[0]->_data[$row['Field']] = $value;
+			$this[0]->_data[$row['Field']] = $toCast ?  0 + $value : $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
 		}
 		return clone($this);
@@ -852,7 +853,7 @@ require "Driver.php";
 			}
 		}
 		if($this->_error->isActived()) return FALSE;
-		if($this->id and !empty($this->id) and $this->id != ''){
+		if(isset($this->id) and !empty($this->id) and $this->id != ''){
 			$kind = "update";
 			$query = "UPDATE `".$this->_TableName()."` SET ";
 			$ThisClass = get_class($this);
@@ -918,6 +919,7 @@ require "Driver.php";
 		}
 		if($kind == "insert"){
 			$this->id = $this->driver->lastInsertId() + 0;
+			$this[0]->_data['id'] = $this->id;
 			if(sizeof($this->after_insert)>0){
 				foreach($this->after_insert as $functiontoRun){
 					$this->{$functiontoRun}();

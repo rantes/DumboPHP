@@ -174,6 +174,11 @@ abstract class Page extends Core_General_Class{
 	public function params($params = NULL){
 		$this->params = $params;
 	}
+	/**
+	 * Da respuesta a una peticion AJAX
+	 * @param JSON $val
+	 * @return JSON
+	 */
 	public function respondToAJAX($val = null){
 		if($val === null):
 			return $this->_respondToAJAX;
