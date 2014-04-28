@@ -23,7 +23,7 @@ class Driver extends PDO
 	function __construct($file = 'config/db_settings.ini')
 	{
 		if (!$settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
-		
+
 		$dns = $settings['database']['driver'] .
 		((!empty($settings['database']['host'])) ? (':host=' . $settings['database']['host']) : '') .
 		((!empty($settings['database']['port'])) ? (';port=' . $settings['database']['port']) : '') .

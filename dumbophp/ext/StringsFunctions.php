@@ -213,8 +213,16 @@ include(dirname(__FILE__).'/StringFunctionsLibrary/IrregularNouns.php');
 	  * @return string
 	  */
 	 function cleanASCII($string){
-	 	$patterns = array("/\xd1/","/\xf1/","/\xc1/","/\xe1/","/\xc9/","/\xe9/","/\xcd/","/\xed/","/\xd3/","/\xf3/","/\xfa/","/\x22/","/\x27/");
-	 	$replaces = array('&Ntilde','&ntilde','&Aacute;','&aacute;','&Eacute;','&eacute;','&Iacute;','&iacute;','&Oacute;','&oacute;','&Uacute;','&uacute;','&quot;','&#39;');
-	 	return preg_replace($patterns, $replaces, $string);
+// 	 	$patterns = array("/\xd1/","/\xf1/","/\xc1/","/\xe1/","/\xc9/","/\xe9/","/\xcd/","/\xed/","/\xd3/","/\xf3/","/\xfa/","/\x22/","/\x27/");
+// 	 	$replaces = array('&Ntilde','&ntilde','&Aacute;','&aacute;','&Eacute;','&eacute;','&Iacute;','&iacute;','&Oacute;','&oacute;','&Uacute;','&uacute;','&quot;','&#39;');
+// 	 	return preg_replace($patterns, $replaces, $string);
+
+	 	$specialChars = array("/\xc0/","/\xc1/","/\xc2/","/\xc3/","/\xc4/","/\xc5/","/\xc6/","/\xc7/","/\xc8/","/\xc9/","/\xca/","/\xcb/","/\xcc/","/\xcd/","/\xce/","/\xcf/","/\xd0/","/\xd1/",
+	 			"/\xd2/","/\xd3/","/\xd4/","/\xd5/","/\xd6/","/\xd7/","/\xd8/","/\xd9/","/\xda/","/\xdb/","/\xdc/","/\xdd/","/\xde/","/\xdf/","/\xe0/","/\xe1/","/\xe2/","/\xe3/","/\xe4/","/\xe5/","/\xe6/",
+	 			"/\xe7/","/\xe8/","/\xe9/","/\xea/","/\xeb/","/\xec/","/\xed/","/\xee/","/\xef/","/\xf0/","/\xf1/","/\xf2/","/\xf3/","/\xf4/","/\xf5/","/\xf6/","/\xf7/","/\xf8/","/\xf9/","/\xfa/","/\xfb/","/\xfc/","/\xfd/","/\xfe/","/\xff/");
+	 	$normalChars =  array('A','A','A','A','A','A','A','C','E','E','E','E','I','I','I','I','D','N',
+	 			'O','O','O','O','O','O','O','U','U','U','U','Y','B','Ss','a','a','a','a','a','a','a',
+	 			'c','e','e','e','e','i','i','i','i','o','n','o','o','o','o','o','o','o','u','u','u','u','y','b','y');
+	 	return preg_replace($specialChars, $normalChars, $string);
 	 }
 ?>

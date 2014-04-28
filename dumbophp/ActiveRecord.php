@@ -538,7 +538,6 @@ require "Driver.php";
 		if(!is_object($regs)) die("Error in SQL Query. Please check the SQL Query: ".$query);
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset = $regs->fetchAll();
-
 		if(sizeof($resultset) > 0){
 			for($j = 0; $j < sizeof($resultset); $j++){
 				$classToUse = get_class($this);
@@ -548,7 +547,12 @@ require "Driver.php";
 				$column = 0;
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-						$type = $regs->getColumnMeta($column);
+						$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
+						if($engine != 'mysql'){
+							$type = array('native_type'=>'VAR_CHAR');
+						} else {
+							$type = $regs->getColumnMeta($column);
+						}
 						if(empty($type['native_type'])) $type['native_type'] = 'VAR_CHAR';
 						$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 						$type['native_type'] = strtoupper($type['native_type']);
@@ -589,6 +593,7 @@ require "Driver.php";
 			$this->_data = NULL;
 			unset($this[0]);
 			$this->Niu();
+			$this[0] = $this->Niu();
 		}
 	}
 
@@ -636,11 +641,11 @@ require "Driver.php";
 			$strint = '';
 			switch($type){
 				case 'integer':
-					$sql .= " and `id` in ($this->_params)";
+					$sql .= " and id in ($this->_params)";
 				break;
 				case 'string':
 					if(strpos($this->_params,',')!== FALSE){
-						$sql .= " and `id` in ($this->_params)";
+						$sql .= " and id in ($this->_params)";
 					}
 				break;
 				case 'array':
@@ -651,7 +656,7 @@ require "Driver.php";
 								$NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
 							}
 							if(!$NotOnlyInt){
-								$sql .= " AND `id` in (".implode(',',$this->_params['conditions']).")";
+								$sql .= " AND id in (".implode(',',$this->_params['conditions']).")";
 							}else{
 								foreach($this->_params['conditions'] as $field => $value){
 									if(is_numeric($field)) $sql .= " AND ".$value;
@@ -663,7 +668,7 @@ require "Driver.php";
 						}
 					}
 					if(isset($this->_params['group'])){
-						$sql .= " GROUP BY `".$this->_params['group']."`";
+						$sql .= " GROUP BY ".$this->_params['group'];
 					}
 					if(isset($this->_params['sort'])){
 						switch (gettype($this->_params['sort'])){
@@ -690,7 +695,7 @@ require "Driver.php";
 			}
 		}
 		$fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
-		$sql = "SELECT {$fields} FROM `{$this->_TableName()}` WHERE 1=1" . $sql;
+		$sql = "SELECT {$fields} FROM {$this->_TableName()} WHERE 1=1" . $sql;
 // 		$this->Connect();
 		$this->_sqlQuery = $sql;
 		if(CAN_USE_MEMCACHED){
@@ -749,9 +754,22 @@ require "Driver.php";
 		$this->_data = NULL;
 		$this->_data = array();
 		$this->Connect();
-		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`");
+
+		$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
+		if($engine != 'mysql'){
+			$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
+			$result1->setFetchMode(PDO::FETCH_ASSOC);
+			$resultset = $result1->fetchAll();
+			foreach ($resultset as $res){
+				$result[] = array('Type'=>'VAR_CHAR','Field'=>trim($res['RDB$FIELD_NAME']));
+			}
+		} else {
+			$result = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
+		}
+
 		$type = array();
 		$this->_counter = 0;
+		$cleanup = false;
 		foreach($result as $row){
 			$type['native_type'] = $row['Type'];
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
@@ -768,15 +786,23 @@ require "Driver.php";
 				break;
 			}
 			$value = '';
-			if(isset($contents) and $contents !== NULL and is_array($contents)){
+			if(!empty($contents) && is_array($contents)){
 				if(isset($contents[$row['Field']])){
 					$value = $contents[$row['Field']];
+					$cleanup = true;
 				}
 				$this->_counter = 1;
 			}
 			$this->_data[$row['Field']] = $toCast ?  0 + $value : $value;
 			$this[0]->_data[$row['Field']] = $toCast ?  0 + $value : $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
+		}
+		if($cleanup){
+			foreach ($this->_data as $idx => $value){
+				if(empty($value) && $value !== 0){
+					unset($this->{$idx});
+				}
+			}
 		}
 		return clone($this);
 	}
@@ -858,28 +884,31 @@ require "Driver.php";
 			$query = "UPDATE `".$this->_TableName()."` SET ";
 			$ThisClass = get_class($this);
 			$objAux = new $ThisClass();
-
-			$existing_data = $objAux->Find($this->id)->getArray();
-
 			$arraux = array();
 			$i=0;
-			foreach($existing_data as $key => $data){
-				if(is_array($data)){
+// these linese were deactivated due to datatype comparison when were afterfind callbacks changes the content types
+// 			$existing_data = $objAux->Find($this->id)->getArray();
 
-					foreach($data as $field => $value){
-						if(!is_array($value)){
-							if(isset($this->{$field}) and $value !== $this->{$field} and strcmp($field, "created_at") !== 0 and strcmp($field, "updated_at") !== 0 and strcmp($field, "id") !== 0){
-								$arraux[$field] = $this->{$field};
-							}
-						}
-					}
-				}else{
-					if(isset($this->_data[$key]) and $data != $this->_data[$key] and strcmp($key, "created_at") !== 0 and strcmp($key, "updated_at") !== 0 and strcmp($key, "id") !== 0){
-						$arraux[$key] = $this->_data[$key];
-					}
-				}
-			}
-				$arraux['updated_at'] = time();
+// 			foreach($existing_data as $key => $data){
+// 				if(is_array($data)){
+
+// 					foreach($data as $field => $value){
+// 						if(!is_array($value)){
+// 							if(isset($this->{$field}) and $value !== $this->{$field} and strcmp($field, "created_at") !== 0 and strcmp($field, "updated_at") !== 0 and strcmp($field, "id") !== 0){
+// 								$arraux[$field] = $this->{$field};
+// 							}
+// 						}
+// 					}
+// 				}else{
+// 					if(isset($this->_data[$key]) and $data != $this->_data[$key] and strcmp($key, "created_at") !== 0 and strcmp($key, "updated_at") !== 0 and strcmp($key, "id") !== 0){
+// 						$arraux[$key] = $this->_data[$key];
+// 					}
+// 				}
+// 			}
+// these lines were added instead
+			$arraux = $this->_data;
+////////////////////////////////////
+			$arraux['updated_at'] = time();
 			foreach($arraux as $key => $value){
 				$query .= "`$key` = '$value',";
 			}

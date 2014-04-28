@@ -66,7 +66,7 @@ abstract class Core_General_Class extends ArrayObject{
 		$params = array();
 		if(preg_match('/Find_by_/', $ClassName)){
 			$nustring = str_replace("Find_by_", '',$ClassName);
-			return $this->Find(array('conditions'=>'`'.$nustring."`='".$val[0]."'"));
+			return $this->Find(array('conditions'=>$nustring."='".$val[0]."'"));
 		}elseif (file_exists(INST_PATH.'app/models/'.$field.'.php')){
 			$way = 'down';
 			if(!empty($val[0])){
