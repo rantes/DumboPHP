@@ -23,13 +23,17 @@ class Driver extends PDO
 	function __construct($file = 'config/db_settings.ini')
 	{
 		if (!$settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
+		if($settings['database']['driver'] == 'firebird'){
+			$dns = 'firebird:dbname='.$settings['database']['host'].'/'.$settings['database']['port'].':'.$settings['database']['schema'];
+		} else {
+			$dns = $settings['database']['driver'] .
+			((!empty($settings['database']['host'])) ? (':host=' . $settings['database']['host']) : '') .
+			((!empty($settings['database']['port'])) ? (';port=' . $settings['database']['port']) : '') .
+			';dbname=' . $settings['database']['schema'] .
+			((!empty($settings['database']['dialect'])) ? (';dialect=' . $settings['database']['dialect']) : '') .
+			((!empty($settings['database']['charset'])) ? (';charset=' . $settings['database']['charset']) : '');
+		}
 
-		$dns = $settings['database']['driver'] .
-		((!empty($settings['database']['host'])) ? (':host=' . $settings['database']['host']) : '') .
-		((!empty($settings['database']['port'])) ? (';port=' . $settings['database']['port']) : '') .
-		';dbname=' . $settings['database']['schema'] .
-		((!empty($settings['database']['dialect'])) ? (';dialect=' . $settings['database']['dialect']) : '') .
-		((!empty($settings['database']['charset'])) ? (';charset=' . $settings['database']['charset']) : '');
 		parent::__construct($dns, $settings['database']['username'], $settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
 	}
 }

@@ -138,11 +138,13 @@ class index{
 				if(method_exists($page,"before_render")){
 					$page->before_render();
 				}
-				if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) and $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest' and $page->canRespondToAJAX()){
+				if($page->canRespondToAJAX()){
 					header('Cache-Control: no-cache, must-revalidate');
 					header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 					header('Content-type: application/json');
+					if(!empty($page->params['callback'])) echo $page->params['callback'].'(';
 					echo $page->respondToAJAX();
+					if(!empty($page->params['callback'])) echo ')';
 					exit();
 				}else{
 					$page->display(array('controller'=>$controller,'action'=>$action));
