@@ -1,7 +1,8 @@
 <?php
 session_start();
-include_once '../../config/host.php';
-set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendors', INST_PATH . 'dumbophp', get_include_path(),PEAR_EXTENSION_DIR)));
+$dir = dirname(__FILE__);
+include_once $dir.'/../../config/host.php';
+set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH . '/dumbophp', get_include_path(),PEAR_EXTENSION_DIR)));
 
 
 /**

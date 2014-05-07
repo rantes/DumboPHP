@@ -243,6 +243,16 @@ require "Driver.php";
 	 */
 	private $memcached = null;
 	/**
+	 * Llave primaria de la tabla, por defecto es id.
+	 * @var string Llave primaria (id)
+	 */
+	protected $pk = 'id';
+	/**
+	 * Driver de coneccion o motor de base de datos
+	 * @var string Motor gestor de base de datos
+	 */
+	private $engine = 'mysql';
+	/**
 	 * Constructor
 	 *
 	 * Realiza conexion a la base de datos mediante el metodo connect()
@@ -254,6 +264,9 @@ require "Driver.php";
 		$this->_attrs = array();
 		$this->checkMemcached();
 		$this->Connect();
+		if(!defined('AUTO_AUDITS')){
+			define('AUTO_AUDITS',true);
+		}
 	}
 	/**
 	 * Destructor
@@ -472,6 +485,7 @@ require "Driver.php";
 		 */
 		if($this->driver === NULL and !is_object($this->driver) and get_class($this->driver) != 'Driver'){
 			$this->driver = new Driver(INST_PATH.'config/db_settings.ini');
+			$this->engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
 		}
 		$this->_error = new Errors();
 	}
@@ -547,8 +561,8 @@ require "Driver.php";
 				$column = 0;
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-						$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
-						if($engine != 'mysql'){
+// 						$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
+						if($this->engine != 'mysql'){
 							$type = array('native_type'=>'VAR_CHAR');
 						} else {
 							$type = $regs->getColumnMeta($column);
@@ -618,6 +632,7 @@ require "Driver.php";
 	* @access public
 	*/
 	public function Find($params = NULL){
+// 		if(empty($this->pk)) $this->pk = 'id';
 		$this->_data = null;
 		$this->__destruct();
 		$this->__construct();
@@ -641,11 +656,11 @@ require "Driver.php";
 			$strint = '';
 			switch($type){
 				case 'integer':
-					$sql .= " and id in ($this->_params)";
+					$sql .= " and ".$this->pk." in ($this->_params)";
 				break;
 				case 'string':
 					if(strpos($this->_params,',')!== FALSE){
-						$sql .= " and id in ($this->_params)";
+						$sql .= " and ".$this->pk." in ($this->_params)";
 					}
 				break;
 				case 'array':
@@ -656,7 +671,7 @@ require "Driver.php";
 								$NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
 							}
 							if(!$NotOnlyInt){
-								$sql .= " AND id in (".implode(',',$this->_params['conditions']).")";
+								$sql .= " AND ".$this->pk." in (".implode(',',$this->_params['conditions']).")";
 							}else{
 								foreach($this->_params['conditions'] as $field => $value){
 									if(is_numeric($field)) $sql .= " AND ".$value;
@@ -734,10 +749,20 @@ require "Driver.php";
 		trigger_error( "The query can not be NULL", E_USER_ERROR );
 		exit;
 	}else{
-		//$this->Connect();
+// 		if(empty($this->pk)) $this->pk = 'id';
+		$memcached = $this->checkMemcached();
+		$this->_sqlQuery = $query;
+		if(CAN_USE_MEMCACHED){
+			$key = md5($query);
+			$res = null;
+			$res = $memcached->get($key);
+			if($memcached->getResultCode() == 0 && is_object($res)){
+				return $res;
+			}
+		}
 		$this->getData($query);
 		//$this->__construct();
-		return clone $this;
+		return clone($this);
 	}
 	}
 
@@ -749,14 +774,15 @@ require "Driver.php";
 	*/
 
 	public function Niu($contents = NULL){
+// 		if(empty($this->pk)) $this->pk = 'id';
 		$this->__destruct();
 		$this->__construct();
 		$this->_data = NULL;
 		$this->_data = array();
 		$this->Connect();
 
-		$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
-		if($engine != 'mysql'){
+// 		$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
+		if($this->engine != 'mysql'){
 			$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
 			$result1->setFetchMode(PDO::FETCH_ASSOC);
 			$resultset = $result1->fetchAll();
@@ -801,6 +827,7 @@ require "Driver.php";
 			foreach ($this->_data as $idx => $value){
 				if(empty($value) && $value !== 0){
 					unset($this->{$idx});
+					unset($this->_data[$idx]);
 				}
 			}
 		}
@@ -821,6 +848,8 @@ require "Driver.php";
 	**/
 
 	function Save(){
+// 		$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
+// 		if(empty($this->pk)) $this->pk = 'id';
 		$this->Connect();
 		$className = get_class($this);
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
@@ -842,7 +871,7 @@ require "Driver.php";
 						foreach($content as $field){
 							$lists = array();
 							$obj1 = new $className;
-							$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->{$field}."' AND `id`<>'".$this->id."'"));
+							$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->{$field}."' AND ".$this->pk."<>'".$this->{$this->pk}."'"));
 							if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This Field cannot be duplicated', 'code'=>212));
 							if($this->_error->isActived()) return false;
 						}
@@ -879,13 +908,10 @@ require "Driver.php";
 			}
 		}
 		if($this->_error->isActived()) return FALSE;
-		if(isset($this->id) and !empty($this->id) and $this->id != ''){
+		if(!empty($this->{$this->pk})){
 			$kind = "update";
-			$query = "UPDATE `".$this->_TableName()."` SET ";
-			$ThisClass = get_class($this);
-			$objAux = new $ThisClass();
-			$arraux = array();
-			$i=0;
+// 			$ThisClass = get_class($this);
+// 			$objAux = new $ThisClass();
 // these linese were deactivated due to datatype comparison when were afterfind callbacks changes the content types
 // 			$existing_data = $objAux->Find($this->id)->getArray();
 
@@ -905,34 +931,79 @@ require "Driver.php";
 // 					}
 // 				}
 // 			}
-// these lines were added instead
-			$arraux = $this->_data;
 ////////////////////////////////////
-			$arraux['updated_at'] = time();
-			foreach($arraux as $key => $value){
-				$query .= "`$key` = '$value',";
+			if($this->engine == 'firebird'){
+				$query = "UPDATE ".$this->_TableName()." SET ";
+				$arraux = array();
+				$i=0;
+				$arraux = $this->_data;
+				if(AUTO_AUDITS){
+					$arraux['updated_at'] = time();
+				}
+				foreach($arraux as $key => $value){
+					$query .= "$key = '$value',";
+				}
+				$query = substr($query, 0,-1);
+				$query .= " WHERE ".$this->pk." = ".$this->{$this->pk};
+			} else {
+				$query = "UPDATE `".$this->_TableName()."` SET ";
+				$arraux = array();
+				$i=0;
+				$arraux = $this->_data;
+				if(AUTO_AUDITS){
+					$arraux['updated_at'] = time();
+				}
+				foreach($arraux as $key => $value){
+					$query .= "`$key` = '$value',";
+				}
+				$query = substr($query, 0,-1);
+				$query .= " WHERE `".$this->pk."` = ".$this->{$this->pk};
 			}
-			$query = substr($query, 0,-1);
-			$query .= " WHERE id = ".$this->id;
 		}else{
 			$kind = "insert";
-			$query = "INSERT INTO `".$this->_TableName()."` ";
-			if(isset($this->before_insert[0])){
-				foreach($this->before_insert as $functiontoRun){
-					$this->{$functiontoRun}();
-				}
-			}
-			$fields = "";
-			$values = "";
-			$i=1;
-			$this->created_at = time();
-			foreach($this->_data as $field => $value){
-				if(!is_array($value)){
-					if($field != 'id'){
-						$fields .= "`$field`, ";
-						$values .= "'$value', ";
+			if($this->engine == 'firebird'){
+				$query = "INSERT INTO ".$this->_TableName()." ";
+				if(isset($this->before_insert[0])){
+					foreach($this->before_insert as $functiontoRun){
+						$this->{$functiontoRun}();
 					}
-					$i++;
+				}
+				$fields = "";
+				$values = "";
+				$i=1;
+				if(AUTO_AUDITS){
+					$this->created_at = time();
+				}
+				foreach($this->_data as $field => $value){
+					if(!is_array($value)){
+						if($field != $this->pk){
+							$fields .= "$field, ";
+							$values .= "'$value', ";
+						}
+						$i++;
+					}
+				}
+			} else {
+				$query = "INSERT INTO `".$this->_TableName()."` ";
+				if(isset($this->before_insert[0])){
+					foreach($this->before_insert as $functiontoRun){
+						$this->{$functiontoRun}();
+					}
+				}
+				$fields = "";
+				$values = "";
+				$i=1;
+				if(AUTO_AUDITS){
+					$this->created_at = time();
+				}
+				foreach($this->_data as $field => $value){
+					if(!is_array($value)){
+						if($field != $this->pk){
+							$fields .= "`$field`, ";
+							$values .= "'$value', ";
+						}
+						$i++;
+					}
 				}
 			}
 			$fields = substr($fields, 0, -2);
@@ -947,8 +1018,8 @@ require "Driver.php";
 		    return FALSE;
 		}
 		if($kind == "insert"){
-			$this->id = $this->driver->lastInsertId() + 0;
-			$this[0]->_data['id'] = $this->id;
+			$this->{$this->pk} = $this->driver->lastInsertId() + 0;
+			$this[0]->_data[$this->pk] = $this->{$this->pk};
 			if(sizeof($this->after_insert)>0){
 				foreach($this->after_insert as $functiontoRun){
 					$this->{$functiontoRun}();
@@ -971,14 +1042,26 @@ require "Driver.php";
 
 	function Insert(){
 		//if(!isset($this->ObjTable)) $this->ObjTable = $this->Plurals(strtolower($this->unCamelize(get_class($this))));
-		$query = "INSERT INTO `".$this->_TableName()."` ";
 		$fields = "";
 		$values = "";
-		$this->created_at = time();
-		foreach($this->_data as $field => $value){
-			if(!is_array($value)){
+		if(AUTO_AUDITS){
+			$this->created_at = time();
+		}
+		if($this->engine == 'firebird'){
+			$query = "INSERT INTO ".$this->_TableName()." ";
+			foreach($this->_data as $field => $value){
+				if(!is_array($value)){
+					$fields .= "$field,";
+					$values .= "'$value',";
+				}
+			}
+		} else {
+			$query = "INSERT INTO `".$this->_TableName()."` ";
+			foreach($this->_data as $field => $value){
+				if(!is_array($value)){
 					$fields .= "`$field`,";
 					$values .= "'$value',";
+				}
 			}
 		}
 
@@ -986,6 +1069,7 @@ require "Driver.php";
 		$values = substr($values, 0,-1);
 		//echo 'Inserting '.$values.' in '.$this->_TableName().PHP_EOL;
 		$query .= "($fields) VALUES ($values)";
+		$this->_sqlQuery = $query;
 		$this->driver->exec($query) or die($query.'-'.print_r($this->driver->errorInfo(), true));
 		return true;
 	}
@@ -1001,9 +1085,9 @@ require "Driver.php";
 	**/
 	function Delete($conditions = NULL){
 		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
-
-		if($conditions === NULL and isset($this->id)) $conditions = $this->id;
-		if($conditions === NULL and (!isset($this->id) or $this->id == '')){
+// 		if(empty($this->pk)) $this->pk = 'id';
+		if($conditions === NULL and !empty($this->{$this->pk})) $conditions = $this->{$this->pk};
+		if($conditions === NULL and empty($this->{$this->pk})){
 			$this->_error->add(array('field' => $this->_TableName(),'message'=>"Must specify a register to delete"));
 			return FALSE;
 		}else{
@@ -1017,8 +1101,8 @@ require "Driver.php";
 			}
 			$query = "DELETE FROM `".$this->_TableName()."` ";
 			if(is_numeric($conditions)){
-				$this->id = $conditions;
-				$query .= "WHERE id='$conditions'";
+				$this->{$this->pk} = $conditions;
+				$query .= "WHERE ".$this->pk."='$conditions'";
 				$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
 			}elseif(is_array($conditions)){
 				foreach($conditions as $field => $value){
@@ -1229,13 +1313,13 @@ require "Driver.php";
 		$tblName = str_replace('.xml', '', $docXml);
 		$items = $doc->getElementsByTagName($tblName);
 		foreach( $items as $xitem ){
-			$idfield = $xitem->getElementsByTagName("id");
+			$idfield = $xitem->getElementsByTagName($this->pk);
 			$id  = $idfield->item(0)->nodeValue;
 			$Obj = Camelize(Singulars($tblName));
 			$Obj = new $Obj();
 			$Obj->Niu();
 			$arrObj = $Obj->GetFields();
-			$Obj->id = $id;
+			$Obj->{$this->pk} = $id;
 			foreach($arrObj as $key => $value){
 				if($key != 'table'){
 					$field = $xitem->getElementsByTagName("$key");

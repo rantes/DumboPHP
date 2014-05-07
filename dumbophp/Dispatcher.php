@@ -141,10 +141,12 @@ class index{
 				if($page->canRespondToAJAX()){
 					header('Cache-Control: no-cache, must-revalidate');
 					header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-					header('Content-type: application/json');
-					if(!empty($page->params['callback'])) echo $page->params['callback'].'(';
+						header('Content-type: application/json');
+					if(!empty($params['callback'])){
+						echo $params['callback'].'(';
+					}
 					echo $page->respondToAJAX();
-					if(!empty($page->params['callback'])) echo ')';
+					if(!empty($params['callback'])) echo ');';
 					exit();
 				}else{
 					$page->display(array('controller'=>$controller,'action'=>$action));
