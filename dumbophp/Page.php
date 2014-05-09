@@ -87,7 +87,38 @@ abstract class Page extends Core_General_Class{
 	 * de tipo [controllers]=>'controladores,que_no,ejecutara_el_metodo', [actions] => 'acciones, que_no_ejecutaran, el_metodo';
 	 * @var array
 	 */
-	public $excepts_before_filter = array();
+	protected $excepts_before_filter = array();
+	/**
+	 * Contenido html renderizado
+	 * @var String
+	 */
+	protected $htmlcontent= '';
+	/**
+	 * Contiene controladores y acciones que no ejecutaran el callback after_filter
+	 * los controladores y acciones, deben estar descritas en un string separados por comas (,)
+	 * de tipo [controllers]=>'controladores,que_no,ejecutara_el_metodo', [actions] => 'acciones, que_no_ejecutaran, el_metodo';
+	 * @var Array
+	 */
+	protected $excepts_after_filter = array();
+	/**
+	 * Contiene controladores y acciones que no ejecutaran el callback after_render
+	 * los controladores y acciones, deben estar descritas en un string separados por comas (,)
+	 * de tipo [controllers]=>'controladores,que_no,ejecutara_el_metodo', [actions] => 'acciones, que_no_ejecutaran, el_metodo';
+	 * @var Array
+	 */
+	protected $excepts_after_render = array();
+	/**
+	 * Contiene controladores y acciones que no ejecutaran el callback after_render
+	 * los controladores y acciones, deben estar descritas en un string separados por comas (,)
+	 * de tipo [controllers]=>'controladores,que_no,ejecutara_el_metodo', [actions] => 'acciones, que_no_ejecutaran, el_metodo';
+	 * @var Array
+	 */
+	protected $excepts_before_render = array();
+	/**
+	 * Define si mostrar el html generado
+	 * @var Boolean
+	 */
+	protected $outputHtml = true;
 	/**
 	 * Metodo magico para el auto cargado de los modelos.
 	 * @param unknown $var
@@ -112,7 +143,17 @@ abstract class Page extends Core_General_Class{
 		$this->action = _ACTION;
 		$this->controller = _CONTROLLER;
 		if(property_exists($this, 'noTemplate') and in_array($view['action'], $this->noTemplate)) $renderPage = FALSE;
-
+		if($this->canRespondToAJAX()){
+			header('Cache-Control: no-cache, must-revalidate');
+			header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+			header('Content-type: application/json');
+			if(!empty($this->params['callback'])){
+				echo $this->params['callback'].'(';
+			}
+			echo $this->respondToAJAX();
+			if(!empty($this->params['callback'])) echo ');';
+			exit();
+		}
 		if(isset($this->render) and is_array($this->render)):
 			if(!empty($this->render['file'])):
 				$view = $this->render['file'];
@@ -148,11 +189,13 @@ abstract class Page extends Core_General_Class{
 		if(strlen($this->layout)>0):
 			ob_start();
 			include_once(INST_PATH."app/templates/".$this->layout.".phtml");
-			$buffer = ob_get_clean();
-			echo $buffer;
+			$this->htmlcontent = ob_get_clean();
 		else:
-			echo $this->content;
+			$this->htmlcontent = $this->content;
 		endif;
+		if($this->outputHtml){
+			echo $this->htmlcontent;
+		}
 	}
 	/**
 	 * Metodo para cargar los helpers definidos en el controlador.

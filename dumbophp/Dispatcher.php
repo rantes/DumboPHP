@@ -136,20 +136,49 @@ class index{
 				$page->{$action."Action"}();
 				//before render, executed after the action execution and before the data renderize
 				if(method_exists($page,"before_render")){
-					$page->before_render();
-				}
-				if($page->canRespondToAJAX()){
-					header('Cache-Control: no-cache, must-revalidate');
-					header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-						header('Content-type: application/json');
-					if(!empty($params['callback'])){
-						echo $params['callback'].'(';
+					$actionsToExclude = $controllersToExclude = array();
+
+					if(!empty($page->excepts_before_render) && is_array($page->excepts_before_render)){
+						if(!empty($page->excepts_before_render['actions']) && is_string($page->excepts_before_render['actions'])){
+							$actionsToExclude = explode(',', $page->excepts_before_render['actions']);
+							foreach($actionsToExclude as $index => $act){
+								$actionsToExclude[$index] = trim($act);
+							}
+						}
+						if(!empty($page->excepts_before_render['controllers']) && is_string($page->excepts_before_render['controllers'])){
+							$controllersToExclude = explode(',', $page->excepts_before_render['controllers']);
+							foreach($controllersToExclude as $index => $cont){
+								$controllersToExclude[$index] = trim($cont);
+							}
+						}
 					}
-					echo $page->respondToAJAX();
-					if(!empty($params['callback'])) echo ');';
-					exit();
-				}else{
-					$page->display(array('controller'=>$controller,'action'=>$action));
+					if(!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)){
+						$page->before_render();
+					}
+				}
+
+				$page->display(array('controller'=>$controller,'action'=>$action));
+
+				if(method_exists($page,"after_render")){
+					$actionsToExclude = $controllersToExclude = array();
+
+					if(!empty($page->excepts_after_render) && is_array($page->excepts_after_render)){
+						if(!empty($page->excepts_after_render['actions']) && is_string($page->excepts_after_render['actions'])){
+							$actionsToExclude = explode(',', $page->excepts_after_render['actions']);
+							foreach($actionsToExclude as $index => $act){
+								$actionsToExclude[$index] = trim($act);
+							}
+						}
+						if(!empty($page->excepts_after_render['controllers']) && is_string($page->excepts_after_render['controllers'])){
+							$controllersToExclude = explode(',', $page->excepts_after_render['controllers']);
+							foreach($controllersToExclude as $index => $cont){
+								$controllersToExclude[$index] = trim($cont);
+							}
+						}
+					}
+					if(!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)){
+						$page->after_render();
+					}
 				}
 			}else{
 				echo "Missing Action";
