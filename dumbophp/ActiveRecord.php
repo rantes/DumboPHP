@@ -1084,17 +1084,18 @@ require "Driver.php";
 		$query .= "($fields) VALUES ($values)";
 		$this->_sqlQuery = $query;
 		$sh = $this->driver->prepare($query);
-		$nvalues = array();
+		$prepared = array();
 		foreach($this->_data as $field => &$value){
 			if(!is_array($value)){
 // 				if(empty($this->escapeField)){
-					$sh->bindParam(':'.$field, $value);
+				$prepared[':'.$field] = $value;
+// 					$sh->bindParam(':'.$field, $value);
 // 				}
 // 				$nvalues[] = $value;
 			}
 		}
 		//echo 'Inserting '.$values.' in '.$this->_TableName().PHP_EOL;
-		$sh->execute() or die($query.'-'.print_r($this->driver->errorInfo(), true));
+		$sh->execute($prepared) or die($query.'-'.print_r($this->driver->errorInfo(), true));
 		return true;
 	}
 
@@ -1321,9 +1322,10 @@ require "Driver.php";
 			}
 		}
 
-		$fp = fopen($path.$model.'.xml', 'w+b');
-		fwrite($fp, $dom->saveXML());
-		fclose($fp);
+// 		$fp = fopen($path.$model.'.xml', 'w+b');
+// 		fwrite($fp, $dom->saveXML());
+		file_put_contents($path.$model.'.xml', $dom->saveXML());
+// 		fclose($fp);
 	}
 	/**
 	* Metodo publico LoadDump($docXml)

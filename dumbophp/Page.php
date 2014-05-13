@@ -87,7 +87,7 @@ abstract class Page extends Core_General_Class{
 	 * de tipo [controllers]=>'controladores,que_no,ejecutara_el_metodo', [actions] => 'acciones, que_no_ejecutaran, el_metodo';
 	 * @var array
 	 */
-	protected $excepts_before_filter = array();
+	public $excepts_before_filter = array();
 	/**
 	 * Contenido html renderizado
 	 * @var String
