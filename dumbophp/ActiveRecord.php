@@ -800,6 +800,7 @@ require "Driver.php";
 		$type = array();
 		$this->_counter = 0;
 		$cleanup = false;
+		$not_clean = array();
 		foreach($result as $row){
 			$type['native_type'] = $row['Type'];
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
@@ -816,9 +817,11 @@ require "Driver.php";
 				break;
 			}
 			$value = '';
+
 			if(!empty($contents) && is_array($contents)){
 				if(isset($contents[$row['Field']])){
 					$value = $contents[$row['Field']];
+					$not_clean[] = $row['Field'];
 					$cleanup = true;
 				}
 				$this->_counter = 1;
@@ -829,7 +832,7 @@ require "Driver.php";
 		}
 		if($cleanup){
 			foreach ($this->_data as $idx => $value){
-				if(empty($value) && $value !== 0){
+				if(empty($value) && $value !== 0 && !in_array($idx, $not_clean)){
 					unset($this->{$idx});
 					unset($this->_data[$idx]);
 				}
@@ -945,7 +948,9 @@ require "Driver.php";
 					$arraux['updated_at'] = time();
 				}
 				foreach($arraux as $key => $value){
-					$query .= "$key = :".$key.",";//'$value'
+					if($key != $this->pk){
+						$query .= "$key = :".$key.",";//'$value'
+					}
 				}
 				$query = substr($query, 0,-1);
 				$query .= " WHERE ".$this->pk." = ".$this->{$this->pk};
@@ -958,7 +963,9 @@ require "Driver.php";
 					$arraux['updated_at'] = time();
 				}
 				foreach($arraux as $key => $value){
-					$query .= "`$key` = :".$key.",";//'$value'
+					if($key != $this->pk){
+						$query .= "`$key` = :".$key.",";//'$value'
+					}
 				}
 				$query = substr($query, 0,-1);
 				$query .= " WHERE `".$this->pk."` = ".$this->{$this->pk};
@@ -1338,21 +1345,25 @@ require "Driver.php";
 		$doc->load(INST_PATH.'migrations/dumps/'.$docXml);
 		$tblName = str_replace('.xml', '', $docXml);
 		$items = $doc->getElementsByTagName($tblName);
-		foreach( $items as $xitem ){
+		for($i=0; $i<$items->length; $i++){
+			$xitem = $items->item($i);
 			$idfield = $xitem->getElementsByTagName($this->pk);
-			$id  = $idfield->item(0)->nodeValue;
-			$Obj = Camelize(Singulars($tblName));
-			$Obj = new $Obj();
-			$Obj->Niu();
-			$arrObj = $Obj->GetFields();
-			$Obj->{$this->pk} = $id;
-			foreach($arrObj as $key => $value){
-				if($key != 'table'){
-					$field = $xitem->getElementsByTagName("$key");
-					$Obj->{$key} = (is_object($field->item(0)))?addslashes($field->item(0)->nodeValue):'';
+			if($idfield->length > 0){
+				$id  = $idfield->item(0)->nodeValue;
+				$Obj = Camelize(Singulars($tblName));
+				$Obj = new $Obj();
+				$Obj->Niu();
+				$arrObj = $Obj->GetFields();
+				$Obj->{$this->pk} = $id;
+				foreach($arrObj as $key => $value){
+					if($key != 'table'){
+						$field = $xitem->getElementsByTagName("$key");
+						$Obj->{$key} = (is_object($field->item(0)))?addslashes($field->item(0)->nodeValue):'';
+					}
 				}
+				$Obj->inspect();
+				$Obj->Insert();
 			}
-			$Obj->Insert();
 		}
 
 	}
