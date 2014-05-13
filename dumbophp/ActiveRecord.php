@@ -253,6 +253,11 @@ require "Driver.php";
 	 */
 	private $engine = 'mysql';
 	/**
+	 * Campos a escapar, para evitar errores en el query.
+	 * @var Array
+	 */
+	protected $escapeField = array();
+	/**
 	 * Constructor
 	 *
 	 * Realiza conexion a la base de datos mediante el metodo connect()
@@ -600,8 +605,7 @@ require "Driver.php";
 				$this->_data[$field] = $value;
 				$this->_dataAttributes[$field]['native_type'] = $type['native_type'];
 			}
-		}
-		if($this->_counter === 0){
+		}elseif($this->_counter === 0){
 			$this->offsetSet(0, NULL);
 			$this[0] = NULL;
 			$this->_data = NULL;
@@ -941,7 +945,7 @@ require "Driver.php";
 					$arraux['updated_at'] = time();
 				}
 				foreach($arraux as $key => $value){
-					$query .= "$key = '$value',";
+					$query .= "$key = :".$key.",";//'$value'
 				}
 				$query = substr($query, 0,-1);
 				$query .= " WHERE ".$this->pk." = ".$this->{$this->pk};
@@ -954,7 +958,7 @@ require "Driver.php";
 					$arraux['updated_at'] = time();
 				}
 				foreach($arraux as $key => $value){
-					$query .= "`$key` = '$value',";
+					$query .= "`$key` = :".$key.",";//'$value'
 				}
 				$query = substr($query, 0,-1);
 				$query .= " WHERE `".$this->pk."` = ".$this->{$this->pk};
@@ -973,12 +977,13 @@ require "Driver.php";
 				$i=1;
 				if(AUTO_AUDITS){
 					$this->created_at = time();
+					$this->updated_at = 0;
 				}
 				foreach($this->_data as $field => $value){
 					if(!is_array($value)){
 						if($field != $this->pk){
 							$fields .= "$field, ";
-							$values .= "'$value', ";
+							$values .= ":".$field.", ";//'$value'
 						}
 						$i++;
 					}
@@ -1000,7 +1005,7 @@ require "Driver.php";
 					if(!is_array($value)){
 						if($field != $this->pk){
 							$fields .= "`$field`, ";
-							$values .= "'$value', ";
+							$values .= ":".$field.", ";//'$value'
 						}
 						$i++;
 					}
@@ -1010,9 +1015,17 @@ require "Driver.php";
 			$values = substr($values, 0, -2);
 			$query .= "($fields) VALUES ($values)";
 		}
-		//$this->Connect();
+		// seteo de los campos para escapar por PDO
 		$this->_sqlQuery = $query;
-		if(!$this->driver->exec($query)){
+		$sh = $this->driver->prepare($query);
+		$prepared = array();
+		foreach($this->_data as $field => $value){
+			if(!is_array($value) && $field != $this->pk){
+// 				$sh->bindParam(':'.$field,$value);
+				$prepared[':'.$field] = $value;
+			}
+		}
+		if(!$sh->execute($prepared)){
 		    $e = $this->driver->errorInfo();
 		    $this->_error->add(array('field' => $this->_TableName(),'message'=>$e[2]."\n $query"));
 		    return FALSE;
@@ -1052,7 +1065,7 @@ require "Driver.php";
 			foreach($this->_data as $field => $value){
 				if(!is_array($value)){
 					$fields .= "$field,";
-					$values .= "'$value',";
+					$values .= ":".$field.","; //'$value'
 				}
 			}
 		} else {
@@ -1060,17 +1073,28 @@ require "Driver.php";
 			foreach($this->_data as $field => $value){
 				if(!is_array($value)){
 					$fields .= "`$field`,";
-					$values .= "'$value',";
+					$values .= ":".$field.","; //'$value'
 				}
 			}
 		}
-
 		$fields = substr($fields, 0,-1);
 		$values = substr($values, 0,-1);
-		//echo 'Inserting '.$values.' in '.$this->_TableName().PHP_EOL;
+
+		// seteo de los campos para escapar por PDO
 		$query .= "($fields) VALUES ($values)";
 		$this->_sqlQuery = $query;
-		$this->driver->exec($query) or die($query.'-'.print_r($this->driver->errorInfo(), true));
+		$sh = $this->driver->prepare($query);
+		$nvalues = array();
+		foreach($this->_data as $field => &$value){
+			if(!is_array($value)){
+// 				if(empty($this->escapeField)){
+					$sh->bindParam(':'.$field, $value);
+// 				}
+// 				$nvalues[] = $value;
+			}
+		}
+		//echo 'Inserting '.$values.' in '.$this->_TableName().PHP_EOL;
+		$sh->execute() or die($query.'-'.print_r($this->driver->errorInfo(), true));
 		return true;
 	}
 
@@ -1186,7 +1210,7 @@ require "Driver.php";
 		if($i>0){
 			$listProperties .= $this->_counter;
 		}
-		if($this->_counter == 1){
+		if($this->_counter <= 1){
 			foreach ($this->_data as $var => $value){
 				ob_start();
 				var_dump($value);
