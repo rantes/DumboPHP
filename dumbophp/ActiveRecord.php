@@ -263,6 +263,7 @@ require "Driver.php";
 	 * Realiza conexion a la base de datos mediante el metodo connect()
 	 */
 	function __construct(){
+		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		$this->_data = NULL;
 		$this->_data = array();
 		$this->_attrs = NULL;
