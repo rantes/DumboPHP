@@ -30,9 +30,7 @@ class index{
 			$request = explode("/", $_GET['url']);
 			unset($_GET['url']);
 		}
-
 		$path=INST_PATH.'app/controllers/';
-
 
 		if(!isset($request[0]) or strcmp($request[0], "") === 0) $request[0] = DEF_CONTROLLER;
 
@@ -100,7 +98,6 @@ class index{
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
 		define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/?'.http_build_query($params));
-
 		if(file_exists($path.$controllerFile)){
 			require($path.$controllerFile);
 			$classPage = Camelize($controller)."Controller";
