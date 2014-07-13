@@ -270,9 +270,6 @@ require "Driver.php";
 		$this->_attrs = array();
 		$this->checkMemcached();
 		$this->Connect();
-		if(!defined('AUTO_AUDITS')){
-			define('AUTO_AUDITS',true);
-		}
 	}
 	/**
 	 * Destructor
@@ -941,6 +938,7 @@ require "Driver.php";
 // 			}
 ////////////////////////////////////
 			if($this->engine == 'firebird'){
+				defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 				$query = "UPDATE ".$this->_TableName()." SET ";
 				$arraux = array();
 				$i=0;
@@ -1062,6 +1060,7 @@ require "Driver.php";
 	*/
 
 	function Insert(){
+		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		//if(!isset($this->ObjTable)) $this->ObjTable = $this->Plurals(strtolower($this->unCamelize(get_class($this))));
 		$fields = "";
 		$values = "";
