@@ -1361,7 +1361,6 @@ require "Driver.php";
 						$Obj->{$key} = (is_object($field->item(0)))?addslashes($field->item(0)->nodeValue):'';
 					}
 				}
-				$Obj->inspect();
 				$Obj->Insert();
 			}
 		}
