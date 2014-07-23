@@ -495,17 +495,12 @@ require "Driver.php";
 
 	private function checkMemcached(){
 		$memcached = null;
-		if(!defined('CAN_USE_MEMCACHED')){
-			define('CAN_USE_MEMCACHED', false);
-		}
+		!defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
+
 		if(CAN_USE_MEMCACHED && empty($this->memcached)){
 			$memcached = new Memcached();
-			if(!defined('MEMCACHED_HOST')){
-				define('MEMCACHED_HOST','localhost');
-			}
-			if(!defined('MEMCACHED_PORT')){
-				define('MEMCACHED_PORT','11211');
-			}
+			!defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
+			!defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
 			$memcached->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
 		}
 		return $memcached;
@@ -1116,13 +1111,24 @@ require "Driver.php";
 	* @param array|numeric $conditions Condiciones para la eliminacion.
 	**/
 	function Delete($conditions = NULL){
-		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
-// 		if(empty($this->pk)) $this->pk = 'id';
+		if($this->_counter > 1){
+			$conditions = array();
+			foreach($this->_data as $ele){
+				$conditions[] = $ele->{$this->pk};
+			}
+		}
 		if($conditions === NULL and !empty($this->{$this->pk})) $conditions = $this->{$this->pk};
 		if($conditions === NULL and empty($this->{$this->pk})){
 			$this->_error->add(array('field' => $this->_TableName(),'message'=>"Must specify a register to delete"));
 			return FALSE;
 		}else{
+			$query = "DELETE FROM `".$this->_TableName()."` ";
+			if(is_numeric($conditions)){
+				$this->{$this->pk} = $conditions;
+				$query .= "WHERE ".$this->pk."='$conditions'";
+			}elseif(is_array($conditions)){
+				$query .= 'WHERE `id` IN ('.implode(',', $conditions).')';
+			}
 			if(sizeof($this->before_delete) >0){
 				foreach($this->before_delete as $functiontoRun){
 					$this->{$functiontoRun}();
@@ -1131,17 +1137,7 @@ require "Driver.php";
 					return false;
 				}
 			}
-			$query = "DELETE FROM `".$this->_TableName()."` ";
-			if(is_numeric($conditions)){
-				$this->{$this->pk} = $conditions;
-				$query .= "WHERE ".$this->pk."='$conditions'";
-				$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
-			}elseif(is_array($conditions)){
-				foreach($conditions as $field => $value){
-					$query .= " and $field='$value'";
-				}
-			}
-			$this->Connect();
+			$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
 			if(!$this->driver->exec($query)){
 			    $e = $this->driver->errorInfo();
 			    $this->_error->add(array('field' => $this->_TableName(),'message'=>$e[2]."\n $query"));

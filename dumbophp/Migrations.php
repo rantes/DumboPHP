@@ -79,24 +79,31 @@ abstract class Migrations extends Core_General_Class{
 	* @param array $table Arreglo que contiene el nombre de la tabla, campos y atributos.
 	*/
 	protected function Create_Table($table = NULL){
+		!defined(AUTO_AUDITS) or define('AUTO_AUDITS', true);
 		if($table !== NULL):
 
 			$tablName = $table['Table'];
-			$query = "CREATE TABLE `".$tablName."` (
-				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,";
+			$query = "CREATE TABLE `".$tablName."` (";
+			$presentedId = false;
 			foreach($table as $key => $Field){
 				if(strcmp($key, 'Table') != 0){
 					if($Field['type'] == 'VARCHAR' and empty($Field['limit'])) $Field['limit'] = 250;
+					if(in_array('id', $Field)) $presentedId = true;
 					$query .= (!empty($Field['field']) and !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
 					$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
 					$query .= ($Field['type'] == 'VARCHAR' or $Field['type'] == 'TEXT' or $Field['type'] == 'LONGTEXT')?' CHARACTER SET utf8 COLLATE utf8_general_ci':NULL;
 					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
-					$query .= (isset($Field['default']) and $Field['default'] != '')? " DEFAULT '".$Field['default']."'" : NULL;
+					$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
 					$query .= " ,";
 				}
 			}
-			$query .= "created_at INT NOT NULL ,";
-			$query .= "updated_at INT NOT NULL ";
+			if(!$presentedId){
+				$query .= "`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,";
+			}
+			if(AUTO_AUDITS){
+				$query .= "created_at INT NOT NULL ,";
+				$query .= "updated_at INT NOT NULL ";
+			}
 			$query .= ")CHARACTER SET utf8 COLLATE utf8_general_ci;";
 			$Ar = new NewAr();
 			$Ar->Connect();
