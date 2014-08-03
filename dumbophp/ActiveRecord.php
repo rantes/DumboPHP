@@ -495,12 +495,12 @@ require "Driver.php";
 
 	private function checkMemcached(){
 		$memcached = null;
-		!defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
+		defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
 
 		if(CAN_USE_MEMCACHED && empty($this->memcached)){
 			$memcached = new Memcached();
-			!defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
-			!defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
+			defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
+			defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
 			$memcached->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
 		}
 		return $memcached;
