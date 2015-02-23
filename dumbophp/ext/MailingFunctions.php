@@ -10,9 +10,8 @@
  * @Version 3.0 November 18 2009
  */
 if(!class_exists('Mail')):// and file_exists(PEAR_EXTENSION_DIR."/Mail.php")):
-	require_once "Mail.php";
+	require_once INST_PATH."vendor/Mail/Mail.php";
 endif;
-
 /**
  *
  * Envia emails con templates. Incluye encabezados completos para evitar que sea tomado como spam.
@@ -25,8 +24,9 @@ endif;
 		if($obj == null or sizeof($arr)>0){
 
 			$headers = array();
+			$sent = false;
 
-			$boundary = 'masTurbo'.md5('+Turbo'.time());
+			$boundary = 'DumboPHP'.md5('DumboPHP'.time());
 			$who = isset($arr['from'])? $arr['from'] : _CONTACT_MAIL;
 			$headers = array (
 				'From' => $who,
@@ -52,7 +52,6 @@ endif;
 			} else {
 				$body = $arr['body'];
 			}
-//			file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $body);
 			$plain = "--".$boundary."\n";
 			$plain .= "Content-Type: text/plain; charset=utf-8\n";
 			$plain .= "Content-Transfer-Encoding: 7bit\n";
@@ -63,15 +62,12 @@ endif;
 			$html .= "Content-Transfer-Encoding: 7bit\n";
 			$html .= "\r\n".$body."\r\n";
 			$html .= "--".$boundary."--";
-//			file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', $plain.$html);
-			//$sent = mail($arr['to'], $arr['subject'], $plain.$html, $header);
 
 			 $host = !empty($arr['smtp_host'])? $arr['smtp_host']:_CONTACT_SMTP_HOST;
 			 $username = !empty($arr['smtp_user'])? $arr['smtp_user']:_CONTACT_SMTP_USER;
 			 $password = !empty($arr['smtp_password'])? $arr['smtp_password']:_CONTACT_SMTP_PASSWORD;
 			 $port = !empty($arr['smtp_port'])? $arr['smtp_port'] : _CONTACT_SMTP_PORT;
 
-//			 file_put_contents($_SERVER['DOCUMENT_ROOT'].'/erroresemail.txt', 'before smpt');
 			$option = 'html';
 			if(!empty($arr['opt_content'])){
 				$option = $arr['opt_content'];
@@ -90,8 +86,9 @@ endif;
 			if(!defined('USE_SMTP')){
 				define('USE_SMTP', false);
 			}
+			$Mail = new Mail();
 			if(USE_SMTP){
-			 	$mailo = Mail::factory('smtp',
+			 	$mailo = $Mail->factory('smtp',
 			  		array ('host' => $host,
 				     'auth' => true,
 				     'username' => $username,
@@ -99,18 +96,15 @@ endif;
 				   	 'port'=>$port));
 
 			} else {
-// 				$simplyheaders = '';
-// 				foreach ($headers as $head => $cont){
-// 					$simplyheaders .= $head .':'.$cont."\r\n";
-// 				}
-// 				$sent = mail($arr['to'], $arr['subject'], $content, $simplyheaders);
-				$mailo = Mail::factory('mail', '-f rantes.javier@gmail.com');
+				$mailo = $Mail->factory('mail', '-f rantes.javier@gmail.com');
 			}
 			 	$mail = $mailo->send($arr['to'], $headers, $content);
-
-				if (PEAR::isError($mail)){
+			 	
+			 	$pear = new PEAR();
+			 	
+				if ($pear->isError($mail)){
 				   $sent = false;
-				   file_put_contents(INST_PATH.'/erroresemail.txt', date('Y m d H:i:s').'[error]:'.$arr['to'].' not sent'.$mail->getMessage());
+				   file_put_contents(INST_PATH.'/erroresemail.txt', date('Y m d H:i:s').'[error]:'.$arr['to'].' not sent'.$mail->getMessage()."\n", FILE_APPEND);
 				} else {
 				   $sent = true;
 				}

@@ -45,7 +45,7 @@ abstract class Page extends Core_General_Class{
 	 * El contenido renderizado de la accion para mostrar en el layout;
 	 * @var string
 	 */
-	protected $content = "";
+	protected $yield = "";
 	/**
 	 * Arreglo que contiene los parametros que se envian por $_GET.
 	 * @var array
@@ -136,13 +136,13 @@ abstract class Page extends Core_General_Class{
 	}
 	/**
 	 * Metodo para renderizar la accion.
-	 * @param unknown $view
+	 * @param array $view
 	 */
-	public function display($view){
+	public function display(){
 		$renderPage = TRUE;
 		$this->action = _ACTION;
 		$this->controller = _CONTROLLER;
-		if(property_exists($this, 'noTemplate') and in_array($view['action'], $this->noTemplate)) $renderPage = FALSE;
+		if(property_exists($this, 'noTemplate') and in_array(_ACTION, $this->noTemplate)) $renderPage = FALSE;
 		if($this->canRespondToAJAX()){
 			header('Cache-Control: no-cache, must-revalidate');
 			header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
@@ -157,24 +157,24 @@ abstract class Page extends Core_General_Class{
 		if(isset($this->render) and is_array($this->render)):
 			if(!empty($this->render['file'])):
 				$view = $this->render['file'];
-			elseif(isset($this->render['partial'])):
-				$view = $view['controller'].'/_'.$this->render['partial'].'.phtml';
-			elseif(isset($this->render['text'])):
-				$this->content = $this->render['text'];
+			elseif(!empty($this->render['partial'])):
+				$view = _CONTROLLER.'/_'.$this->render['partial'].'.phtml';
+			elseif(!empty($this->render['text'])):
+				$this->yield = $this->render['text'];
 				$renderPage = FALSE;
 			elseif(!empty($this->render['action'])):
-				$view = $view['controller'].'/'.$this->render['action'].'.phtml';
+				$view = _CONTROLLER.'/'.$this->render['action'].'.phtml';
 			else:
-				$view = $view['controller'].'/'.$view['action'].'.phtml';
+				$view = _CONTROLLER.'/'._ACTION.'.phtml';
 			endif;
 		else:
-			$view = $view['controller'].'/'.$view['action'].'.phtml';
+			$view = _CONTROLLER.'/'._ACTION.'.phtml';
 		endif;
 
 		if($renderPage):
 			ob_start();
 			include_once(INST_PATH."app/templates/".$view);
-			$this->content = ob_get_clean();
+			$this->yield = ob_get_clean();
 		endif;
 
 
@@ -191,7 +191,7 @@ abstract class Page extends Core_General_Class{
 			include_once(INST_PATH."app/templates/".$this->layout.".phtml");
 			$this->htmlcontent = ob_get_clean();
 		else:
-			$this->htmlcontent = $this->content;
+			$this->htmlcontent = $this->yield;
 		endif;
 		if($this->outputHtml){
 			echo $this->htmlcontent;

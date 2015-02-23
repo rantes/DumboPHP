@@ -11,6 +11,14 @@
  */
 define('_VERSION_', '1.8b-r1');
 
+define('HTTP_200_STATUS', 200);
+define('HTTP_400_BAD_REQUEST', 400);
+define('HTTP_403_FORBIDDEN', 403);
+define('HTTP_404_NOT_FOUND', 404);
+define('HTTP_405_METHOD_NOT_ALLOWED', 405);
+define('HTTP_406_NOT_ACCEPTABLE', 406);
+define('HTTP_500_SERVER_ERROR', 500);
+
 //carga de las extensiones instaladas.
 $path=dirname(__FILE__).'/ext/';
 $directory=dir($path);

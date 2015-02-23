@@ -81,6 +81,17 @@ class Errors{
 		return $errorCodes;
 	}
 	/**
+	 * Obtiene los campos con error.
+	 * @return array
+	 */
+	public function errFields(){
+		$errorsFields = array();
+		foreach($this->messages as $field => $messages){
+			$errorFields[] = $field;
+		}
+		return $errorFields;
+	}
+	/**
 	 * Verifica si existe un codigo de erro especifico.
 	 * @param string|integer $code
 	 * @return boolean

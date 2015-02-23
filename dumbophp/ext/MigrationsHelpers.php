@@ -15,9 +15,9 @@
  * @param string $obj
  */
 	function MigrationsActions($params = NULL, &$obj = NULL){
+		$migrationsSelected = array();
 		if(isset($_POST['migrations'])):
 			$path=INST_PATH.'migrations/';
-			$migrationsSelected = array();
 			foreach($_POST['migrations'] as $field => $value){
 				if($value === 'on'):
 					$Obj = 'create_'.Singulars($field);

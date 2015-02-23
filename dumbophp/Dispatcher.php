@@ -154,7 +154,7 @@ class index{
 					}
 				}
 
-				$page->display(array('controller'=>$controller,'action'=>$action));
+				$page->display();
 
 				if(method_exists($page,"after_render")){
 					$actionsToExclude = $controllersToExclude = array();

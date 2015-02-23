@@ -57,8 +57,10 @@ include(dirname(__FILE__).'/StringFunctionsLibrary/IrregularNouns.php');
 	function Singulars($params, &$obj=NULL){
 		if($obj == NULL) $string = $params;
 		else $string = $params[0];
+		
 		$IN = new IrregularNouns();
 		$strconv = '';
+		
 		if(in_array($string, $IN->plural)):
 			$key = array_search($string, $IN->plural);
 			$strconv = $IN->singular[$key];
@@ -171,17 +173,33 @@ include(dirname(__FILE__).'/StringFunctionsLibrary/IrregularNouns.php');
 		else $string = $params[0];
 
     	$specialChars = array("/\xc0/","/\xc1/","/\xc2/","/\xc3/","/\xc4/","/\xc5/","/\xc6/","/\xc7/","/\xc8/","/\xc9/","/\xca/","/\xcb/","/\xcc/","/\xcd/","/\xce/","/\xcf/","/\xd0/","/\xd1/",
-    			"/\xd2/","/\xd3/","/\xd4/","/\xd5/","/\xd6/","/\xd7/","/\xd8/","/\xd9/","/\xda/","/\xdb/","/\xdc/","/\xdd/","/\xde/","/\xdf/","/\xe0/","/\xe1/","/\xe2/","/\xe3/","/\xe4/","/\xe5/","/\xe6/",
-    			"/\xe7/","/\xe8/","/\xe9/","/\xea/","/\xeb/","/\xec/","/\xed/","/\xee/","/\xef/","/\xf0/","/\xf1/","/\xf2/","/\xf3/","/\xf4/","/\xf5/","/\xf6/","/\xf7/","/\xf8/","/\xf9/","/\xfa/","/\xfb/","/\xfc/","/\xfd/","/\xfe/","/\xff/");
-    	$normalChars =  array('A','A','A','A','A','A','A','C','E','E','E','E','I','I','I','I','D','N',
-    			'O','O','O','O','O','O','O','U','U','U','U','Y','B','Ss','a','a','a','a','a','a','a',
-    			'c','e','e','e','e','i','i','i','i','o','n','o','o','o','o','o','o','o','u','u','u','u','y','b','y');
+	 			"/\xd2/","/\xd3/","/\xd4/","/\xd5/","/\xd6/","/\xd7/","/\xd8/","/\xd9/","/\xda/","/\xdb/","/\xdc/","/\xdd/","/\xde/","/\xdf/","/\xe0/","/\xe1/","/\xe2/","/\xe3/","/\xe4/","/\xe5/","/\xe6/",
+	 			"/\xe7/","/\xe8/","/\xe9/","/\xea/","/\xeb/","/\xec/","/\xed/","/\xee/","/\xef/","/\xf0/","/\xf1/","/\xf2/","/\xf3/","/\xf4/","/\xf5/","/\xf6/","/\xf7/","/\xf8/","/\xf9/","/\xfa/","/\xfb/","/\xfc/","/\xfd/","/\xfe/","/\xff/");
+	 	$normalChars =  array('A','A','A','A','A','A','A','C','E','E','E','E','I','I','I','I','D','N',
+	 			'O','O','O','O','O','O','U','U','U','U','Y','B','Ss','a','a','a','a','a','a','a','c','e','e','e','e','i','i','i','i','d','n',
+	 			'o','o','o','o','o','o','u','u','u','u','y','b','y');
 		$string = preg_replace($specialChars, $normalChars, $string);
 		$string = strtolower($string);
 		$string = preg_replace('/[\s]+/', '-', $string);
 		$string = preg_replace('/[^a-zA-Z0-9-]/', '', $string);
 
 		return $string;
+	 }
+	 /**
+	  * Cuando las funciones nativas htmlentities y htmlspecialchars no funcionan,
+	  * esta funcion lo resuelve identificando el valor hexadecimal del caracter
+	  * especial a transformar en entidades.
+	  * @param string $string
+	  * @return string
+	  */
+	 function cleanASCII($string) {
+	 	$specialChars = array("/\xc0/","/\xc1/","/\xc2/","/\xc3/","/\xc4/","/\xc5/","/\xc6/","/\xc7/","/\xc8/","/\xc9/","/\xca/","/\xcb/","/\xcc/","/\xcd/","/\xce/","/\xcf/","/\xd0/","/\xd1/",
+	 			"/\xd2/","/\xd3/","/\xd4/","/\xd5/","/\xd6/","/\xd7/","/\xd8/","/\xd9/","/\xda/","/\xdb/","/\xdc/","/\xdd/","/\xde/","/\xdf/","/\xe0/","/\xe1/","/\xe2/","/\xe3/","/\xe4/","/\xe5/","/\xe6/",
+	 			"/\xe7/","/\xe8/","/\xe9/","/\xea/","/\xeb/","/\xec/","/\xed/","/\xee/","/\xef/","/\xf0/","/\xf1/","/\xf2/","/\xf3/","/\xf4/","/\xf5/","/\xf6/","/\xf7/","/\xf8/","/\xf9/","/\xfa/","/\xfb/","/\xfc/","/\xfd/","/\xfe/","/\xff/");
+	 	$normalChars =  array('&Agrave;','&Aacute;','&Acirc;','&Atilde;','&Auml;','&Aring','&AElig;','&Ccedil;','&Egrave;','&Eacute;','&Ecirc;','&Euml;','&Igrave;','&Iacute;','&Icirc;','&Iuml;','&ETH;','&Ntilde;',
+	 			'&Ograve;','&Oacute;','&Ocirc;','&Otilde;','&Ouml;','&Oslash;','U','U','U','U','Y','B','Ss','&agrave;','&aacute;','&acirc;','&atilde;','&auml;','&aring','&aElig;','&ccedil;','&egrave;','&eacute;','&ecirc;','&euml;','&igrave;','&iacute;','&icirc;','&iuml;','&eth;','&ntilde;',
+	 			'&ograve;','&oacute;','&ocirc;','&otilde;','&ouml;','&oslash;','u','u','u','u','y','b','y');
+	 	return preg_replace($specialChars, $normalChars, $string);
 	 }
 	 /**
 	  * Converts a file to DataURI (for no more request to server)
@@ -206,23 +224,48 @@ include(dirname(__FILE__).'/StringFunctionsLibrary/IrregularNouns.php');
 	 	}
 	 }
 	 /**
-	  * Cuando las funciones nativas htmlentities y htmlspecialchars no funcionan,
-	  * esta funcion lo resuelve identificando el valor hexadecimal del caracter
-	  * especial a transformar en entidades.
-	  * @param string $string
-	  * @return string
+	  * Genera una cadena de caracteres alfanumericos  
 	  */
-	 function cleanASCII($string){
-// 	 	$patterns = array("/\xd1/","/\xf1/","/\xc1/","/\xe1/","/\xc9/","/\xe9/","/\xcd/","/\xed/","/\xd3/","/\xf3/","/\xfa/","/\x22/","/\x27/");
-// 	 	$replaces = array('&Ntilde','&ntilde','&Aacute;','&aacute;','&Eacute;','&eacute;','&Iacute;','&iacute;','&Oacute;','&oacute;','&Uacute;','&uacute;','&quot;','&#39;');
-// 	 	return preg_replace($patterns, $replaces, $string);
-
-	 	$specialChars = array("/\xc0/","/\xc1/","/\xc2/","/\xc3/","/\xc4/","/\xc5/","/\xc6/","/\xc7/","/\xc8/","/\xc9/","/\xca/","/\xcb/","/\xcc/","/\xcd/","/\xce/","/\xcf/","/\xd0/","/\xd1/",
-	 			"/\xd2/","/\xd3/","/\xd4/","/\xd5/","/\xd6/","/\xd7/","/\xd8/","/\xd9/","/\xda/","/\xdb/","/\xdc/","/\xdd/","/\xde/","/\xdf/","/\xe0/","/\xe1/","/\xe2/","/\xe3/","/\xe4/","/\xe5/","/\xe6/",
-	 			"/\xe7/","/\xe8/","/\xe9/","/\xea/","/\xeb/","/\xec/","/\xed/","/\xee/","/\xef/","/\xf0/","/\xf1/","/\xf2/","/\xf3/","/\xf4/","/\xf5/","/\xf6/","/\xf7/","/\xf8/","/\xf9/","/\xfa/","/\xfb/","/\xfc/","/\xfd/","/\xfe/","/\xff/");
-	 	$normalChars =  array('&Agrave;','&Aacute;','&Acirc;','&Atilde;','&Auml;','&Aring','&AElig;','&Ccedil;','&Egrave;','&Eacute;','&Ecirc;','&Euml;','&Igrave;','&Iacute;','&Icirc;','&Iuml;','&ETH;','&Ntilde;',
-	 			'&Ograve;','&Oacute;','&Ocirc;','&Otilde;','&Ouml;','&Oslash;','U','U','U','U','Y','B','Ss','&agrave;','&aacute;','&acirc;','&atilde;','&auml;','&aring','&aElig;','&ccedil;','&egrave;','&eacute;','&ecirc;','&euml;','&igrave;','&iacute;','&icirc;','&iuml;','&eth;','&ntilde;',
-	 			'&ograve;','&oacute;','&ocirc;','&otilde;','&ouml;','&oslash;','u','u','u','u','y','b','y');
-	 	return preg_replace($specialChars, $normalChars, $string);
+	 function strGenerate($params = null) {
+	 	$length = 8;
+	 	$case = 'both';
+	 	$includeNumbers = true;
+	 	$lowerChars = 'abcdefghijklmnopqrstuvwxyz';
+	 	$upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	 	$numberChars = '0123456789';
+	 	$primaryString = '';
+	 	$result = '';
+	 	if(!empty($params) && is_array($params)) {
+	 		if(!empty($params['case'])) {
+	 			$case = $params['case'];
+	 		}
+	 		if(isset($params['includeNumbers'])) {
+	 			$includeNumbers = $params['includeNumbers'];
+	 		}
+	 		if(!empty($params['length'])) {
+	 			$length = $params['length'];
+	 		}
+	 	}
+	 	switch ($case) {
+	 		case 'lower':
+	 			$primaryString = $lowerChars;
+	 		break;
+	 		case 'upper':
+	 			$primaryString = $upperChars;
+	 		break;
+	 		case 'both':
+	 			$primaryString = $lowerChars.$upperChars;
+	 		break;
+	 	}
+	 	if($includeNumbers) {
+	 		$primaryString .= $numberChars;
+	 	}
+	 	$max = strlen($primaryString) - 1;
+	 	do {
+	 		$pos = mt_rand(0, $max);
+	 		$result .= $primaryString[$pos];
+	 	} while(strlen($result) < $length);
+	 	
+	 	return $result;
 	 }
 ?>

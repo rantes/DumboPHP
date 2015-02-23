@@ -79,7 +79,7 @@ abstract class Migrations extends Core_General_Class{
 	* @param array $table Arreglo que contiene el nombre de la tabla, campos y atributos.
 	*/
 	protected function Create_Table($table = NULL){
-		!defined(AUTO_AUDITS) or define('AUTO_AUDITS', true);
+		defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 		if($table !== NULL):
 
 			$tablName = $table['Table'];

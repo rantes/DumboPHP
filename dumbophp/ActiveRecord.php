@@ -405,7 +405,8 @@ require "Driver.php";
 	 * @param mixed $value Valor del atributo.
 	 */
 	public function __set($name, $value) {
-		if(isset($this->_data[$name])){
+		if(isset($this->_data[$name]) || preg_match('/_data_/', $name) ){
+			$name = str_replace("_data_", '', $name);
 			$this->_data[$name] = $value;
 		} else {
 			$this->_attrs[$name] = $value;
@@ -417,8 +418,18 @@ require "Driver.php";
 	 * @param string $name
 	 */
 	public function __unset($name) {
-		$this->_attrs[$name] = NULL;
-		unset($this->_attrs[$name]);
+		if(isset($this->_attrs[$name])) {
+			$this->_attrs[$name] = NULL;
+			unset($this->_attrs[$name]);
+		} 
+		if (isset($this->_data[$name])) {
+			$this->_data[$name] = NULL;
+			unset($this->_data[$name]);
+		} 
+		if (isset($this->{$name})) {
+			$this->{$name} = NULL;
+			unset($this->{$name});
+		}
 	}
 	/**
 	 * Metodo magico
@@ -459,20 +470,20 @@ require "Driver.php";
 					} elseif(isset($this->_attrs[$name])){
 						return $this->_attrs[$name];
 					}else{
-						$model = unCamelize($name);
-						if(file_exists(INST_PATH.'app/models/'.$model.'.php')){
-							if(!class_exists($name)){
-								require_once INST_PATH.'app/models/'.$model.'.php';
-							}
-							$this->_attrs[$name] = new $name();
-							return $this->_attrs[$name];
-						}else{
+// 						$model = unCamelize($name);
+// 						if(file_exists(INST_PATH.'app/models/'.$model.'.php')){
+// 							if(!class_exists($name)){
+// 								require_once INST_PATH.'app/models/'.$model.'.php';
+// 							}
+// 							$this->_attrs[$name] = new $name();
+// 							return $this->_attrs[$name];
+// 						}else{
 							return null;
-						}
+// 						}
 					}
 				break;
 			}
-		throw new Exception('Undefined variable to get: ' . $name);
+// 		throw new Exception('Undefined variable to get: ' . $name);
 		return null;
 	}
 
@@ -491,6 +502,8 @@ require "Driver.php";
 			$this->engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
 		}
 		$this->_error = new Errors();
+		
+		return true;
 	}
 
 	private function checkMemcached(){
@@ -515,33 +528,34 @@ require "Driver.php";
 	* solo registro o un arreglo de objetos de este mismo tipo como atributo de este objeto.
 	* @param string $query
 	*/
-	private function getData($query){
-
+	protected function getData($query){
+		
+// 		unset($this->_data);
+// 		unset($this);
 		$this->_data = NULL;
 		$this->_data = array();
 
-		if(sizeof($this) >0){
-			for($k = 0; $k<sizeof($this); $k++){
-				if(isset($this[$k])) $this->offsetUnSet($k);
-			}
-		}
-		for($k = 0; $k<sizeof($this->_data); $k++){
-			array_pop($this->_data);
-		}
-		foreach($this as $index => $obj){
-			$obj = null;
-			unset($obj);
-			$this->offsetUnSet($index);
-		}
-		if(isset($this->_data)){
-			foreach($this->_data as $key => $val){
-				$this->_data[$key] = NULL;
-				unset($this->_data[$key]);
-			}
-		}
+// 		if(sizeof($this) >0){
+// 			for($k = 0; $k<sizeof($this); $k++){
+// 				if(isset($this[$k])) $this->offsetUnSet($k);
+// 			}
+// 		}
+// 		for($k = 0; $k<sizeof($this->_data); $k++){
+// 			array_pop($this->_data);
+// 		}
+// 		foreach($this as $index => $obj){
+// 			$obj = null;
+// 			unset($obj);
+// 			$this->offsetUnSet($index);
+// 		}
+// 		if(isset($this->_data)){
+// 			foreach($this->_data as $key => $val){
+// 				$this->_data[$key] = NULL;
+// 				unset($this->_data[$key]);
+// 			}
+// 		}
 
 		$result = array();
-// 		$i=0;
 		$j=0;
 		$regs = NULL;
 
@@ -550,16 +564,19 @@ require "Driver.php";
 		if(!is_object($regs)) die("Error in SQL Query. Please check the SQL Query: ".$query);
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset = $regs->fetchAll();
-		if(sizeof($resultset) > 0){
-			for($j = 0; $j < sizeof($resultset); $j++){
-				$classToUse = get_class($this);
+		$classToUse = get_class($this);
+		$count = sizeof($resultset);
+		if($count > 0){
+			
+			for($j = 0; $j < $count; $j++){
 
-				$this->offsetSet($j, NULL);
-				$this[$j] = new $classToUse();
+// 				$this->offsetSet($j, null);
+				
+				$this->offsetSet($j, new $classToUse());
+// 				$this[$j] = new $classToUse();
 				$column = 0;
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-// 						$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
 						if($this->engine != 'mysql'){
 							$type = array('native_type'=>'VAR_CHAR');
 						} else {
@@ -574,7 +591,8 @@ require "Driver.php";
 							case 'LONG':
 							case 'INTEGER':
 							case 'INT':
-								$this[$j]->_data[$property] = 0 + $value;
+								$this[$j]->{'_data_'.$property} = $value + 0;
+								if($count === 1) $this->_data[$property] = $value + 0;
 							break;
 							case 'FLOAT':
 							case 'VAR_STRING':
@@ -582,29 +600,23 @@ require "Driver.php";
 							case 'TEXT':
 							case 'VARCHAR':
 							default:
-								$this[$j]->_data[$property] = $value;
+								$this[$j]->{'_data_'.$property} = $value;
+								if($count === 1) $this->_data[$property] = $value;
 							break;
 						}
 						$this[$j]->_dataAttributes[$property]['native_type'] = $type['native_type'];
 						$column++;
 					}
 				}
-// 				$i++;
 			}
 		}
 		$this->_counter = $j;
-		if($this->_counter === 1){
-			foreach ($this[0]->_data as $field => $value){
-				$this->_data[$field] = $value;
-				$this->_dataAttributes[$field]['native_type'] = $type['native_type'];
-			}
-		}elseif($this->_counter === 0){
+		if($this->_counter === 0){
 			$this->offsetSet(0, NULL);
 			$this[0] = NULL;
 			$this->_data = NULL;
 			unset($this[0]);
 			$this->Niu();
-			$this[0] = $this->Niu();
 		}
 	}
 
@@ -629,7 +641,6 @@ require "Driver.php";
 	* @access public
 	*/
 	public function Find($params = NULL){
-// 		if(empty($this->pk)) $this->pk = 'id';
 		$this->_data = null;
 		$this->__destruct();
 		$this->__construct();
@@ -641,10 +652,6 @@ require "Driver.php";
 			}
 		}
 
-		//if(empty($this->_ObjTable)) $this->_TableName(); //$this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
-
-// 		$fields = '*';
-// 		if(is_array($params) and isset($params['fields'])) $fields = $params['fields'];
 		$sql = '';
 
 		if(!empty($this->_params)){
@@ -708,7 +715,6 @@ require "Driver.php";
 		}
 		$fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
 		$sql = "SELECT {$fields} FROM {$this->_TableName()} WHERE 1=1" . $sql;
-// 		$this->Connect();
 		$this->_sqlQuery = $sql;
 		if(CAN_USE_MEMCACHED){
 			$key = md5($sql);
@@ -721,7 +727,6 @@ require "Driver.php";
 		$this->getData($sql);
 		$this->_sqlQuery = $sql;
 
-		//$this->__construct();
 		if(sizeof($this->after_find)>0){
 			foreach($this->after_find as $functiontoRun){
 				$this->{$functiontoRun}();
@@ -730,7 +735,9 @@ require "Driver.php";
 		if(CAN_USE_MEMCACHED){
 			$memcached->set($key,$this);
 		}
-		return clone($this);
+		$obj = clone($this);
+		unset($this);
+		return $obj;
 	}
 
 
@@ -798,29 +805,28 @@ require "Driver.php";
 			$type['native_type'] = $row['Type'];
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 			$type['native_type'] = strtoupper($type['native_type']);
-			$cast = 'toString';
-			$toCast= false;
-			switch($type['native_type']){
-				case 'LONG':
-				case 'INTEGER':
-				case 'INT':
-				case 'FLOAT':
-				case 'DOUBLE':
-					$toCast = true;
-				break;
-			}
+// 			$cast = 'toString';
+// 			$toCast= false;
+// 			switch($type['native_type']){
+// 				case 'LONG':
+// 				case 'INTEGER':
+// 				case 'INT':
+// 				case 'FLOAT':
+// 				case 'DOUBLE':
+// 					$toCast = true;
+// 				break;
+// 			}
 			$value = '';
 
-			if(!empty($contents) && is_array($contents)){
-				if(isset($contents[$row['Field']])){
+// 			if(!empty($contents) && is_array($contents)){
+				if(!empty($contents[$row['Field']])){
 					$value = $contents[$row['Field']];
 					$not_clean[] = $row['Field'];
 					$cleanup = true;
+					$this->_counter = 1;
 				}
-				$this->_counter = 1;
-			}
-			$this->_data[$row['Field']] = $toCast ?  0 + $value : $value;
-			$this[0]->_data[$row['Field']] = $toCast ?  0 + $value : $value;
+// 			}
+			$this->{'_data_'.$row['Field']} = $value; //$toCast ?  0 + $value : $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
 		}
 		if($cleanup){
@@ -832,6 +838,54 @@ require "Driver.php";
 			}
 		}
 		return clone($this);
+	}
+	/**
+	 * Metodo publico Update()
+	 * 
+	 * Actualizacion directa a la bd en caso de alterar varios registros a la vez.
+	 * 
+	 * A diferencia del metodo Save(), que se utiliza para actualizar un registro a la vez,
+	 * Update solo necesita la condicion a cumplir los registros para y campo => valor.
+	 * 
+	 * @param $param array(conditions,data = array(campo=>valor))
+	 * @return boolean true en caso de que la transaccion hay sido exitosa si no, false.
+	 */
+	function Update($params) {
+		if(!is_array($params)){
+			throw new Exception('The params for the Update() method must be an array');
+		}
+		
+		if(empty($params['conditions']) || !is_string($params['conditions'])){
+			throw new Exception('The param conditions should not be empty and must be string.');
+		}
+		
+		if(empty($params['data']) || !is_array($params['data'])) {
+			throw new Exception('The param data should not be empty and must be array.');			
+		}
+		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
+		$this->Connect();
+		$prepared = array();
+		$query = 'UPDATE `'.$this->_TableName().'` SET ';
+		foreach ($params['data'] as $field => $value) {
+			$query .= "`$field`=:$field,";
+			$prepared[':'.$field] = $value;
+		}
+		$query = substr($query, 0, -1);
+		if(AUTO_AUDITS){
+			$query .= ',`updated_at`='.time();
+		}
+		
+		$query .= ' WHERE '.$params['conditions'];
+		
+		$sh = $this->driver->prepare($query);
+		
+		if(!$sh->execute($prepared)){
+			$e = $this->driver->errorInfo();
+			$this->_error->add(array('field' => $this->_TableName(),'message'=>$e[2]."\n $query"));
+			return false;
+		}
+		
+		return true;
 	}
 	/**
 	* Metodo publico Save()
@@ -848,11 +902,9 @@ require "Driver.php";
 	**/
 
 	function Save(){
-// 		$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
-// 		if(empty($this->pk)) $this->pk = 'id';
+		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		$this->Connect();
 		$className = get_class($this);
-		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
 		if(isset($this->validate) and is_array($this->validate)){
 			foreach($this->validate as $evaluation => $content){
 				switch($evaluation){
@@ -861,7 +913,7 @@ require "Driver.php";
 						foreach($content as $field){
 							$val = $this->{$field};
 							if(!isset($val) or $val == "" or $val == " "){
-								$this->_error->add(array('field'=>$field,'message'=>'This field cannot be empty or null.'));
+								$this->_error->add(array('field'=>$field,'message'=>'This field can not be empty or null'));
 							}
 						}
 						if($this->_error->isActived()) return false;
@@ -869,11 +921,12 @@ require "Driver.php";
 
 					case 'unique':
 						foreach($content as $field){
-							$lists = array();
-							$obj1 = new $className;
-							$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->{$field}."' AND ".$this->pk."<>'".$this->{$this->pk}."'"));
-							if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This Field cannot be duplicated', 'code'=>212));
-							if($this->_error->isActived()) return false;
+							if(!empty($this->{$field})){
+								$obj1 = new $className;
+								$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->{$field}."' AND ".$this->pk."<>'".$this->{$this->pk}."'"));
+								if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated', 'code'=>212));
+								if($this->_error->isActived()) return false;
+							}
 						}
 					break;
 
@@ -901,7 +954,6 @@ require "Driver.php";
 				}
 			}
 		}
-		//$this->__construct();
 		if(sizeof($this->before_save)>0){
 			foreach($this->before_save as $functiontoRun){
 				$this->{$functiontoRun}();
@@ -910,55 +962,26 @@ require "Driver.php";
 		if($this->_error->isActived()) return FALSE;
 		if(!empty($this->{$this->pk})){
 			$kind = "update";
-// 			$ThisClass = get_class($this);
-// 			$objAux = new $ThisClass();
-// these linese were deactivated due to datatype comparison when were afterfind callbacks changes the content types
-// 			$existing_data = $objAux->Find($this->id)->getArray();
-
-// 			foreach($existing_data as $key => $data){
-// 				if(is_array($data)){
-
-// 					foreach($data as $field => $value){
-// 						if(!is_array($value)){
-// 							if(isset($this->{$field}) and $value !== $this->{$field} and strcmp($field, "created_at") !== 0 and strcmp($field, "updated_at") !== 0 and strcmp($field, "id") !== 0){
-// 								$arraux[$field] = $this->{$field};
-// 							}
-// 						}
-// 					}
-// 				}else{
-// 					if(isset($this->_data[$key]) and $data != $this->_data[$key] and strcmp($key, "created_at") !== 0 and strcmp($key, "updated_at") !== 0 and strcmp($key, "id") !== 0){
-// 						$arraux[$key] = $this->_data[$key];
-// 					}
-// 				}
-// 			}
-////////////////////////////////////
 			if($this->engine == 'firebird'){
-				defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 				$query = "UPDATE ".$this->_TableName()." SET ";
-				$arraux = array();
-				$i=0;
-				$arraux = $this->_data;
 				if(AUTO_AUDITS){
-					$arraux['updated_at'] = time();
+					$this->_data['updated_at'] = time();
 				}
-				foreach($arraux as $key => $value){
-					if($key != $this->pk){
-						$query .= "$key = :".$key.",";//'$value'
+				foreach($this->_data as $key => $value){
+					if($key != $this->pk &&  $value !== null){
+						$query .= "$key = :".$key.",";
 					}
 				}
 				$query = substr($query, 0,-1);
 				$query .= " WHERE ".$this->pk." = ".$this->{$this->pk};
 			} else {
 				$query = "UPDATE `".$this->_TableName()."` SET ";
-				$arraux = array();
-				$i=0;
-				$arraux = $this->_data;
 				if(AUTO_AUDITS){
-					$arraux['updated_at'] = time();
+					$this->_data['updated_at'] = time();
 				}
-				foreach($arraux as $key => $value){
-					if($key != $this->pk){
-						$query .= "`$key` = :".$key.",";//'$value'
+				foreach($this->_data as $key => $value){
+					if($key != $this->pk &&  $value !== null){
+						$query .= "`$key` = :".$key.",";
 					}
 				}
 				$query = substr($query, 0,-1);
@@ -977,14 +1000,14 @@ require "Driver.php";
 				$values = "";
 				$i=1;
 				if(AUTO_AUDITS){
-					$this->created_at = time();
-					$this->updated_at = 0;
+					$this->_data['created_at'] = time();
+					$this->_data['updated_at'] = 0;
 				}
 				foreach($this->_data as $field => $value){
 					if(!is_array($value)){
-						if($field != $this->pk){
+						if($field != $this->pk &&  $value !== null){
 							$fields .= "$field, ";
-							$values .= ":".$field.", ";//'$value'
+							$values .= ":".$field.", ";
 						}
 						$i++;
 					}
@@ -1000,14 +1023,12 @@ require "Driver.php";
 				$values = "";
 				$i=1;
 				if(AUTO_AUDITS){
-					$this->created_at = time();
+					$this->_data['created_at'] = time();
 				}
 				foreach($this->_data as $field => $value){
-					if(!is_array($value)){
-						if($field != $this->pk){
-							$fields .= "`$field`, ";
-							$values .= ":".$field.", ";//'$value'
-						}
+					if(!is_array($value) && $field != $this->pk && $value !== null){
+						$fields .= "`$field`, ";
+						$values .= ":".$field.", ";//'$value'
 						$i++;
 					}
 				}
@@ -1016,13 +1037,11 @@ require "Driver.php";
 			$values = substr($values, 0, -2);
 			$query .= "($fields) VALUES ($values)";
 		}
-		// seteo de los campos para escapar por PDO
 		$this->_sqlQuery = $query;
 		$sh = $this->driver->prepare($query);
 		$prepared = array();
 		foreach($this->_data as $field => $value){
-			if(!is_array($value) && $field != $this->pk){
-// 				$sh->bindParam(':'.$field,$value);
+			if(!is_array($value) && $field != $this->pk && $value !== null){
 				$prepared[':'.$field] = $value;
 			}
 		}
@@ -1056,7 +1075,6 @@ require "Driver.php";
 
 	function Insert(){
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-		//if(!isset($this->ObjTable)) $this->ObjTable = $this->Plurals(strtolower($this->unCamelize(get_class($this))));
 		$fields = "";
 		$values = "";
 		if(AUTO_AUDITS){
@@ -1067,7 +1085,7 @@ require "Driver.php";
 			foreach($this->_data as $field => $value){
 				if(!is_array($value)){
 					$fields .= "$field,";
-					$values .= ":".$field.","; //'$value'
+					$values .= ":".$field.",";
 				}
 			}
 		} else {
@@ -1075,7 +1093,7 @@ require "Driver.php";
 			foreach($this->_data as $field => $value){
 				if(!is_array($value)){
 					$fields .= "`$field`,";
-					$values .= ":".$field.","; //'$value'
+					$values .= ":".$field.",";
 				}
 			}
 		}
@@ -1089,14 +1107,9 @@ require "Driver.php";
 		$prepared = array();
 		foreach($this->_data as $field => &$value){
 			if(!is_array($value)){
-// 				if(empty($this->escapeField)){
 				$prepared[':'.$field] = $value;
-// 					$sh->bindParam(':'.$field, $value);
-// 				}
-// 				$nvalues[] = $value;
 			}
 		}
-		//echo 'Inserting '.$values.' in '.$this->_TableName().PHP_EOL;
 		$sh->execute($prepared) or die($query.'-'.print_r($this->driver->errorInfo(), true));
 		return true;
 	}
@@ -1111,6 +1124,7 @@ require "Driver.php";
 	* @param array|numeric $conditions Condiciones para la eliminacion.
 	**/
 	function Delete($conditions = NULL){
+		!empty($this->driver) or $this->Connect();
 		if($this->_counter > 1){
 			$conditions = array();
 			foreach($this->_data as $ele){
@@ -1126,8 +1140,10 @@ require "Driver.php";
 			if(is_numeric($conditions)){
 				$this->{$this->pk} = $conditions;
 				$query .= "WHERE ".$this->pk."='$conditions'";
-			}elseif(is_array($conditions)){
+			}elseif(is_array($conditions) && empty($conditions['conditions'])){
 				$query .= 'WHERE `id` IN ('.implode(',', $conditions).')';
+			}elseif(!empty($conditions['conditions'])){
+				$query .= 'WHERE '.$conditions['conditions'];				
 			}
 			if(sizeof($this->before_delete) >0){
 				foreach($this->before_delete as $functiontoRun){
@@ -1161,26 +1177,28 @@ require "Driver.php";
 		//verifyng dependencies
 		if (!empty($this->dependents) and $id != 0){
 			foreach ($this->has_many as $model){
-				$model1 = Camelize($model);
-				//$dependentObject = new $model1();
-				$children = $this->{$model1}->Find(array('conditions'=>Singulars($this->_TableName())."_id='".$id."'"));
-				foreach ($children as $child){
-					switch ($this->dependents){
-						case 'destroy':
-							if(!$child->Delete()){
-							    $this->_error->add(array('field' => $this->_TableName(),'message'=>"Cannot delete dependents"));
-							    return FALSE;
-							}
-						break;
-						case 'nullify':
-							$child->{$this->_TableName().'_id'}='';
-							if(!$child->Save()){
-							    $this->_error->add(array('field' => $this->_TableName(),'message'=>"Cannot nullify dependents"));
-							    return FALSE;
-							}
-						break;
+				$m = Camelize(Singulars($model));
+				$model1 = new $m();
+				$children = $model1->Find(array('conditions'=>Singulars($this->_TableName())."_id='".$id."'"));
+				if($children->counter() > 0){
+					foreach ($children as $child){
+						switch ($this->dependents){
+							case 'destroy':
+								if(!$child->Delete()){
+								    $this->_error->add(array('field' => $this->_TableName(),'message'=>"Cannot delete dependents"));
+								    return FALSE;
+								}
+							break;
+							case 'nullify':
+								$child->{$this->_TableName().'_id'}='';
+								if(!$child->Save()){
+								    $this->_error->add(array('field' => $this->_TableName(),'message'=>"Cannot nullify dependents"));
+								    return FALSE;
+								}
+							break;
+						}
+	
 					}
-
 				}
 			}
 		}
@@ -1269,19 +1287,56 @@ require "Driver.php";
 	* @returns array $arraux Arreglo multidimensional que contiene atributos y/o valores que trae de la BD.
 	*/
 	public function getArray(){
+		// $arraux = array();
+		
+		// if($this->_counter > 0){
+		// 	if($this->_counter === 1) {
+		// 		$arraux = $this->_data;
+		// 		foreach ($this->_attrs as $index => $attribute) {
+		// 			if(!empty($arraux[$index])) $index .= '_1';
+		// 			$arraux[$index] = $attribute;
+		// 		}
+		// 	} else {
+		// 		foreach ($this as $ind => $cont) {
+		// 			if(is_object($cont) and get_parent_class($cont) == 'ActiveRecord') {
+		// 				$arraux[$ind] = $cont->getArray();
+		// 			} else {
+		// 				$arraux[$ind] = $this[$ind]->_data;
+		// 				foreach ($this[$ind]->_attrs as $index => $attribute) {
+		// 					if(!empty($arraux[$ind][$attribute])) $attribute .= '_1';
+		// 					$arraux[$ind][$attribute] = $attribute;
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+			
+		// }
 		$arraux = array();
-		$arraux1 = array();
 
-		if($this->counter() > 0){
-				$n=0;
-		        for($t = 0; $t < $this->counter(); $t++){
-		        	if(isset($this[$t]->_data)){
+		if($this->_counter > 0){
+			if($this->_counter === 1) {
+				$arraux = $this->_data;
+				foreach ($this->_attrs as $index => $attribute) {
+					if(!empty($arraux[$index])) $index .= '_1';
+					$arraux[$index] = $attribute;
+				}
+			} else {
+				$n=$m=0;
+		        for($t = 0; $t < $this->_counter; $t++){
+		        	if(!empty($this[$t]->_data)){
 				        foreach($this[$t]->_data as $property => $value){
 					        $arraux[$n][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
 				        }
 				        $n++;
 			        }
+			        if(!empty($this[$t]->_attrs)){
+			        	foreach($this[$t]->_attrs as $property => $value){
+			        		$arraux[$m][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
+			        	}
+			        	$m++;
+			        }
 		        }
+			}
 		}
 		return $arraux;
 	}
@@ -1294,7 +1349,6 @@ require "Driver.php";
 	* @param string $path Cadena que contiene la ruta a guardar el archivo Xml.
 	*/
 	function Dump($dataDump = array(), $path){
-		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
 		$model = $this->_TableName();
 		$dom = new DOMDocument('1.0', 'utf-8');
 
@@ -1325,10 +1379,7 @@ require "Driver.php";
 			}
 		}
 
-// 		$fp = fopen($path.$model.'.xml', 'w+b');
-// 		fwrite($fp, $dom->saveXML());
 		file_put_contents($path.$model.'.xml', $dom->saveXML());
-// 		fclose($fp);
 	}
 	/**
 	* Metodo publico LoadDump($docXml)
@@ -1422,28 +1473,25 @@ require "Driver.php";
 	function GetFields(){
 		$this->Connect();
 
-		//if(!isset($this->ObjTable) or $this->ObjTable != '') $this->ObjTable = Plurals(strtolower(unCamelize(get_class($this))));
-
 		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`") or die(print_r($this->driver->errorInfo(), true));
 
 		$arraux = array();
 		foreach($result as $row){
 			$arraux[$row['Field']] = $row['Type'];
 		}
+
 		return $arraux;
 	}
 
 	/**
 	 * Metodo publico BuildMigration()
 	 *
-	 * Construye un archivo de migracion en base del modelo.
+	 * Construye un archivo de migracion con base en el modelo.
 	 *
 	 * Esto se usa cuando la base de datos ya exista y no se requiera hacer los archivos de
 	 * migracion para ahorrar tiempo.
 	 */
 	function BuildMigration(){
-		//if(!isset($this->ObjTable)) $this->ObjTable = Plurals(strtolower(get_class($this)));
-
 	}
 	/**
 	 * Retorna los errores ocurridos en la consulta
@@ -1469,7 +1517,7 @@ require "Driver.php";
 	 * Obtiene el utlimo registro
 	 */
 	public function last(){
-		return sizeof($this) > 0? $this[sizeof($this) - 1] : FALSE;
+		return $this->counter() > 0 ? $this[$this->counter() - 1] : FALSE;
 	}
 	/**
 	 *
@@ -1518,6 +1566,25 @@ require "Driver.php";
 			$arr[] = $this[$i];
 		}
 		return $arr;
+	}
+	/**
+	 * Unset index object
+	 */
+	function _unset($index = 0) {
+		if($this->_counter === 1) {
+			$this->_data = null;
+// 			unset($this->_data);
+			$this->_attrs = null;
+// 			unset($this->_attrs);
+		} elseif($this->offsetExists($index)) {
+			$this[$index]->_data = null;
+// 			unset($this[$index]->_data);
+			$this[$index]->_attrs = null;
+// 			unset($this[$index]->_attrs);
+			$this->offsetUnSet($index);
+		}
+		$this->_counter--;
+		if($this->_counter < 0) $this->_counter = 0;
 	}
 }
 ?>
