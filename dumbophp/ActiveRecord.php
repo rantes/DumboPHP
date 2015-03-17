@@ -1287,38 +1287,16 @@ require "Driver.php";
 	* @returns array $arraux Arreglo multidimensional que contiene atributos y/o valores que trae de la BD.
 	*/
 	public function getArray(){
-		// $arraux = array();
-		
-		// if($this->_counter > 0){
-		// 	if($this->_counter === 1) {
-		// 		$arraux = $this->_data;
-		// 		foreach ($this->_attrs as $index => $attribute) {
-		// 			if(!empty($arraux[$index])) $index .= '_1';
-		// 			$arraux[$index] = $attribute;
-		// 		}
-		// 	} else {
-		// 		foreach ($this as $ind => $cont) {
-		// 			if(is_object($cont) and get_parent_class($cont) == 'ActiveRecord') {
-		// 				$arraux[$ind] = $cont->getArray();
-		// 			} else {
-		// 				$arraux[$ind] = $this[$ind]->_data;
-		// 				foreach ($this[$ind]->_attrs as $index => $attribute) {
-		// 					if(!empty($arraux[$ind][$attribute])) $attribute .= '_1';
-		// 					$arraux[$ind][$attribute] = $attribute;
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-			
-		// }
 		$arraux = array();
 
 		if($this->_counter > 0){
 			if($this->_counter === 1) {
-				$arraux = $this->_data;
+				foreach($this->_data as $property => $value){
+			        $arraux[$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray() : $value;
+		        }
 				foreach ($this->_attrs as $index => $attribute) {
 					if(!empty($arraux[$index])) $index .= '_1';
-					$arraux[$index] = $attribute;
+					$arraux[$index] = (is_object($attribute) and get_parent_class($attribute) == 'ActiveRecord')? $attribute->getArray() : $attribute;
 				}
 			} else {
 				$n=$m=0;
