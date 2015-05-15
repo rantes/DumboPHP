@@ -12,6 +12,7 @@
 define('_VERSION_', '1.8b-r1');
 
 define('HTTP_200_STATUS', 200);
+define('HTTP_304_NOT_CHANGE', 304);
 define('HTTP_400_BAD_REQUEST', 400);
 define('HTTP_403_FORBIDDEN', 403);
 define('HTTP_404_NOT_FOUND', 404);

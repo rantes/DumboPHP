@@ -43,13 +43,13 @@
 			$arr = $obj->getArray();
 		endif;
 
-			foreach($arr as $mainkey => $element):
-				$arraux = array();
-				foreach($element as $key => $value):
-					$arraux[] = (string)$value;
-				endforeach;
-				$arr1[$arraux[0]] = $arraux[1];
+		foreach($arr as $mainkey => $element):
+			$arraux = array();
+			foreach($element as $key => $value):
+				$arraux[] = (string)$value;
 			endforeach;
+			$arr1[$arraux[0]] = $arraux[1];
+		endforeach;
 		return $arr1;
 	}
 	/**
@@ -85,7 +85,8 @@
 			$arobj = $arr[0][0];
 			$params = $arr[0];
 		}else{
-			throw new Exception("Form for must be used for a model object.");
+			throw new Exception("Form for must be used for a model object.");
+
 			return null;
 		}
 		$name = singulars(strtolower($arobj->_TableName()));

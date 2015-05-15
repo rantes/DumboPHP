@@ -257,6 +257,7 @@ require "Driver.php";
 	 * @var Array
 	 */
 	protected $escapeField = array();
+	private $_fields = array();
 	/**
 	 * Constructor
 	 *
@@ -405,7 +406,7 @@ require "Driver.php";
 	 * @param mixed $value Valor del atributo.
 	 */
 	public function __set($name, $value) {
-		if(isset($this->_data[$name]) || preg_match('/_data_/', $name) ){
+		if(isset($this->_data[$name]) || preg_match('/_data_/', $name) || in_array($name, $this->_fields)){
 			$name = str_replace("_data_", '', $name);
 			$this->_data[$name] = $value;
 		} else {
@@ -421,11 +422,11 @@ require "Driver.php";
 		if(isset($this->_attrs[$name])) {
 			$this->_attrs[$name] = NULL;
 			unset($this->_attrs[$name]);
-		} 
+		}
 		if (isset($this->_data[$name])) {
 			$this->_data[$name] = NULL;
 			unset($this->_data[$name]);
-		} 
+		}
 		if (isset($this->{$name})) {
 			$this->{$name} = NULL;
 			unset($this->{$name});
@@ -502,7 +503,7 @@ require "Driver.php";
 			$this->engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
 		}
 		$this->_error = new Errors();
-		
+
 		return true;
 	}
 
@@ -529,7 +530,7 @@ require "Driver.php";
 	* @param string $query
 	*/
 	protected function getData($query){
-		
+
 // 		unset($this->_data);
 // 		unset($this);
 		$this->_data = NULL;
@@ -567,11 +568,11 @@ require "Driver.php";
 		$classToUse = get_class($this);
 		$count = sizeof($resultset);
 		if($count > 0){
-			
+
 			for($j = 0; $j < $count; $j++){
 
 // 				$this->offsetSet($j, null);
-				
+
 				$this->offsetSet($j, new $classToUse());
 // 				$this[$j] = new $classToUse();
 				$column = 0;
@@ -605,6 +606,7 @@ require "Driver.php";
 							break;
 						}
 						$this[$j]->_dataAttributes[$property]['native_type'] = $type['native_type'];
+						if($count === 1) $this->_dataAttributes[$property]['native_type'] = $type['native_type'];
 						$column++;
 					}
 				}
@@ -806,16 +808,16 @@ require "Driver.php";
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 			$type['native_type'] = strtoupper($type['native_type']);
 // 			$cast = 'toString';
-// 			$toCast= false;
-// 			switch($type['native_type']){
-// 				case 'LONG':
-// 				case 'INTEGER':
-// 				case 'INT':
-// 				case 'FLOAT':
-// 				case 'DOUBLE':
-// 					$toCast = true;
-// 				break;
-// 			}
+			$toCast= false;
+			switch($type['native_type']){
+				case 'LONG':
+				case 'INTEGER':
+				case 'INT':
+				case 'FLOAT':
+				case 'DOUBLE':
+					$toCast = true;
+				break;
+			}
 			$value = '';
 
 // 			if(!empty($contents) && is_array($contents)){
@@ -826,7 +828,9 @@ require "Driver.php";
 					$this->_counter = 1;
 				}
 // 			}
-			$this->{'_data_'.$row['Field']} = $value; //$toCast ?  0 + $value : $value;
+ 			$value = $toCast ?  0 + $value : $value;
+			$this->_fields[] = $row['Field'];
+			$this->{'_data_'.$row['Field']} = $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
 		}
 		if($cleanup){
@@ -841,26 +845,26 @@ require "Driver.php";
 	}
 	/**
 	 * Metodo publico Update()
-	 * 
+	 *
 	 * Actualizacion directa a la bd en caso de alterar varios registros a la vez.
-	 * 
+	 *
 	 * A diferencia del metodo Save(), que se utiliza para actualizar un registro a la vez,
 	 * Update solo necesita la condicion a cumplir los registros para y campo => valor.
-	 * 
-	 * @param $param array(conditions,data = array(campo=>valor))
+	 *
+	 * @param $param array('conditions' => 'string', 'data' => array(campo=>valor))
 	 * @return boolean true en caso de que la transaccion hay sido exitosa si no, false.
 	 */
 	function Update($params) {
 		if(!is_array($params)){
 			throw new Exception('The params for the Update() method must be an array');
 		}
-		
+
 		if(empty($params['conditions']) || !is_string($params['conditions'])){
 			throw new Exception('The param conditions should not be empty and must be string.');
 		}
-		
+
 		if(empty($params['data']) || !is_array($params['data'])) {
-			throw new Exception('The param data should not be empty and must be array.');			
+			throw new Exception('The param data should not be empty and must be array.');
 		}
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		$this->Connect();
@@ -874,17 +878,17 @@ require "Driver.php";
 		if(AUTO_AUDITS){
 			$query .= ',`updated_at`='.time();
 		}
-		
+
 		$query .= ' WHERE '.$params['conditions'];
-		
+
 		$sh = $this->driver->prepare($query);
-		
+
 		if(!$sh->execute($prepared)){
 			$e = $this->driver->errorInfo();
 			$this->_error->add(array('field' => $this->_TableName(),'message'=>$e[2]."\n $query"));
 			return false;
 		}
-		
+
 		return true;
 	}
 	/**
@@ -1143,7 +1147,7 @@ require "Driver.php";
 			}elseif(is_array($conditions) && empty($conditions['conditions'])){
 				$query .= 'WHERE `id` IN ('.implode(',', $conditions).')';
 			}elseif(!empty($conditions['conditions'])){
-				$query .= 'WHERE '.$conditions['conditions'];				
+				$query .= 'WHERE '.$conditions['conditions'];
 			}
 			if(sizeof($this->before_delete) >0){
 				foreach($this->before_delete as $functiontoRun){
@@ -1197,7 +1201,7 @@ require "Driver.php";
 								}
 							break;
 						}
-	
+
 					}
 				}
 			}
@@ -1292,11 +1296,11 @@ require "Driver.php";
 		if($this->_counter > 0){
 			if($this->_counter === 1) {
 				foreach($this->_data as $property => $value){
-			        $arraux[$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray() : $value;
+			        $arraux[0][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray() : $value;
 		        }
 				foreach ($this->_attrs as $index => $attribute) {
-					if(!empty($arraux[$index])) $index .= '_1';
-					$arraux[$index] = (is_object($attribute) and get_parent_class($attribute) == 'ActiveRecord')? $attribute->getArray() : $attribute;
+					if(!empty($arraux[0][$index])) $index .= '_1';
+					$arraux[0][$index] = (is_object($attribute) and get_parent_class($attribute) == 'ActiveRecord')? $attribute->getArray() : $attribute;
 				}
 			} else {
 				$n=$m=0;
