@@ -531,31 +531,8 @@ require "Driver.php";
 	*/
 	protected function getData($query){
 
-// 		unset($this->_data);
-// 		unset($this);
 		$this->_data = NULL;
 		$this->_data = array();
-
-// 		if(sizeof($this) >0){
-// 			for($k = 0; $k<sizeof($this); $k++){
-// 				if(isset($this[$k])) $this->offsetUnSet($k);
-// 			}
-// 		}
-// 		for($k = 0; $k<sizeof($this->_data); $k++){
-// 			array_pop($this->_data);
-// 		}
-// 		foreach($this as $index => $obj){
-// 			$obj = null;
-// 			unset($obj);
-// 			$this->offsetUnSet($index);
-// 		}
-// 		if(isset($this->_data)){
-// 			foreach($this->_data as $key => $val){
-// 				$this->_data[$key] = NULL;
-// 				unset($this->_data[$key]);
-// 			}
-// 		}
-
 		$result = array();
 		$j=0;
 		$regs = NULL;
@@ -567,47 +544,45 @@ require "Driver.php";
 		$resultset = $regs->fetchAll();
 		$classToUse = get_class($this);
 		$count = sizeof($resultset);
+		$this->_set_attributes();
+
 		if($count > 0){
-
 			for($j = 0; $j < $count; $j++){
-
-// 				$this->offsetSet($j, null);
-
 				$this->offsetSet($j, new $classToUse());
-// 				$this[$j] = new $classToUse();
 				$column = 0;
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-						if($this->engine != 'mysql'){
-							$type = array('native_type'=>'VAR_CHAR');
-						} else {
-							$type = $regs->getColumnMeta($column);
-						}
-						if(empty($type['native_type'])) $type['native_type'] = 'VAR_CHAR';
-						$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
-						$type['native_type'] = strtoupper($type['native_type']);
-						$cast = 'toString';
+						// if($this->engine != 'mysql'){
+						// 	$type = array('native_type'=>'VAR_CHAR');
+						// } else {
+						// 	$type = $regs->getColumnMeta($column);
+						// }
+						// if(empty($type['native_type'])) $type['native_type'] = 'VAR_CHAR';
+						// $type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
+						// $type['native_type'] = strtoupper($type['native_type']);
+						// $cast = 'toString';
 						$this[$j]->_counter = 1;
-						switch($type['native_type']){
-							case 'LONG':
-							case 'INTEGER':
-							case 'INT':
-								$this[$j]->{'_data_'.$property} = $value + 0;
-								if($count === 1) $this->_data[$property] = $value + 0;
-							break;
-							case 'FLOAT':
-							case 'VAR_STRING':
-							case 'BLOB':
-							case 'TEXT':
-							case 'VARCHAR':
-							default:
-								$this[$j]->{'_data_'.$property} = $value;
-								if($count === 1) $this->_data[$property] = $value;
-							break;
-						}
-						$this[$j]->_dataAttributes[$property]['native_type'] = $type['native_type'];
-						if($count === 1) $this->_dataAttributes[$property]['native_type'] = $type['native_type'];
-						$column++;
+						// switch($type['native_type']){
+						// 	case 'LONG':
+						// 	case 'INTEGER':
+						// 	case 'INT':
+						// 		$this[$j]->{'_data_'.$property} = $value + 0;
+						// 		if($count === 1) $this->_data[$property] = $value + 0;
+						// 	break;
+						// 	case 'FLOAT':
+						// 	case 'VAR_STRING':
+						// 	case 'BLOB':
+						// 	case 'TEXT':
+						// 	case 'VARCHAR':
+						// 	default:
+						// 		$this[$j]->{'_data_'.$property} = $value;
+						// 		if($count === 1) $this->_data[$property] = $value;
+						// 	break;
+						// }
+						// $this[$j]->_dataAttributes[$property]['native_type'] = $type['native_type'];
+						// if($count === 1) $this->_dataAttributes[$property]['native_type'] = $type['native_type'];
+						// $column++;
+						$this[$j]->{$property} = $this->_dataAttributes[$property]['cast'] ? 0 + $value : $value;
 					}
 				}
 			}
@@ -619,6 +594,14 @@ require "Driver.php";
 			$this->_data = NULL;
 			unset($this[0]);
 			$this->Niu();
+		}
+
+		if($this->_counter === 1) {
+			foreach ($this->_fields as $field) {
+				if(isset($this[0]->{$field})) {
+					$this->{$field} = $this[0]->{$field};
+				}
+			}
 		}
 	}
 
@@ -771,23 +754,14 @@ require "Driver.php";
 		return clone($this);
 	}
 	}
-
 	/**
-	* Metodo publico Niu()
-	*
-	* Prepara un nuevo objeto para insertar a la base de datos.
-	* @param array $contents Arreglo de tipo 'campo'=>'valor' para pasar al objeto, para que al crear, le adicione datos.
-	*/
-
-	public function Niu($contents = NULL){
-// 		if(empty($this->pk)) $this->pk = 'id';
-		$this->__destruct();
-		$this->__construct();
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->Connect();
-
-// 		$engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
+	 * Metodo privado _set_attributes
+	 *
+	 * Establece los atributos (campos) en el objeto Active Record
+	 *
+	 * @return void
+	 */
+	private function _set_attributes() {
 		if($this->engine != 'mysql'){
 			$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
 			$result1->setFetchMode(PDO::FETCH_ASSOC);
@@ -807,7 +781,6 @@ require "Driver.php";
 			$type['native_type'] = $row['Type'];
 			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
 			$type['native_type'] = strtoupper($type['native_type']);
-// 			$cast = 'toString';
 			$toCast= false;
 			switch($type['native_type']){
 				case 'LONG':
@@ -820,27 +793,43 @@ require "Driver.php";
 			}
 			$value = '';
 
-// 			if(!empty($contents) && is_array($contents)){
-				if(!empty($contents[$row['Field']])){
-					$value = $contents[$row['Field']];
-					$not_clean[] = $row['Field'];
-					$cleanup = true;
-					$this->_counter = 1;
-				}
-// 			}
  			$value = $toCast ?  0 + $value : $value;
 			$this->_fields[] = $row['Field'];
 			$this->{'_data_'.$row['Field']} = $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
+			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
 		}
-		if($cleanup){
-			foreach ($this->_data as $idx => $value){
-				if(empty($value) && $value !== 0 && !in_array($idx, $not_clean)){
-					unset($this->{$idx});
-					unset($this->_data[$idx]);
+	}
+
+	/**
+	* Metodo publico Niu()
+	*
+	* Prepara un nuevo objeto para insertar a la base de datos.
+	* @param array $contents Arreglo de tipo 'campo'=>'valor' para pasar al objeto, para que al crear, le adicione datos.
+	*/
+
+	public function Niu($contents = NULL){
+// 		if(empty($this->pk)) $this->pk = 'id';
+		$this->__destruct();
+		$this->__construct();
+		$this->_data = NULL;
+		$this->_data = array();
+		$this->Connect();
+
+		$this->_set_attributes();
+
+		if (!empty($contents)) {
+			foreach ($contents as $field => $content) {
+				$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
+			}
+			foreach ($this->_data as $field => $value) {
+				if(empty($value) && $value !== 0) {
+					unset($this->{$field});
+					unset($this->_data[$field]);
 				}
 			}
 		}
+		$this->_counter = 1;
 		return clone($this);
 	}
 	/**
@@ -1530,6 +1519,9 @@ require "Driver.php";
 	 * @param string $field
 	 */
 	public function _nativeType($field){
+		if (empty($this->_dataAttributes[$field]['native_type'])) {
+			return false;
+		}
 		return $this->_dataAttributes[$field]['native_type'];
 	}
 	/**
