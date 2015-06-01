@@ -552,41 +552,13 @@ require "Driver.php";
 				$column = 0;
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-						// if($this->engine != 'mysql'){
-						// 	$type = array('native_type'=>'VAR_CHAR');
-						// } else {
-						// 	$type = $regs->getColumnMeta($column);
-						// }
-						// if(empty($type['native_type'])) $type['native_type'] = 'VAR_CHAR';
-						// $type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
-						// $type['native_type'] = strtoupper($type['native_type']);
-						// $cast = 'toString';
 						$this[$j]->_counter = 1;
-						// switch($type['native_type']){
-						// 	case 'LONG':
-						// 	case 'INTEGER':
-						// 	case 'INT':
-						// 		$this[$j]->{'_data_'.$property} = $value + 0;
-						// 		if($count === 1) $this->_data[$property] = $value + 0;
-						// 	break;
-						// 	case 'FLOAT':
-						// 	case 'VAR_STRING':
-						// 	case 'BLOB':
-						// 	case 'TEXT':
-						// 	case 'VARCHAR':
-						// 	default:
-						// 		$this[$j]->{'_data_'.$property} = $value;
-						// 		if($count === 1) $this->_data[$property] = $value;
-						// 	break;
-						// }
-						// $this[$j]->_dataAttributes[$property]['native_type'] = $type['native_type'];
-						// if($count === 1) $this->_dataAttributes[$property]['native_type'] = $type['native_type'];
-						// $column++;
 						$this[$j]->{$property} = $this->_dataAttributes[$property]['cast'] ? 0 + $value : $value;
 					}
 				}
 			}
 		}
+
 		$this->_counter = $j;
 		if($this->_counter === 0){
 			$this->offsetSet(0, NULL);
@@ -829,7 +801,7 @@ require "Driver.php";
 				}
 			}
 		}
-		$this->_counter = 1;
+		$this->_counter = 0;
 		return clone($this);
 	}
 	/**
