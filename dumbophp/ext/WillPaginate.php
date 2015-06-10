@@ -1,7 +1,7 @@
 <?php
 /**
  * Extension Will Paginate.
- * 
+ *
  * Se encarga de la paginacion de los items en las vistas.
  * @version 1.0
  * @author Javier Serrano.
@@ -10,7 +10,7 @@
  */
 	/**
 	 * Paginate($params[per_page, page, conditions, fields, group, sort, varPageName])
-	 * 
+	 *
 	 * Pagina resultados, embebiendo Find() con condiciones.
 	 * @param array $params
 	 * @param object $model el objeto de donde se est&acute; invocando la funcion.

@@ -549,11 +549,14 @@ require "Driver.php";
 		if($count > 0){
 			for($j = 0; $j < $count; $j++){
 				$this->offsetSet($j, new $classToUse());
-				$column = 0;
+
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
+						if (!in_array($property, $this->_fields)) {
+							$this->_fields[] = $property;
+						}
 						$this[$j]->_counter = 1;
-						$this[$j]->{$property} = $this->_dataAttributes[$property]['cast'] ? 0 + $value : $value;
+						$this[$j]->{$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
 					}
 				}
 			}
