@@ -94,6 +94,7 @@ abstract class Migrations extends Core_General_Class{
 					$query .= ($Field['type'] == 'VARCHAR' or $Field['type'] == 'TEXT' or $Field['type'] == 'LONGTEXT')?' CHARACTER SET utf8 COLLATE utf8_general_ci':NULL;
 					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
 					$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
+					$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
 					$query .= " ,";
 				}
 			}
