@@ -12,20 +12,20 @@ $path=INST_PATH;
 				// Creation of model
 				$Obj = new NewAr();
 				$Obj->WriteModel($arraux['Table']);
-				
+
 				$name = Singulars($arraux['Table']);
 				$fileModel = $name.".php";
 				$ClassName = Camelize($arraux['Table']);
 				$ClassToUse = Camelize(Singulars($arraux['Table']));
 				require_once(INST_PATH.'app/models/'.$fileModel);
-				
+
 				$objModel = new $ClassToUse();
-				
+
 				$fields = $objModel->GetFields();
-				
-				
+
+
 				// Creation of the list view
-				
+
 				$directory = INST_PATH."app/templates/$file/";
 				if(!is_dir($directory)) mkdir($directory);
 				$fp = fopen($directory.'index.phtml', 'w+b');
@@ -37,7 +37,7 @@ $path=INST_PATH;
 					$dataRow .= "<td><?=\$row->$field;?></td>\n\t\t\t\t\t";
 					$formContent .= "<label>$field :</label>\n<?=\$this->data->input_for(array('$field'));?>\n";
 				}
-				
+
 				$content = <<<PLUSTURBO
 				<div style="float:left; width:100%;text-align:center;">
 					<div style="float:left;">
@@ -66,9 +66,9 @@ $path=INST_PATH;
 PLUSTURBO;
 				fwrite($fp, $content);
 				fclose($fp);
-				
+
 				//Creation of add/edit template
-				
+
 
 				$fp = fopen(INST_PATH.'app/templates/'.$file.'/addedit.phtml', 'w+b');
 				$content = <<<PLUSTURBO
@@ -83,7 +83,7 @@ PLUSTURBO;
 PLUSTURBO;
 				fwrite($fp, $content);
 				fclose($fp);
-				
+
 				// Creation of the controller
 				$fp = fopen(INST_PATH.'app/controllers/'.$file.'_controller.php', "w+b");
 				$content = "<?php \n";
@@ -117,5 +117,5 @@ PLUSTURBO;
 				$content .= "?>";
 				fwrite($fp,$content);
 				fclose($fp);
-				
+
 ?>

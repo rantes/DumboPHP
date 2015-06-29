@@ -49,7 +49,7 @@ function geoLocator($params = array('address'=>'','city'=>'', 'state'=>'', 'coun
 			return $result->geometry->location;
 		endif;
 	endif;
-	
+
 	return false;
 }
 ?>

@@ -263,7 +263,7 @@ require "Driver.php";
 	 *
 	 * Realiza conexion a la base de datos mediante el metodo connect()
 	 */
-	function __construct(){
+	public function __construct(){
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		$this->_data = NULL;
 		$this->_data = array();
@@ -276,7 +276,7 @@ require "Driver.php";
 	 * Destructor
 	 *
 	 */
-	function __destruct(){
+	public function __destruct(){
 		$this->_data = NULL;
 		$this->_data = array();
 		$this->_attrs = NULL;
@@ -471,20 +471,10 @@ require "Driver.php";
 					} elseif(isset($this->_attrs[$name])){
 						return $this->_attrs[$name];
 					}else{
-// 						$model = unCamelize($name);
-// 						if(file_exists(INST_PATH.'app/models/'.$model.'.php')){
-// 							if(!class_exists($name)){
-// 								require_once INST_PATH.'app/models/'.$model.'.php';
-// 							}
-// 							$this->_attrs[$name] = new $name();
-// 							return $this->_attrs[$name];
-// 						}else{
-							return null;
-// 						}
+						return null;
 					}
 				break;
 			}
-// 		throw new Exception('Undefined variable to get: ' . $name);
 		return null;
 	}
 
@@ -784,7 +774,6 @@ require "Driver.php";
 	*/
 
 	public function Niu($contents = NULL){
-// 		if(empty($this->pk)) $this->pk = 'id';
 		$this->__destruct();
 		$this->__construct();
 		$this->_data = NULL;
@@ -818,7 +807,7 @@ require "Driver.php";
 	 * @param $param array('conditions' => 'string', 'data' => array(campo=>valor))
 	 * @return boolean true en caso de que la transaccion hay sido exitosa si no, false.
 	 */
-	function Update($params) {
+	public function Update($params) {
 		if(!is_array($params)){
 			throw new Exception('The params for the Update() method must be an array');
 		}
@@ -869,7 +858,7 @@ require "Driver.php";
 	* @return boolean
 	**/
 
-	function Save(){
+	public function Save(){
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		$this->Connect();
 		$className = get_class($this);
@@ -1041,7 +1030,7 @@ require "Driver.php";
 	* archivos xml del dumpeo de la tabla.
 	*/
 
-	function Insert(){
+	public function Insert(){
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		$fields = "";
 		$values = "";
@@ -1091,7 +1080,7 @@ require "Driver.php";
 	* puede ser un valor entero, en este caso, se condicionara la busqueda por el id del registro.
 	* @param array|numeric $conditions Condiciones para la eliminacion.
 	**/
-	function Delete($conditions = NULL){
+	public function Delete($conditions = NULL){
 		!empty($this->driver) or $this->Connect();
 		if($this->_counter > 1){
 			$conditions = array();
@@ -1294,7 +1283,7 @@ require "Driver.php";
 	* @param array $dataDump Arreglo que contiene los datos para dumpear.
 	* @param string $path Cadena que contiene la ruta a guardar el archivo Xml.
 	*/
-	function Dump($dataDump = array(), $path){
+	public function Dump($dataDump = array(), $path){
 		$model = $this->_TableName();
 		$dom = new DOMDocument('1.0', 'utf-8');
 
@@ -1333,7 +1322,7 @@ require "Driver.php";
 	* Carga un archivo Xml que fue dumpeado anteriormente.
 	* @param string $docXml Nombre del archivo a cargar.
 	*/
-	function LoadDump($docXml){
+	public function LoadDump($docXml){
 		$doc = new DOMDocument;
 		$doc->load(INST_PATH.'migrations/dumps/'.$docXml);
 		$tblName = str_replace('.xml', '', $docXml);
@@ -1366,7 +1355,7 @@ require "Driver.php";
 	* consultarlo a la base de datos.
 	* @param string $tableName Nombre de la tabla para registrar en el schema.
 	*/
-	function WriteSchema($tableName){
+	public function WriteSchema($tableName){
 		$createFile = FALSE;
 		$stringtoINI = '';
 		$file = INST_PATH.'migrations/Schema.ini';
@@ -1395,7 +1384,7 @@ require "Driver.php";
 	* Este metodo se encarga de escribir en disco el archivo preliminar de modelo.
 	* @param string $table Nombre de la tabla para crearle el modelo.
 	*/
-	function WriteModel($table){
+	public function WriteModel($table){
 		$file = Singulars($table).".php";
 		$modelpath = INST_PATH.'app/models/';
 		if(!file_exists($modelpath.$file)){
@@ -1416,7 +1405,7 @@ require "Driver.php";
 	* Este metodo se encarga de leer los campos de la tabla y sus atributos. Devuelve un arreglo de tipo
 	* arreglo[nombre_campo] = tipo_del_campo.
 	*/
-	function GetFields(){
+	public function GetFields(){
 		$this->Connect();
 
 		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`") or die(print_r($this->driver->errorInfo(), true));
@@ -1437,7 +1426,7 @@ require "Driver.php";
 	 * Esto se usa cuando la base de datos ya exista y no se requiera hacer los archivos de
 	 * migracion para ahorrar tiempo.
 	 */
-	function BuildMigration(){
+	public function BuildMigration(){
 	}
 	/**
 	 * Retorna los errores ocurridos en la consulta
@@ -1519,17 +1508,13 @@ require "Driver.php";
 	/**
 	 * Unset index object
 	 */
-	function _unset($index = 0) {
+	public function _unset($index = 0) {
 		if($this->_counter === 1) {
 			$this->_data = null;
-// 			unset($this->_data);
 			$this->_attrs = null;
-// 			unset($this->_attrs);
 		} elseif($this->offsetExists($index)) {
 			$this[$index]->_data = null;
-// 			unset($this[$index]->_data);
 			$this[$index]->_attrs = null;
-// 			unset($this[$index]->_attrs);
 			$this->offsetUnSet($index);
 		}
 		$this->_counter--;
