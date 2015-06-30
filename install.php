@@ -14,7 +14,7 @@ if(!file_exists($dumboSystemPath)) {
 	while (false !== ($entry = $d->read())) {
 	   if($entry != '.' && $entry != '..' && $entry != 'install.php' && $entry != 'src'){
 	   		echo 'copying '.$entry.PHP_EOL;
-	   		copy($path.'/'.$entry.' '.$dumboSystemPath.'/'.$entry);
+	   		copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry);
 	   }
 	}
 	$d->close();
@@ -24,13 +24,13 @@ if(!file_exists($dumboSystemPath)) {
 	while (false !== ($entry = $d->read())) {
 	   if($entry != '.' && $entry != '..'){
 	   		echo 'copying '.$entry.PHP_EOL;
-	   		copy($pathSrc.'/'.$entry.' '.$dumboSystemPathSrc.'/'.$entry);
+	   		copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry);
 	   }
 	}
 	$d->close();
 
 	echo 'Creating bin file.'.PHP_EOL;
-	symlink($dumboSystemPath.'/dumbo '.$binPath.'/dumbo');
+	symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
 } else {
 	die('Install failed: DumboPHP is already installed in '.$dumboSystemPath.PHP_EOL);
 }
