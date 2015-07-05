@@ -2233,6 +2233,7 @@ class index{
 				$controllerFile = $controller.'_controller.php';
 			}
 		}
+
 		if(!file_exists($path.$controllerFile) and defined('USE_ALTER_URL') and USE_ALTER_URL){
 			$params['alter_controller'] = $controller;
 			$params['alter_action'] = $action;
@@ -2241,6 +2242,7 @@ class index{
 			$action = $parts[1];
 			$controllerFile = $controller.'_controller.php';
 		}
+
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
 		define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/?'.http_build_query($params));
