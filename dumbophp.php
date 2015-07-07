@@ -2172,7 +2172,7 @@ abstract class Migrations extends Core_General_Class {
 }
 
 class index{
-	function __construct(){
+	public function __construct(){
 		if(isset($_GET['url'])){
 			$request = explode("/", $_GET['url']);
 			unset($_GET['url']);
@@ -2234,20 +2234,25 @@ class index{
 			}
 		}
 
-		if(!file_exists($path.$controllerFile) and defined('USE_ALTER_URL') and USE_ALTER_URL){
+		$canGo = true;
+
+		if(!file_exists($path.$controllerFile) && defined('USE_ALTER_URL') && USE_ALTER_URL){
 			$params['alter_controller'] = $controller;
 			$params['alter_action'] = $action;
 			$parts = explode('/',ALTER_URL_CONTROLLER_ACTION);
 			$controller = $parts[0];
 			$action = $parts[1];
 			$controllerFile = $controller.'_controller.php';
+		}elseif(!file_exists($path.$controllerFile)){
+			$canGo = false;
+			echo "Missing Controller";
 		}
 
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
 		define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/?'.http_build_query($params));
 
-		if(file_exists($path.$controllerFile)){
+		if($canGo) {
 			require($path.$controllerFile);
 			$classPage = Camelize($controller)."Controller";
 
@@ -2280,6 +2285,7 @@ class index{
 					$page->before_filter();
 				}
 			}
+
 			if(method_exists($page,$action."Action")){
 				$page->{$action."Action"}();
 				//before render, executed after the action execution and before the data renderize
@@ -2331,9 +2337,6 @@ class index{
 			}else{
 				echo "Missing Action";
 			}
-		}else{
-
-			echo "Missing Controller";
 		}
 	}
 
