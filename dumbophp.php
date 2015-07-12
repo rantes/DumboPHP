@@ -1886,6 +1886,7 @@ abstract class ActiveRecord extends Core_General_Class{
 					case 'LONG':
 					case 'STRING':
 					case 'INT':
+					case 'BIGINT':
 					case 'VAR_CHAR':
 					case 'VARCHAR':
 					case 'FLOAT':
@@ -1902,17 +1903,17 @@ abstract class ActiveRecord extends Core_General_Class{
 			switch ($type) {
 				case 'text':
 				case 'hidden':
-					$input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->{$field}.'" />';
+					$input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->_data[$field].'" />';
 				break;
 				case 'textarea':
-					$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field}.'</textarea>';
+					$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->_data[$field].'</textarea>';
 				break;
 				case 'select':
 					$cont = !empty($params['first']) ? '<option value="">'.$params['first'].'</option>' : '';
 
 					foreach($params['list'] as $value => $option):
 						$default = '';
-						if($this->{$field} == $value) $default = 'selected="selected"';
+						if($this->_data[$field] == $value) $default = 'selected="selected"';
 						$cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
 					endforeach;
 					$input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
