@@ -2093,9 +2093,19 @@ abstract class Migrations extends Core_General_Class {
 
 	public function __destruct(){}
 
-	public function up(){}
+	public function up(){
+		echo 'Nothing to do.';
+	}
 
-	public function down(){}
+	public function down(){
+		echo 'Nothing to do.';
+	}
+
+	public function alter(){
+		echo 'Nothing to do.';
+	}
+
+	// public function seed() {}
 
 	public function Reset(){
 		$this->down();
@@ -2103,11 +2113,15 @@ abstract class Migrations extends Core_General_Class {
 
 	}
 
-	public function Seed() {}
+	public function Run() {
+		$this->up();
+		$this->alter();
+	}
+
 
 	protected function Create_Table($table = NULL){
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-		if($table !== NULL):
+		if($table !== NULL){
 
 			$tablName = $table['Table'];
 			$query = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
@@ -2133,46 +2147,49 @@ abstract class Migrations extends Core_General_Class {
 				$query .= "`updated_at` INT NOT NULL ";
 			}
 			$query .= ")CHARACTER SET utf8 COLLATE utf8_general_ci;";
+			echo 'Running query: ', $query;
 			$Ar = new NewAr();
 			$Ar->Connect();
-			$Ar->driver->exec($query);
+			if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
 			$Ar->WriteSchema($tablName);
-		endif;
+		}
 	}
 
 	protected function Drop_Table($table){
 		$query = "DROP TABLE IF EXISTS `".$table."`";
+		echo 'Running query: ', $query, PHP_EOL;
 		$Ar = new NewAr();
 		$Ar->Connect();
-		$Ar->driver->exec($query);
+		if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
 	}
 
 	protected function Add_Column($columns = NULL){
-		if($columns !== NULL or !is_array($columns)):
-			//$tablName = $columns['Table'];
+		if($columns !== NULL or !is_array($columns)){
 			if(!isset($columns['length']) and strcmp($columns['type'], 'integer') != 0) $columns['length'] = '255';
-			$query = "ALTER TABLE `".$columns['Table']."` ADD `".$columns['field']."` ".strtoupper($columns['type']);
+			$query = "ALTER TABLE `".$columns['Table']."` ADD IF NOT EXISTS `".$columns['field']."` ".strtoupper($columns['type']);
 			$query .= (isset($columns['length']) and $columns['length'] != '')? "(".$columns['length'].")" : NULL;
-			$query .= (isset($columns['null']) and $columns['null'] != '')? " ".strtoupper($columns['null']) : NULL;
-			$query .= (isset($columns['default']) and $columns['default'] != '')? " DEFAULT '".$columns['defualt']."'" : NULL;
-
+			$query .= (isset($columns['null']) and $columns['null'] != '')? " NOT NULL" : NULL;
+			$query .= (isset($columns['default']) and $columns['default'] != '')? " DEFAULT '".$columns['default']."'" : NULL;
+			$query .= (!empty($columns['comments']))? " COMMENT '".$columns['comment']."'" : NULL;
+			echo 'Running query: ', $query, PHP_EOL;
 			$Ar = new NewAr();
 			$Ar->Connect();
-			$Ar->driver->exec($query);
-		else:
+			if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
+		}else{
 			throw new Exception('Cannot add a column with '.gettype($columns).'.');
-		endif;
+		}
 	}
 
 	protected function Remove_Column($column=NULL){
 		$query = "ALTER TABLE `".$column[0]."` DROP `".$column[1]."`";
+		echo 'Running query: ', $query, PHP_EOL;
 		$Ar = new NewAr();
 		$Ar->Connect();
-		$Ar->driver->exec($query);
+		if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
 	}
 }
 
-class index{
+class index {
 	public function __construct(){
 		if(isset($_GET['url'])){
 			$request = explode("/", $_GET['url']);

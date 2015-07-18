@@ -187,10 +187,11 @@ DUMBO;
 		(sizeof($this->params) > 0) or die(PHP_EOL.'Not enough arguments; the migrations to affect must be defined.'.PHP_EOL);
 
 		$migrationsPath = INST_PATH.'migrations/';
+
 		if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
 			$migrationsDir = dir($migrationsPath);
-			$this->params = null;
-			$this->params = array();
+			// $this->params = null;
+			// $this->params = array();
 			while (($file = $migrationsDir->read()) != FALSE) {
 				if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
 					echo 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
@@ -210,6 +211,35 @@ DUMBO;
 				$obj = new $class();
 				$obj->{$this->arguments[0]}();
 			}
+		}
+
+		switch ($this->arguments[0]) {
+			case 'up':
+				echo 'Running complementary migrations.', PHP_EOL;
+				if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
+					$migrationsDir = dir($migrationsPath);
+					while (($file = $migrationsDir->read()) != FALSE) {
+						if($file != "." and $file != ".." and preg_match('/add_(.+)\.php/', $file, $matches) === 1) {
+							echo 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+							require_once $migrationsPath.$matches[0];
+							$class = 'Add'.Camelize($matches[1]);
+							$obj = new $class();
+							$obj->{$this->arguments[0]}();
+						}
+					}
+				} else {
+					foreach ($this->params as $migration) {
+						$file = $migrationsPath.'create_'.$migration.'.php';
+						file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
+						echo 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+						require_once $file;
+						$class = 'Create'.Camelize(Singulars($migration));
+						$obj = new $class();
+						$obj->{$this->arguments[0]}();
+					}
+				}
+
+			break;
 		}
 	}
 }

@@ -8,11 +8,8 @@ $pathSrc = $path.'/src';
 $binPath = '/usr/bin';
 
 echo 'Installing DumboPHP. Please be patient...'.PHP_EOL;
-if(file_exists($dumboSystemPath)){
-	echo 'Updating DumboPHP...',PHP_EOL;
-} else {
-	mkdir($dumboSystemPath);
-}
+
+file_exists($dumboSystemPath) || mkdir($dumboSystemPath);
 
 $d = dir($path);
 while (false !== ($entry = $d->read())) {
@@ -23,9 +20,7 @@ while (false !== ($entry = $d->read())) {
 }
 $d->close();
 
-if(!file_exists($dumboSystemPath)){
-	mkdir($dumboSystemPathSrc);
-}
+file_exists($dumboSystemPathSrc) ||	mkdir($dumboSystemPathSrc);
 
 $d = dir($pathSrc);
 while (false !== ($entry = $d->read())) {
@@ -37,7 +32,7 @@ while (false !== ($entry = $d->read())) {
 $d->close();
 
 echo 'Creating bin file.'.PHP_EOL;
-file_exists($dumboSystemPath.'/dumbo') or symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
+file_exists($binPath.'/dumbo') || symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
 
 echo 'Install complete.'.PHP_EOL;
 ?>
