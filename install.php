@@ -33,6 +33,7 @@ $d->close();
 
 echo 'Creating bin file.'.PHP_EOL;
 file_exists($binPath.'/dumbo') || symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
+chmod($binPath.'/dumbo', 0775);
 
 echo 'Install complete.'.PHP_EOL;
 ?>
