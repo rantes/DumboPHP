@@ -194,7 +194,7 @@ DUMBO;
 			// $this->params = array();
 			while (($file = $migrationsDir->read()) != FALSE) {
 				if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
-					echo 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+					echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
 					require_once $migrationsPath.$matches[0];
 					$class = 'Create'.Camelize(Singulars($matches[1]));
 					$obj = new $class();
@@ -205,7 +205,7 @@ DUMBO;
 			foreach ($this->params as $migration) {
 				$file = $migrationsPath.'create_'.$migration.'.php';
 				file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
-				echo 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+				echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
 				require_once $file;
 				$class = 'Create'.Camelize(Singulars($migration));
 				$obj = new $class();
@@ -215,12 +215,12 @@ DUMBO;
 
 		switch ($this->arguments[0]) {
 			case 'up':
-				echo 'Running complementary migrations.', PHP_EOL;
+				echo PHP_EOL, 'Running complementary migrations.', PHP_EOL;
 				if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
 					$migrationsDir = dir($migrationsPath);
 					while (($file = $migrationsDir->read()) != FALSE) {
 						if($file != "." and $file != ".." and preg_match('/add_(.+)\.php/', $file, $matches) === 1) {
-							echo 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+							echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
 							require_once $migrationsPath.$matches[0];
 							$class = 'Add'.Camelize($matches[1]);
 							$obj = new $class();
@@ -229,11 +229,11 @@ DUMBO;
 					}
 				} else {
 					foreach ($this->params as $migration) {
-						$file = $migrationsPath.'create_'.$migration.'.php';
+						$file = $migrationsPath.'add_fields_to_'.Singulars($migration).'.php';
 						file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
-						echo 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+						echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
 						require_once $file;
-						$class = 'Create'.Camelize(Singulars($migration));
+						$class = 'AddFieldsTo'.Camelize(Singulars($migration));
 						$obj = new $class();
 						$obj->{$this->arguments[0]}();
 					}
