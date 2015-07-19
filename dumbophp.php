@@ -2166,7 +2166,7 @@ abstract class Migrations extends Core_General_Class {
 	protected function Add_Column($columns = NULL){
 		if($columns !== NULL or !is_array($columns)){
 			if(!isset($columns['length']) and strcmp($columns['type'], 'integer') != 0) $columns['length'] = '255';
-			$query = "ALTER TABLE `".$columns['Table']."` ADD IF NOT EXISTS `".$columns['field']."` ".strtoupper($columns['type']);
+			$query = "ALTER TABLE `".$columns['Table']."` ADD `".$columns['field']."` ".strtoupper($columns['type']);
 			$query .= (isset($columns['length']) and $columns['length'] != '')? "(".$columns['length'].")" : NULL;
 			$query .= (isset($columns['null']) and $columns['null'] != '')? " NOT NULL" : NULL;
 			$query .= (isset($columns['default']) and $columns['default'] != '')? " DEFAULT '".$columns['default']."'" : NULL;
