@@ -1,0 +1,249 @@
+#!/usr/bin/php
+<?php
+
+class dumboShell{
+	private $commands = array(
+				'create',
+				'db',
+				'generate',
+				'migration'
+			);
+	private $command = null;
+	private $dumboSource = '/etc/dumbophp/src';
+	private $dumboSystemPath = '/etc/dumbophp';
+	private $binPath = '/usr/bin';
+	private $fullPathTarget = '';
+	private $arguments = array();
+	private $params = array();
+
+	public function __construct() {
+	}
+
+	public function run($argv) {
+		if(empty($argv[1]) || sizeof($argv) < 2) {
+			$this->help();
+			die('Option not valid.'.PHP_EOL);
+		}
+
+		array_shift($argv);
+		$this->command = array_shift($argv);
+		$this->arguments = $argv;
+
+		if(in_array($this->command, $this->commands)){
+			switch($this->command) {
+				case 'create':
+					$this->createSite();
+				break;
+				case 'generate':
+					$this->generateScripts();
+				break;
+				case 'db':
+					$this->dbScripts();
+				break;
+				case 'migration':
+					$this->migrationScripts();
+				break;
+				default:
+					$this->help();
+				break;
+			}
+		} else {
+			$this->help();
+		}
+
+	}
+
+	private function help() {
+		$text = <<<DUMBO
+DumboPHP 2.0 by Rantes
+DumboPHP shell.
+Ussage:
+
+	dumbo <command> <option> <params>
+
+Commands:
+
+	create <project-name>
+		Creates a new site. Param: site name.
+
+	generate [scaffold|controller|model] <name>
+		Generates scripts for model, controller or scaffold.
+
+	migration [up|down|reset|run|sow] <migration>
+		Executes migrations actions.
+
+	db [create|dump|load] <model>
+		Actions for database.
+
+DUMBO;
+		echo $text;
+	}
+
+	private function createSite() {
+		echo 'Creating site named: "'.$this->arguments[0].'"'.PHP_EOL;
+		if(!file_exists($this->arguments[0])) {
+			mkdir($this->arguments[0]);
+		} else {
+			die('Creation aborted. Project already exists.'.PHP_EOL);
+		}
+
+		$d = dir($this->arguments[0]);
+		$this->fullPathTarget = realpath($d->path);
+		$d->close();
+
+		$actions = array(
+			'Creating directory: '.$this->fullPathTarget.'/app' =>'/app',
+			'Creating directory: '.$this->fullPathTarget.'/app/controllers' => '/app/controllers',
+			'Creating directory: '.$this->fullPathTarget.'/app/helpers' =>'/app/helpers',
+			'Creating directory: '.$this->fullPathTarget.'/app/models' =>'/app/models',
+			'Creating directory: '.$this->fullPathTarget.'/app/templates' =>'/app/templates',
+			'Creating directory: '.$this->fullPathTarget.'/app/webroot' =>'/app/webroot',
+			'Creating directory: '.$this->fullPathTarget.'/app/webroot/css' =>'/app/webroot/css',
+			'Creating directory: '.$this->fullPathTarget.'/app/webroot/fonts' =>'/app/webroot/fonts',
+			'Creating directory: '.$this->fullPathTarget.'/app/webroot/images' =>'/app/webroot/images',
+			'Creating directory: '.$this->fullPathTarget.'/app/webroot/js' =>'/app/webroot/js',
+			'Creating directory: '.$this->fullPathTarget.'/app/webroot/plugins' =>'/app/webroot/plugins',
+			'Creating directory: '.$this->fullPathTarget.'/config' =>'/config',
+			'Creating directory: '.$this->fullPathTarget.'/migrations' =>'/migrations',
+			'Creating directory: '.$this->fullPathTarget.'/vendor' =>'/vendor'
+		);
+
+		foreach($actions as $copy => $action){
+			echo 'Running task: '.$copy.PHP_EOL;
+			mkdir($this->fullPathTarget.$action) or die(PHP_EOL.'Error on building. Exiting.');
+		}
+
+		$actions = array(
+			'Creating file system: Main .htaccess' => array($this->dumboSource.'/main.htaccess', $this->fullPathTarget.'/.htaccess'),
+			'Creating file system: Webroot .htaccess' => array($this->dumboSource.'/webroot.htaccess', $this->fullPathTarget.'/app/webroot/.htaccess'),
+			'Creating file system: favicon' => array($this->dumboSource.'/favicon.ico', $this->fullPathTarget.'/app/webroot/favicon.ico'),
+			'Creating file system: config/db' => array($this->dumboSource.'/db_settings.ini', $this->fullPathTarget.'/config/db_settings.ini'),
+			'Creating file system: config/host' => array($this->dumboSource.'/host.php', $this->fullPathTarget.'/config/host.php'),
+			'Creating file system: config/index' => array($this->dumboSource.'/index.php', $this->fullPathTarget.'/app/webroot/index.php'),
+			'Creating file system: layout' => array($this->dumboSource.'/layout.phtml', $this->fullPathTarget.'/app/templates/layout.phtml')
+		);
+
+		reset($actions);
+
+		foreach($actions as $copy => $action){
+			echo 'Running task: '.$copy.PHP_EOL;
+			copy($action[0], $action[1]) or die(PHP_EOL.'Error on building. Exiting.');
+		}
+
+		if(isset($this->options['standalone'])) {
+			echo 'Building standalone site.'.PHP_EOL;
+			copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die(PHP_EOL.'Error on building. Exiting.');
+		} else {
+			symlink($this->dumboSystemPath.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die(PHP_EOL.'Error on building. Exiting.');
+		}
+
+		echo 'Build complete.'.PHP_EOL;
+	}
+
+	private function generateScripts() {
+		if(sizeof($this->arguments) < 2) {
+			$this->help();
+			die(PHP_EOL.'Params missing.'.PHP_EOL);
+		}
+
+		for ($i=1; $i < sizeof($this->arguments); $i++) {
+			$this->params[] = $this->arguments[$i];
+		}
+
+		require_once realpath(dirname(__FILE__)).'/src/generator.php';
+		$generator = new DumboGeneratorClass();
+
+		switch ($this->arguments[0]) {
+			case 'scaffold':
+				echo 'Creating scaffold for "'.$this->arguments[1].'".'.PHP_EOL;
+				$generator->scaffold($this->params);
+			break;
+			case 'controller':
+				echo 'Creating controller: "'.$this->arguments[1].'".'.PHP_EOL;
+				$generator->controller($this->params);
+			break;
+			case 'model':
+				echo 'Creating model: "'.$this->arguments[1].'".'.PHP_EOL;
+				$generator->model($this->params);
+			break;
+
+			default:
+				$this->help();
+				die(PHP_EOL.'Opotion no valid for generate.'.PHP_EOL);
+			break;
+		}
+	}
+
+	private function migrationScripts() {
+		file_exists('./config/host.php') or die('Migrations actions must be executed at the top level of project path.'.PHP_EOL);
+
+		require_once './config/host.php';
+		require_once INST_PATH.'dumbophp.php';
+
+		for ($i=1; $i < sizeof($this->arguments); $i++) {
+			$this->params[] = $this->arguments[$i];
+		}
+
+		(sizeof($this->params) > 0) or die(PHP_EOL.'Not enough arguments; the migrations to affect must be defined.'.PHP_EOL);
+
+		$migrationsPath = INST_PATH.'migrations/';
+
+		if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
+			$migrationsDir = dir($migrationsPath);
+			// $this->params = null;
+			// $this->params = array();
+			while (($file = $migrationsDir->read()) != FALSE) {
+				if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
+					echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+					require_once $migrationsPath.$matches[0];
+					$class = 'Create'.Camelize(Singulars($matches[1]));
+					$obj = new $class();
+					$obj->{$this->arguments[0]}();
+				}
+			}
+		} else {
+			foreach ($this->params as $migration) {
+				$file = $migrationsPath.'create_'.$migration.'.php';
+				file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
+				echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+				require_once $file;
+				$class = 'Create'.Camelize(Singulars($migration));
+				$obj = new $class();
+				$obj->{$this->arguments[0]}();
+			}
+		}
+
+		switch ($this->arguments[0]) {
+			case 'up':
+				echo PHP_EOL, 'Running complementary migrations.', PHP_EOL;
+				if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
+					$migrationsDir = dir($migrationsPath);
+					while (($file = $migrationsDir->read()) != FALSE) {
+						if($file != "." and $file != ".." and preg_match('/add_(.+)\.php/', $file, $matches) === 1) {
+							echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+							require_once $migrationsPath.$matches[0];
+							$class = 'Add'.Camelize($matches[1]);
+							$obj = new $class();
+							$obj->{$this->arguments[0]}();
+						}
+					}
+				} else {
+					foreach ($this->params as $migration) {
+						$file = $migrationsPath.'add_fields_to_'.Singulars($migration).'.php';
+						file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
+						echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+						require_once $file;
+						$class = 'AddFieldsTo'.Camelize(Singulars($migration));
+						$obj = new $class();
+						$obj->{$this->arguments[0]}();
+					}
+				}
+
+			break;
+		}
+	}
+}
+
+$shell = new dumboShell();
+$shell->run($argv);
+?>
