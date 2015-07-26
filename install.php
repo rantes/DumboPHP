@@ -36,4 +36,5 @@ file_exists($binPath.'/dumbo') || symlink($dumboSystemPath.'/dumbo', $binPath.'/
 chmod($binPath.'/dumbo', 0775);
 
 echo 'Install complete.'.PHP_EOL;
+
 ?>
