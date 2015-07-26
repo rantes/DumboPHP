@@ -993,7 +993,8 @@ abstract class ActiveRecord extends Core_General_Class{
 		$resultset = $regs->fetchAll();
 		$classToUse = get_class($this);
 		$count = sizeof($resultset);
-		empty($this->_fields) && $this->_set_attributes();
+
+		$this->_set_attributes($resultset);
 
 		if($count > 0){
 			for($j = 0; $j < $count; $j++){
@@ -1147,29 +1148,46 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 	}
 
-	private function _set_attributes() {
-		if($this->engine != 'mysql'){
-			$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
+	private function _set_attributes($resultset) {
+
+		$fields = array();
+		if(sizeof($resultset) < 1){
+			if($this->engine === 'mysql'){
+				$result1 = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
+			}
+			//  else {
+			// 	$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
+			// }
+
 			$result1->setFetchMode(PDO::FETCH_ASSOC);
-			$resultset = $result1->fetchAll();
-			foreach ($resultset as $res){
-				$result[] = array('Type'=>'VAR_CHAR','Field'=>trim($res['RDB$FIELD_NAME']));
+			$resultset1 = $result1->fetchAll();
+			foreach ($resultset1 as $res){
+				$type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+				$fields[] = array(
+							'Field'=>$res['Field'],
+							'Type'=>$type,
+							'Value' => null
+							);
 			}
 		} else {
-			$result = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
+			$r = $resultset[0];
+
+			foreach ($r as $key => $value) {
+				$a = array(
+						'Field'=>$key,
+						'Type'=>'STRING',
+						'Value'=>$value
+					);
+
+				if (is_numeric($value)) $a['Type'] = 'NUMERIC';
+				$fields[] = $a;
+			}
 		}
 
-		$type = array();
-		$this->_counter = 0;
-		$cleanup = false;
-		$not_clean = array();
-		foreach($result as $row){
-			$type['native_type'] = $row['Type'];
-			$type['native_type'] = preg_replace('@\([0-9]+\)@', '', $type['native_type']);
-			$type['native_type'] = strtoupper($type['native_type']);
+		foreach($fields as $row){
 			$toCast= false;
-			switch($type['native_type']){
-				case 'LONG':
+			switch($row['Type']){
+				case 'NUMERIC':
 				case 'INTEGER':
 				case 'INT':
 				case 'FLOAT':
@@ -1177,12 +1195,13 @@ abstract class ActiveRecord extends Core_General_Class{
 					$toCast = true;
 				break;
 			}
+
 			$value = '';
 
  			$value = $toCast ?  0 + $value : $value;
 			$this->_fields[] = $row['Field'];
 			$this->{'_data_'.$row['Field']} = $value;
-			$this->_dataAttributes[$row['Field']]['native_type'] = $type['native_type'];
+			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
 		}
 	}
@@ -1194,7 +1213,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		$this->_data = array();
 		$this->Connect();
 
-		$this->_set_attributes();
+		$this->_set_attributes(array());
 
 		if (!empty($contents)) {
 			foreach ($contents as $field => $content) {
@@ -1736,11 +1755,11 @@ abstract class ActiveRecord extends Core_General_Class{
 	}
 
 	public function first(){
-		return $this[0];
+		return $this->_counter > 0 ? $this[0] : FALSE;
 	}
 
 	public function last(){
-		return $this->counter() > 0 ? $this[$this->counter() - 1] : FALSE;
+		return $this->_counter > 0 ? $this[$this->counter() - 1] : FALSE;
 	}
 
 	public function _TableName($name = null){
@@ -2202,7 +2221,7 @@ class index {
 		if(!isset($request[1]) or strcmp($request[1], "") === 0) $request[1] = DEF_ACTION;
 
 		$controllerFile=$request[0]."_controller.php";
-		$controller=array_shift($request);
+		$controller = array_shift($request);
 		$action = array_shift($request);
 
 		foreach($request as $key => $value){
