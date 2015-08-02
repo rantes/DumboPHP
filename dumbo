@@ -221,7 +221,7 @@ DUMBO;
 	}
 
 	private function generateScripts() {
-		if($this->arguments[0] !== 'seed' && sizeof($this->arguments) < 2) {
+		if(empty($this->arguments[0]) || $this->arguments[0] !== 'seed' && sizeof($this->arguments) < 2) {
 			$this->help();
 			die($this->showError('Error: Missing params.'));
 		}
