@@ -15,7 +15,8 @@ $d = dir($path);
 while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..' && $entry != 'install.php' && $entry != 'src' && $entry != '.git' && $entry != '.gitignore'){
    		echo 'copying '.$entry.PHP_EOL;
-   		copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry);
+   		file_exists($dumboSystemPath.'/'.$entry) && unlink($dumboSystemPath.'/'.$entry);
+   		copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
@@ -26,13 +27,15 @@ $d = dir($pathSrc);
 while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..'){
    		echo 'copying '.$entry.PHP_EOL;
-   		copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry);
+   		file_exists($dumboSystemPathSrc.'/'.$entry) && unlink($dumboSystemPathSrc.'/'.$entry);
+   		copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
 
 echo 'Creating bin file.'.PHP_EOL;
-file_exists($binPath.'/dumbo') || symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
+file_exists($binPath.'/dumbo') && unlink($binPath.'/dumbo');
+symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
 chmod($binPath.'/dumbo', 0775);
 
 echo 'Install complete.'.PHP_EOL;
