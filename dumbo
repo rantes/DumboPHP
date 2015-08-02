@@ -273,7 +273,8 @@ DUMBO;
 		$migrationsPath = INST_PATH.'migrations/';
 
 		if($this->arguments[0] === 'sow') {
-			echo 'sowing the seeds of love..';
+			$this->showNotice('Sowing the seeds of this project...');
+			file_exists($migrationsPath.'seeds.php')  or die($this->showError('Error: No seeds file exists.'));
 			require_once $migrationsPath.'seeds.php';
 			$Seeds = new Seed();
 			$Seeds->sow();

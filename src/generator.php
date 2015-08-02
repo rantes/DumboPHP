@@ -342,7 +342,7 @@ DUMBOPHP;
 		echo 'Building: Creating seed...',PHP_EOL;
 
 		$path = INST_PATH.'migrations/';
-		$file = 'seed.php';
+		$file = 'seeds.php';
 
 		file_exists($path.$file) and die('Error on Building: Seed file already exists.'.PHP_EOL);
 
