@@ -337,6 +337,29 @@ DUMBOPHP;
 		$this->model($params);
 		$this->controller($params, true);
 	}
+
+	public function seed() {
+		echo 'Building: Creating seed...',PHP_EOL;
+
+		$path = INST_PATH.'migrations/';
+		$file = 'seed.php';
+
+		file_exists($path.$file) and die('Error on Building: Seed file already exists.'.PHP_EOL);
+
+		$fileContent = <<<DUMBOPHP
+<?php
+	class Seed {
+		function sow() {
+
+		}
+	}
+?>
+DUMBOPHP;
+
+		file_put_contents("{$path}{$file}", $fileContent);
+		echo "Seed file created at: {$path}{$file}",PHP_EOL;
+		return true;
+	}
 }
 
 ?>

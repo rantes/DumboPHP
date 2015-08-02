@@ -1,9 +1,68 @@
 #!/usr/bin/php
 <?php
 
+class Colors {
+	private $foreground_colors = array();
+	private $background_colors = array();
+
+	public function __construct() {
+		$this->foreground_colors['black'] = '0;30';
+		$this->foreground_colors['dark_gray'] = '1;30';
+		$this->foreground_colors['blue'] = '0;34';
+		$this->foreground_colors['light_blue'] = '1;34';
+		$this->foreground_colors['green'] = '0;32';
+		$this->foreground_colors['light_green'] = '1;32';
+		$this->foreground_colors['cyan'] = '0;36';
+		$this->foreground_colors['light_cyan'] = '1;36';
+		$this->foreground_colors['red'] = '0;31';
+		$this->foreground_colors['light_red'] = '1;31';
+		$this->foreground_colors['purple'] = '0;35';
+		$this->foreground_colors['light_purple'] = '1;35';
+		$this->foreground_colors['brown'] = '0;33';
+		$this->foreground_colors['yellow'] = '1;33';
+		$this->foreground_colors['light_gray'] = '0;37';
+		$this->foreground_colors['white'] = '1;37';
+
+		$this->background_colors['black'] = '40';
+		$this->background_colors['red'] = '41';
+		$this->background_colors['green'] = '42';
+		$this->background_colors['yellow'] = '43';
+		$this->background_colors['blue'] = '44';
+		$this->background_colors['magenta'] = '45';
+		$this->background_colors['cyan'] = '46';
+		$this->background_colors['light_gray'] = '47';
+	}
+
+	public function getColoredString($string, $foreground_color = null, $background_color = null) {
+		$colored_string = "";
+
+		if (isset($this->foreground_colors[$foreground_color])) {
+			$colored_string .= "\033[" . $this->foreground_colors[$foreground_color] . "m";
+		}
+		if (isset($this->background_colors[$background_color])) {
+			$colored_string .= "\033[" . $this->background_colors[$background_color] . "m";
+		}
+
+		$colored_string .=  $string . "\033[0m";
+
+		return $colored_string;
+	}
+
+	// Returns all foreground color names
+	public function getForegroundColors() {
+		return array_keys($this->foreground_colors);
+	}
+
+	// Returns all background color names
+	public function getBackgroundColors() {
+		return array_keys($this->background_colors);
+	}
+}
+
 class dumboShell{
 	private $commands = array(
 				'create',
+				'init',
 				'db',
 				'generate',
 				'migration'
@@ -15,14 +74,35 @@ class dumboShell{
 	private $fullPathTarget = '';
 	private $arguments = array();
 	private $params = array();
+	private $colors = null;
 
 	public function __construct() {
+		$this->colors = new Colors();
+	}
+
+	public function showError($errorMessage) {
+		echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "red"), PHP_EOL;
+	}
+
+	public function showMessage($errorMessage) {
+		echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "green"), PHP_EOL;
+	}
+
+	public function showNotice($errorMessage) {
+		echo PHP_EOL, $this->colors->getColoredString($errorMessage, "blue", "yellow"), PHP_EOL;
+	}
+
+	public function validateApacheConf() {
+		$modsRequired = array(
+							'mod_rewrite'
+						);
+		// print_r(apache_get_modules());
 	}
 
 	public function run($argv) {
 		if(empty($argv[1]) || sizeof($argv) < 2) {
 			$this->help();
-			die('Option not valid.'.PHP_EOL);
+			die($this->showError('Error: Option not valid.'));
 		}
 
 		array_shift($argv);
@@ -66,7 +146,7 @@ Commands:
 	create <project-name>
 		Creates a new site. Param: site name.
 
-	generate [scaffold|controller|model] <name>
+	generate [scaffold|controller|model|seed] <name>
 		Generates scripts for model, controller or scaffold.
 
 	migration [up|down|reset|run|sow] <migration>
@@ -80,11 +160,11 @@ DUMBO;
 	}
 
 	private function createSite() {
-		echo 'Creating site named: "'.$this->arguments[0].'"'.PHP_EOL;
+		$this->showNotice('Creating site named: "'.$this->arguments[0].'"');
 		if(!file_exists($this->arguments[0])) {
 			mkdir($this->arguments[0]);
 		} else {
-			die('Creation aborted. Project already exists.'.PHP_EOL);
+			die($this->showError('Error: Creation aborted. Project folder exists already.'));
 		}
 
 		$d = dir($this->arguments[0]);
@@ -109,8 +189,8 @@ DUMBO;
 		);
 
 		foreach($actions as $copy => $action){
-			echo 'Running task: '.$copy.PHP_EOL;
-			mkdir($this->fullPathTarget.$action) or die(PHP_EOL.'Error on building. Exiting.');
+			$this->showMessage('Running task: '.$copy);
+			mkdir($this->fullPathTarget.$action) or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
 		}
 
 		$actions = array(
@@ -126,24 +206,24 @@ DUMBO;
 		reset($actions);
 
 		foreach($actions as $copy => $action){
-			echo 'Running task: '.$copy.PHP_EOL;
-			copy($action[0], $action[1]) or die(PHP_EOL.'Error on building. Exiting.');
+			$this->showMessage('Running task: '.$copy);
+			copy($action[0], $action[1]) or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
 		}
 
 		if(isset($this->options['standalone'])) {
-			echo 'Building standalone site.'.PHP_EOL;
-			copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die(PHP_EOL.'Error on building. Exiting.');
+			$this->showMessage('Building standalone site.');
 		} else {
-			symlink($this->dumboSystemPath.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die(PHP_EOL.'Error on building. Exiting.');
+			copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+			symlink($this->dumboSystemPath.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
 		}
 
-		echo 'Build complete.'.PHP_EOL;
+		$this->showNotice('Build complete.');
 	}
 
 	private function generateScripts() {
-		if(sizeof($this->arguments) < 2) {
+		if($this->arguments[0] !== 'seed' && sizeof($this->arguments) < 2) {
 			$this->help();
-			die(PHP_EOL.'Params missing.'.PHP_EOL);
+			die($this->showError('Error: Missing params.'));
 		}
 
 		for ($i=1; $i < sizeof($this->arguments); $i++) {
@@ -155,21 +235,25 @@ DUMBO;
 
 		switch ($this->arguments[0]) {
 			case 'scaffold':
-				echo 'Creating scaffold for "'.$this->arguments[1].'".'.PHP_EOL;
+				$this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
 				$generator->scaffold($this->params);
 			break;
 			case 'controller':
-				echo 'Creating controller: "'.$this->arguments[1].'".'.PHP_EOL;
+				$this->showNotice('Creating controller: "'.$this->arguments[1].'".');
 				$generator->controller($this->params);
 			break;
 			case 'model':
-				echo 'Creating model: "'.$this->arguments[1].'".'.PHP_EOL;
+				$this->showNotice('Creating model: "'.$this->arguments[1].'".');
 				$generator->model($this->params);
+			break;
+			case 'seed':
+				$this->showNotice('Creating seed file...');
+				$generator->seed();
 			break;
 
 			default:
 				$this->help();
-				die(PHP_EOL.'Opotion no valid for generate.'.PHP_EOL);
+				die($this->showError('Option no valid for generate.'));
 			break;
 		}
 	}
@@ -184,14 +268,17 @@ DUMBO;
 			$this->params[] = $this->arguments[$i];
 		}
 
-		(sizeof($this->params) > 0) or die(PHP_EOL.'Not enough arguments; the migrations to affect must be defined.'.PHP_EOL);
+		($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die(PHP_EOL.'Not enough arguments; the migrations to affect must be defined.'.PHP_EOL);
 
 		$migrationsPath = INST_PATH.'migrations/';
 
-		if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
+		if($this->arguments[0] === 'sow') {
+			echo 'sowing the seeds of love..';
+			require_once $migrationsPath.'seeds.php';
+			$Seeds = new Seed();
+			$Seeds->sow();
+		} elseif(sizeof($this->params) === 1 and $this->params[0] === 'all') {
 			$migrationsDir = dir($migrationsPath);
-			// $this->params = null;
-			// $this->params = array();
 			while (($file = $migrationsDir->read()) != FALSE) {
 				if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
 					echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
