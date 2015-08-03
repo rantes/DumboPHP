@@ -4,6 +4,7 @@ if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
 }
 
 define('HTTP_200_STATUS', 200);
+define('HTTP_201_CREATED', 201);
 define('HTTP_304_NOT_CHANGE', 304);
 define('HTTP_400_BAD_REQUEST', 400);
 define('HTTP_403_FORBIDDEN', 403);
@@ -749,6 +750,8 @@ abstract class ActiveRecord extends Core_General_Class{
 	protected $belongs_to = array();
 	protected $has_many_and_belongs_to = array();
 	protected $validate = array();
+	protected $validate_on_insert = array();
+	protected $validate_on_update = array();
 	protected $before_insert = array();
 	protected $after_insert = array();
 	protected $after_find = array();
@@ -1271,67 +1274,61 @@ abstract class ActiveRecord extends Core_General_Class{
 		return true;
 	}
 
-	public function Save(){
-		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-		$this->Connect();
-		$className = get_class($this);
-		if(isset($this->validate) and is_array($this->validate)){
-			foreach($this->validate as $evaluation => $content){
+	private function _ValidateOnSave($action = 'insert') {
+		$arr = $this->{'validate_on_'.$action};
+
+		if(!empty($arr)){
+			foreach($arr as $evaluation => $content){
 				switch($evaluation){
 					case 'presence_of':
-						$empty = false;
 						foreach($content as $field){
-							$val = $this->{$field};
-							if(!isset($val) or $val == "" or $val == " "){
-								$this->_error->add(array('field'=>$field,'message'=>'This field can not be empty or null'));
-							}
+							empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>'This field can not be empty or null.'));
 						}
-						if($this->_error->isActived()) return false;
 					break;
 
 					case 'unique':
 						foreach($content as $field){
 							if(!empty($this->{$field})){
-								$obj1 = new $className;
-								$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->{$field}."' AND ".$this->pk."<>'".$this->{$this->pk}."'"));
-								if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated', 'code'=>212));
-								if($this->_error->isActived()) return false;
+								$obj1 = new $this;
+								$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->_data[$field]."' AND ".$this->pk."<>'".$this->_data[$this->pk]."'"));
+								if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated.', 'code'=>212));
 							}
 						}
 					break;
 
 					case 'numeric':
-						$noNumber = false;
 						foreach($content as $field){
-							if(isset($this->{$field}) and (!is_numeric($this->{$field}))){
-								$this->_error->add(array('field' => $field,'message'=>'This Field must be numeric'));
-							}
+							isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>'This Field must be numeric.'));
 						}
-						if($this->_error->isActived()) return false;
 					break;
 					case 'is_email':
-
 						foreach($content as $field){
-							if(count(preg_match("/(@+)/",$this->{$field})) > 1){
-								$trace = debug_backtrace();
-										trigger_error(
-											'The email provided is not a valid email address: ' . $field,
-											E_USER_NOTICE);
-								return false;
-							}
+							empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>'The email provided is not a valid email address.'));
 						}
 					break;
 				}
 			}
 		}
+	}
+
+	public function Save(){
+		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
+		$this->Connect();
+		$className = get_class($this);
+
 		if(sizeof($this->before_save)>0){
 			foreach($this->before_save as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
 		}
+
 		if($this->_error->isActived()) return FALSE;
+
 		if(!empty($this->{$this->pk})){
-			$kind = "update";
+			$kind = 'update';
+			$this->_ValidateOnSave('update');
+			if($this->_error->isActived()) return false;
+
 			if($this->engine == 'firebird'){
 				$query = "UPDATE ".$this->_TableName()." SET ";
 				if(AUTO_AUDITS){
@@ -1359,6 +1356,10 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		}else{
 			$kind = "insert";
+
+			$this->_ValidateOnSave();
+			if($this->_error->isActived()) return false;
+
 			if($this->engine == 'firebird'){
 				$query = "INSERT INTO ".$this->_TableName()." ";
 				if(isset($this->before_insert[0])){
