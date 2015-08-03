@@ -5,6 +5,7 @@ if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
 
 define('HTTP_200_STATUS', 200);
 define('HTTP_201_CREATED', 201);
+define('HTTP_204_NO_STATUS', 204);
 define('HTTP_304_NOT_CHANGE', 304);
 define('HTTP_400_BAD_REQUEST', 400);
 define('HTTP_403_FORBIDDEN', 403);
@@ -750,8 +751,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	protected $belongs_to = array();
 	protected $has_many_and_belongs_to = array();
 	protected $validate = array();
-	protected $validate_on_insert = array();
-	protected $validate_on_update = array();
 	protected $before_insert = array();
 	protected $after_insert = array();
 	protected $after_find = array();
@@ -1275,35 +1274,39 @@ abstract class ActiveRecord extends Core_General_Class{
 	}
 
 	private function _ValidateOnSave($action = 'insert') {
-		$arr = $this->{'validate_on_'.$action};
+		if(!empty($this->validate)){
+			if(!empty($this->validate['email'])){
+				foreach($this->validate['email'] as $field){
+					isset($this->_data[$field]) and empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>'The email provided is not a valid email address.'));
+				}
+			}
 
-		if(!empty($arr)){
-			foreach($arr as $evaluation => $content){
-				switch($evaluation){
-					case 'presence_of':
-						foreach($content as $field){
+			if(!empty($this->validate['numeric'])){
+				foreach($this->validate['numeric'] as $field){
+					isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>'This Field must be numeric.'));
+				}
+			}
+
+			if(!empty($this->validate['unique'])){
+				foreach($this->validate['unique'] as $field){
+					if(!empty($this->_data[$field])){
+						$obj1 = new $this;
+						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->_data[$field]."' AND ".$this->pk."<>'".$this->_data[$this->pk]."'"));
+						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated.', 'code'=>212));
+					}
+				}
+			}
+
+			if(!empty($this->validate['presence_of'])){
+				switch ($action) {
+					case 'insert':
+						foreach($this->validate['presence_of'] as $field){
 							empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>'This field can not be empty or null.'));
 						}
 					break;
-
-					case 'unique':
-						foreach($content as $field){
-							if(!empty($this->{$field})){
-								$obj1 = new $this;
-								$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->_data[$field]."' AND ".$this->pk."<>'".$this->_data[$this->pk]."'"));
-								if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated.', 'code'=>212));
-							}
-						}
-					break;
-
-					case 'numeric':
-						foreach($content as $field){
-							isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>'This Field must be numeric.'));
-						}
-					break;
-					case 'is_email':
-						foreach($content as $field){
-							empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>'The email provided is not a valid email address.'));
+					case 'update':
+						foreach($this->validate['presence_of'] as $field){
+							isset($this->_data[$field]) and empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>'This field can not be empty or null.'));
 						}
 					break;
 				}
@@ -1326,7 +1329,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if(!empty($this->{$this->pk})){
 			$kind = 'update';
-			$this->_ValidateOnSave('update');
+			$this->_ValidateOnSave($kind);
 			if($this->_error->isActived()) return false;
 
 			if($this->engine == 'firebird'){
