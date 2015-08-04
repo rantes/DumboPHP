@@ -212,8 +212,8 @@ DUMBO;
 
 		if(isset($this->options['standalone'])) {
 			$this->showMessage('Building standalone site.');
-		} else {
 			copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+		} else {
 			symlink($this->dumboSystemPath.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
 		}
 

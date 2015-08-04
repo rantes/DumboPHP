@@ -1,6 +1,6 @@
 <?php
 
-define('INST_PATH', dirname(dirname(__FILE__).'/');
+define('INST_PATH', dirname(dirname(__FILE__)).'/');
 define( 'INST_URI', 'http://localhost/' );
 define('SITE_STATUS','LIVE');
 define('LANDING_PAGE','index/landing');
