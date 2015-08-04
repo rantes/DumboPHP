@@ -185,7 +185,7 @@ DUMBOPHP;
 				if (!empty($params[$i])) {
 					$content .= <<<DUMBOPHP
 
-		public function {$params[$i]}() {
+		public function {$params[$i]}Action() {
 
 		}
 DUMBOPHP;
