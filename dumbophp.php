@@ -611,18 +611,31 @@ function javascript_include_tag($params, &$obj = NULL){
 class Driver extends PDO {
 	function __construct($file = 'config/db_settings.ini') {
 		if (!$settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
-		if($settings['database']['driver'] == 'firebird'){
-			$dns = 'firebird:dbname='.$settings['database']['host'].'/'.$settings['database']['port'].':'.$settings['database']['schema'];
-		} else {
-			$dns = $settings['database']['driver'] .
-			((!empty($settings['database']['host'])) ? (':host=' . $settings['database']['host']) : '') .
-			((!empty($settings['database']['port'])) ? (';port=' . $settings['database']['port']) : '') .
-			';dbname=' . $settings['database']['schema'] .
-			((!empty($settings['database']['dialect'])) ? (';dialect=' . $settings['database']['dialect']) : '') .
-			((!empty($settings['database']['charset'])) ? (';charset=' . $settings['database']['charset']) : '');
-		}
+		switch ($settings['database']['driver']) {
+			case 'firebird':
+				$dsn = 'firebird:dbname='.$settings['database']['host'].'/'.$settings['database']['port'].':'.$settings['database']['schema'];
+			break;
+			case 'sqlite':
+			case 'sqlite2':
+				if($settings['database']['schema'] === 'memory'){
+					$dsn = $settings['database']['driver'].'::memory:';
+				} else {
+					$dsn = $settings['database']['driver'].':'.$settings['database']['schema'];
+				}
+			break;
 
-		parent::__construct($dns, $settings['database']['username'], $settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
+			default:
+				$dsn = $settings['database']['driver'] .
+				((!empty($settings['database']['host'])) ? (':host=' . $settings['database']['host']) : '') .
+				((!empty($settings['database']['port'])) ? (';port=' . $settings['database']['port']) : '') .
+				';dbname=' . $settings['database']['schema'] .
+				((!empty($settings['database']['dialect'])) ? (';dialect=' . $settings['database']['dialect']) : '') .
+				((!empty($settings['database']['charset'])) ? (';charset=' . $settings['database']['charset']) : '');
+			break;
+		}
+		empty($settings['database']['username']) and $settings['database']['username'] = null;
+		empty($settings['database']['password']) and $settings['database']['password'] = null;
+		parent::__construct($dsn, $settings['database']['username'], $settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
 	}
 }
 
@@ -1740,10 +1753,25 @@ abstract class ActiveRecord extends Core_General_Class{
 	public function GetFields(){
 		$this->Connect();
 
-		$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`") or die(print_r($this->driver->errorInfo(), true));
+		switch ($this->engine) {
+			case 'mysql':
+				$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_TableName()."`") or die(print_r($this->driver->errorInfo(), true));
+			break;
+
+			case 'sqlite':
+				$result = $this->driver->query("PRAGMA table_info(".$this->_TableName().")") or die(print_r($this->driver->errorInfo(), true));
+			break;
+		}
 
 		$arraux = array();
-		foreach($result as $row){
+		$result->setFetchMode(PDO::FETCH_ASSOC);
+		$resultset = $result->fetchAll();
+		foreach($resultset as $row){
+			if($this->engine === 'sqlite'){
+				$row['Field'] = $row['name'];
+				$row['Type'] = $row['type'];
+			}
+
 			$arraux[$row['Field']] = $row['Type'];
 		}
 
@@ -1995,30 +2023,15 @@ abstract class Page extends Core_General_Class {
 	private $models = array();
 
 	public function __get($var){
-		// if (isset($this->_data_[$var])) {
-		// 	return $this->_data_[$var];
-		// } else
-		// if (!isset($this->models[$var])) {
-			$model = unCamelize($var);
-			if(file_exists(INST_PATH.'app/models/'.$model.'.php')) {
-				if(!class_exists($var)){
-					require INST_PATH.'app/models/'.$model.'.php';
-				}
-				$this->{$var} = new $var();
-				return $this->{$var};
+		$model = unCamelize($var);
+		if(file_exists(INST_PATH.'app/models/'.$model.'.php')) {
+			if(!class_exists($var)){
+				require INST_PATH.'app/models/'.$model.'.php';
 			}
-		// }
-		// else {
-		// 	$e = new Exception();
-		// 	$realData = $e->getTrace();
-		// 	$e->__construct('Undefined property  '.$var.' in '._CONTROLLER.' controller at line: '.$realData[0]['line'],1);
-		// 	throw $e;
-		// }
+			$this->{$var} = new $var();
+			return $this->{$var};
+		}
 	}
-
-	// public function __set($name, $value) {
-	// 	$this->_data_[$name] = $value;
-	// }
 
 	public function display(){
 		$renderPage = TRUE;
@@ -2128,8 +2141,6 @@ abstract class Migrations extends Core_General_Class {
 		echo 'Nothing to do.';
 	}
 
-	// public function seed() {}
-
 	public function Reset(){
 		$this->down();
 		$this->up();
@@ -2155,7 +2166,6 @@ abstract class Migrations extends Core_General_Class {
 					if(in_array('id', $Field)) $presentedId = true;
 					$query .= (!empty($Field['field']) and !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
 					$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
-					$query .= ($Field['type'] == 'VARCHAR' or $Field['type'] == 'TEXT' or $Field['type'] == 'LONGTEXT')?' CHARACTER SET utf8 COLLATE utf8_general_ci':NULL;
 					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
 					$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
 					$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
@@ -2163,18 +2173,26 @@ abstract class Migrations extends Core_General_Class {
 				}
 			}
 			if(!$presentedId){
-				$query .= "`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,";
+				$query .= "`id` INT PRIMARY KEY ,";
 			}
 			if(AUTO_AUDITS){
 				$query .= "`created_at` INT NOT NULL ,";
 				$query .= "`updated_at` INT NOT NULL ";
 			}
-			$query .= ")CHARACTER SET utf8 COLLATE utf8_general_ci;";
-			echo 'Running query: ', $query;
+			$query .= ");";
+			echo 'Running query: ', $query, PHP_EOL;
 			$Ar = new NewAr();
 			$Ar->Connect();
 			if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
 			$Ar->WriteSchema($tablName);
+
+			if ($Ar->engine == 'mysql') {
+				$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
+				echo 'Running query: ', $query, PHP_EOL;
+				$Ar = new NewAr();
+				$Ar->Connect();
+				if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
+			}
 		}
 	}
 

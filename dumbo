@@ -65,6 +65,7 @@ class dumboShell{
 				'init',
 				'db',
 				'generate',
+				'destroy',
 				'migration'
 			);
 	private $command = null;
@@ -117,6 +118,9 @@ class dumboShell{
 				case 'generate':
 					$this->generateScripts();
 				break;
+				case 'destroy':
+					$this->destroyScripts();
+				break;
 				case 'db':
 					$this->dbScripts();
 				break;
@@ -147,6 +151,9 @@ Commands:
 		Creates a new site. Param: site name.
 
 	generate [scaffold|controller|model|seed] <name>
+		Generates scripts for model, controller or scaffold.
+
+	destroy [scaffold|model] <name>
 		Generates scripts for model, controller or scaffold.
 
 	migration [up|down|reset|run|sow] <migration>
@@ -251,6 +258,44 @@ DUMBO;
 				$generator->seed();
 			break;
 
+			default:
+				$this->help();
+				die($this->showError('Option no valid for generate.'));
+			break;
+		}
+	}
+
+	private function destroyScripts() {
+		if(empty($this->arguments[0]) or empty($this->arguments[1])) {
+			$this->help();
+			die($this->showError('Error: Missing params.'));
+		}
+
+		if(sizeof($this->arguments) > 2) {
+			$this->help();
+			die($this->showError('Error: Only one model for delete at once.'));
+		}
+
+		file_exists('./config/host.php') or die($this->showError('Migrations actions must be executed at the top level of project path.'.PHP_EOL));
+
+		require_once './config/host.php';
+		require_once './dumbophp.php';
+
+		switch ($this->arguments[0]) {
+			// case 'scaffold':
+			// 	$this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
+			// 	$generator->scaffold($this->params);
+			// break;
+			case 'model':
+				$model = INST_PATH.'app/models/'.singulars($this->arguments[1]).'.php';
+				$migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
+				$this->showNotice('Deleting model: "'.$model.'".');
+				file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
+				unlink($model);
+				$this->showNotice('Deleting migration: "'.$migration.'".');
+				file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
+				unlink($migration);
+			break;
 			default:
 				$this->help();
 				die($this->showError('Option no valid for generate.'));
