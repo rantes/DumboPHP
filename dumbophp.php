@@ -609,33 +609,35 @@ function javascript_include_tag($params, &$obj = NULL){
 }
 
 class Driver extends PDO {
+	public $settings = null;
+
 	function __construct($file = 'config/db_settings.ini') {
-		if (!$settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
-		switch ($settings['database']['driver']) {
+		if (!$this->settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
+		switch ($this->settings['database']['driver']) {
 			case 'firebird':
-				$dsn = 'firebird:dbname='.$settings['database']['host'].'/'.$settings['database']['port'].':'.$settings['database']['schema'];
+				$dsn = 'firebird:dbname='.$this->settings['database']['host'].'/'.$this->settings['database']['port'].':'.$this->settings['database']['schema'];
 			break;
 			case 'sqlite':
 			case 'sqlite2':
-				if($settings['database']['schema'] === 'memory'){
-					$dsn = $settings['database']['driver'].'::memory:';
+				if($this->settings['database']['schema'] === 'memory'){
+					$dsn = $this->settings['database']['driver'].'::memory:';
 				} else {
-					$dsn = $settings['database']['driver'].':'.$settings['database']['schema'];
+					$dsn = $this->settings['database']['driver'].':'.$this->settings['database']['schema'];
 				}
 			break;
 
 			default:
-				$dsn = $settings['database']['driver'] .
-				((!empty($settings['database']['host'])) ? (':host=' . $settings['database']['host']) : '') .
-				((!empty($settings['database']['port'])) ? (';port=' . $settings['database']['port']) : '') .
-				';dbname=' . $settings['database']['schema'] .
-				((!empty($settings['database']['dialect'])) ? (';dialect=' . $settings['database']['dialect']) : '') .
-				((!empty($settings['database']['charset'])) ? (';charset=' . $settings['database']['charset']) : '');
+				$dsn = $this->settings['database']['driver'] .
+				((!empty($this->settings['database']['host'])) ? (':host=' . $this->settings['database']['host']) : '') .
+				((!empty($this->settings['database']['port'])) ? (';port=' . $this->settings['database']['port']) : '') .
+				';dbname=' . $this->settings['database']['schema'] .
+				((!empty($this->settings['database']['dialect'])) ? (';dialect=' . $this->settings['database']['dialect']) : '') .
+				((!empty($this->settings['database']['charset'])) ? (';charset=' . $this->settings['database']['charset']) : '');
 			break;
 		}
-		empty($settings['database']['username']) and $settings['database']['username'] = null;
-		empty($settings['database']['password']) and $settings['database']['password'] = null;
-		parent::__construct($dsn, $settings['database']['username'], $settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
+		empty($this->settings['database']['username']) and $this->settings['database']['username'] = null;
+		empty($this->settings['database']['password']) and $this->settings['database']['password'] = null;
+		parent::__construct($dsn, $this->settings['database']['username'], $this->settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
 	}
 }
 
@@ -971,6 +973,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->driver = new Driver(INST_PATH.'config/db_settings.ini');
 			$this->engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
 		}
+
 		$this->_error = new Errors();
 
 		return true;
@@ -1063,11 +1066,11 @@ abstract class ActiveRecord extends Core_General_Class{
 			$strint = '';
 			switch($type){
 				case 'integer':
-					$sql .= " and ".$this->pk." in ($this->_params)";
+					$sql .= " WHERE ".$this->pk." in ($this->_params)";
 				break;
 				case 'string':
 					if(strpos($this->_params,',')!== FALSE){
-						$sql .= " and ".$this->pk." in ($this->_params)";
+						$sql .= " WHERE ".$this->pk." in ($this->_params)";
 					}
 				break;
 				case 'array':
@@ -1078,16 +1081,18 @@ abstract class ActiveRecord extends Core_General_Class{
 								$NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
 							}
 							if(!$NotOnlyInt){
-								$sql .= " AND ".$this->pk." in (".implode(',',$this->_params['conditions']).")";
+								$sql .= $this->pk." in (".implode(',',$this->_params['conditions']).")";
 							}else{
 								foreach($this->_params['conditions'] as $field => $value){
 									if(is_numeric($field)) $sql .= " AND ".$value;
 									else $sql .= " AND $field='$value'";
 								}
+								$sql = substr($sql, 4);
 							}
 						}elseif(is_string($this->_params['conditions'])){
-							$sql .= " AND ".$this->_params['conditions'];
+							$sql .= $this->_params['conditions'];
 						}
+						$sql = ' WHERE '.$sql;
 					}
 					if(isset($this->_params['group'])){
 						$sql .= " GROUP BY ".$this->_params['group'];
@@ -1117,7 +1122,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		}
 		$fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
-		$sql = "SELECT {$fields} FROM {$this->_TableName()} WHERE 1=1" . $sql;
+		$sql = "SELECT {$fields} FROM {$this->_TableName()}" . $sql;
 		$this->_sqlQuery = $sql;
 		if(CAN_USE_MEMCACHED){
 			$key = md5($sql);
@@ -1167,16 +1172,26 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		$fields = array();
 		if(sizeof($resultset) < 1){
-			if($this->engine === 'mysql'){
-				$result1 = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
+			switch ($this->engine) {
+				case 'mysql':
+					$result1 = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
+				break;
+				case 'firebird':
+					$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
+				break;
+				case 'sqlite':
+				case 'sqlite2':
+					$result1 = $this->driver->query("PRAGMA table_info(".$this->_TableName().")");
+				break;
 			}
-			//  else {
-			// 	$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
-			// }
 
 			$result1->setFetchMode(PDO::FETCH_ASSOC);
 			$resultset1 = $result1->fetchAll();
 			foreach ($resultset1 as $res){
+				if($this->engine === 'sqlite'){
+					$res['Field'] = $res['name'];
+					$res['Type'] = $res['type'];
+				}
 				$type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
 				$fields[] = array(
 							'Field'=>$res['Field'],
@@ -2185,12 +2200,11 @@ abstract class Migrations extends Core_General_Class {
 			$Ar->Connect();
 			if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
 			$Ar->WriteSchema($tablName);
-
-			if ($Ar->engine == 'mysql') {
+			if ($Ar->driver->settings['database']['driver'] == 'mysql') {
 				$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
 				echo 'Running query: ', $query, PHP_EOL;
-				$Ar = new NewAr();
-				$Ar->Connect();
+				// $Ar = new NewAr();
+				// $Ar->Connect();
 				if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
 			}
 		}
