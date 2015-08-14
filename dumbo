@@ -127,6 +127,9 @@ class dumboShell{
 				case 'migration':
 					$this->migrationScripts();
 				break;
+				case 'init':
+					$this->initAppScript();
+				break;
 				default:
 					$this->help();
 				break;
@@ -150,6 +153,9 @@ Commands:
 	create <project-name>
 		Creates a new site. Param: site name.
 
+	init [standalone]
+		Initializes the project to use DumboPHP.
+
 	generate [scaffold|controller|model|seed] <name>
 		Generates scripts for model, controller or scaffold.
 
@@ -164,6 +170,16 @@ Commands:
 
 DUMBO;
 		echo $text;
+	}
+
+	private function initAppScript() {
+		$this->showNotice('Initializing DumboPHP project. ');
+		if ($this->arguments[0] === 'standalone') {
+			$this->showMessage('Building standalone site.');
+			copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+		} else {
+			symlink($this->dumboSystemPath.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+		}
 	}
 
 	private function createSite() {
