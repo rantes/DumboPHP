@@ -173,12 +173,15 @@ DUMBO;
 	}
 
 	private function initAppScript() {
+		file_exists('./config/host.php') or die('Generator must be executed at the top level of project path.'.PHP_EOL);
+		require_once './config/host.php';
+
 		$this->showNotice('Initializing DumboPHP project. ');
-		if ($this->arguments[0] === 'standalone') {
+		if (!empty($this->arguments[0]) && $this->arguments[0] === 'standalone') {
 			$this->showMessage('Building standalone site.');
-			copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+			copy($this->dumboSource.'/dumbophp.php',INST_PATH.'dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
 		} else {
-			symlink($this->dumboSystemPath.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+			symlink($this->dumboSystemPath.'/dumbophp.php',INST_PATH.'dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
 		}
 	}
 
