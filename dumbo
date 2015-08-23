@@ -1,6 +1,8 @@
 #!/usr/bin/php
 <?php
 
+set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp')));
+
 class Colors {
 	private $foreground_colors = array();
 	private $background_colors = array();
@@ -296,7 +298,7 @@ DUMBO;
 		file_exists('./config/host.php') or die($this->showError('Migrations actions must be executed at the top level of project path.'.PHP_EOL));
 
 		require_once './config/host.php';
-		require_once './dumbophp.php';
+		require_once 'dumbophp.php';
 
 		switch ($this->arguments[0]) {
 			// case 'scaffold':
@@ -324,7 +326,7 @@ DUMBO;
 		file_exists('./config/host.php') or die('Migrations actions must be executed at the top level of project path.'.PHP_EOL);
 
 		require_once './config/host.php';
-		require_once INST_PATH.'dumbophp.php';
+		require_once 'dumbophp.php';
 
 		for ($i=1; $i < sizeof($this->arguments); $i++) {
 			$this->params[] = $this->arguments[$i];
