@@ -9,24 +9,34 @@ $binPath = '/usr/bin';
 
 echo 'Installing DumboPHP. Please be patient...'.PHP_EOL;
 
-file_exists($dumboSystemPath) || mkdir($dumboSystemPath);
+if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+   echo 'This is a server using Windows! (we recomend GNU/Linux)'.PHP_EOL;
+   $dumboSystemPath = shell_exec('echo %SYSTEMROOT%');
+   $dumboSystemPath = str_replace(array("\n","\r"), '', $dumboSystemPath);
+   $dumboSystemPath.= '/dumbophp';
+   $binPath = '%SYSTEMROOT%/system32';//'/usr/bin';
+} else {
+    echo 'Great!!! this is a server not using Windows!'.PHP_EOL;
+}
+
+file_exists($dumboSystemPath) || mkdir($dumboSystemPath, 0777, TRUE);
 
 $d = dir($path);
 while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..' && $entry != 'install.php' && $entry != 'src' && $entry != '.git' && $entry != '.gitignore'){
-   		echo 'copying '.$entry.PHP_EOL;
+   		echo 'copying '.$path.'/'.$entry.' to '.$dumboSystemPath.'/'.$entry.PHP_EOL;
    		file_exists($dumboSystemPath.'/'.$entry) && unlink($dumboSystemPath.'/'.$entry);
    		copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
 
-file_exists($dumboSystemPathSrc) ||	mkdir($dumboSystemPathSrc);
+file_exists($dumboSystemPathSrc) ||	mkdir($dumboSystemPathSrc, 0777, TRUE);
 
 $d = dir($pathSrc);
 while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..'){
-   		echo 'copying '.$entry.PHP_EOL;
+   		echo 'copying '.$pathSrc.'/'.$entry.' to '.$dumboSystemPathSrc.'/'.$entry.PHP_EOL;
    		file_exists($dumboSystemPathSrc.'/'.$entry) && unlink($dumboSystemPathSrc.'/'.$entry);
    		copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
    }
@@ -35,6 +45,7 @@ $d->close();
 
 echo 'Creating bin file.'.PHP_EOL;
 file_exists($binPath.'/dumbo') && unlink($binPath.'/dumbo');
+echo $dumboSystemPath.'/dumbo'.PHP_EOL;
 symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
 chmod($binPath.'/dumbo', 0775);
 
