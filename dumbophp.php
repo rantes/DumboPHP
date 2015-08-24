@@ -1247,7 +1247,9 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if (!empty($contents)) {
 			foreach ($contents as $field => $content) {
-				$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
+				if (isset($this->_data[$field])) {
+					$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
+				}
 			}
 			foreach ($this->_data as $field => $value) {
 				if(empty($value) && $value !== 0) {
