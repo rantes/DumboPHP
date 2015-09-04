@@ -1473,6 +1473,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 	public function Insert(){
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
+		$this->Connect();
 		$fields = "";
 		$values = "";
 		if(AUTO_AUDITS){
@@ -1507,7 +1508,13 @@ abstract class ActiveRecord extends Core_General_Class{
 				$prepared[':'.$field] = $value;
 			}
 		}
-		$sh->execute($prepared) or die($query.'-'.print_r($this->driver->errorInfo(), true));
+
+		if (!$sh->execute($prepared)) {
+			$e = $sh->errorInfo();
+		    $this->_error->add(array('field' => $this->_TableName(),'message'=>$e[2]));
+		    return false;
+		}
+
 		return true;
 	}
 
@@ -1681,27 +1688,17 @@ abstract class ActiveRecord extends Core_General_Class{
 		return $arraux;
 	}
 
-	public function Dump($dataDump = array(), $path){
+	public function Dump(){
 		$model = $this->_TableName();
 		$dom = new DOMDocument('1.0', 'utf-8');
 
+		$dataDump = $this->getArray();
+		$path = INST_PATH.'migrations/dumps/';
+
 		$sroot = $dom->appendChild(new DOMElement('table_'.$model));
-		if(isset($dataDump[0])){
-			foreach($dataDump as $reg){
-				$root = $sroot->appendChild(new DOMElement($model));
-				foreach($reg as $element => $value){
-					if(preg_match("(&|<|>)", $value)){
-						$value = $dom->createCDATASection($value);
-						$element = $root->appendChild(new DOMElement($element, ""));
-						$element->appendChild($value);
-					}else{
-						$element = $root->appendChild(new DOMElement($element, $value));
-					}
-				}
-			}
-		}else{
+		foreach($dataDump as $reg){
 			$root = $sroot->appendChild(new DOMElement($model));
-			foreach($dataDump as $element => $value){
+			foreach($reg as $element => $value){
 				if(preg_match("(&|<|>)", $value)){
 					$value = $dom->createCDATASection($value);
 					$element = $root->appendChild(new DOMElement($element, ""));
@@ -1715,17 +1712,16 @@ abstract class ActiveRecord extends Core_General_Class{
 		file_put_contents($path.$model.'.xml', $dom->saveXML());
 	}
 
-	public function LoadDump($docXml){
+	public function LoadDump(){
 		$doc = new DOMDocument;
-		$doc->load(INST_PATH.'migrations/dumps/'.$docXml);
-		$tblName = str_replace('.xml', '', $docXml);
-		$items = $doc->getElementsByTagName($tblName);
+		$doc->load(INST_PATH.'migrations/dumps/'.$this->_TableName().'.xml');
+		$items = $doc->getElementsByTagName($this->_TableName());
 		for($i=0; $i<$items->length; $i++){
 			$xitem = $items->item($i);
 			$idfield = $xitem->getElementsByTagName($this->pk);
 			if($idfield->length > 0){
 				$id  = $idfield->item(0)->nodeValue;
-				$Obj = Camelize(Singulars($tblName));
+				$Obj = Camelize(Singulars($this->_TableName()));
 				$Obj = new $Obj();
 				$Obj->Niu();
 				$arrObj = $Obj->GetFields();
@@ -1736,7 +1732,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						$Obj->{$key} = (is_object($field->item(0)))?addslashes($field->item(0)->nodeValue):'';
 					}
 				}
-				$Obj->Insert();
+				$Obj->Insert() or die($Obj->_error);
 			}
 		}
 
