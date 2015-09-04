@@ -167,7 +167,7 @@ Commands:
 	migration [up|down|reset|run|sow] <migration>
 		Executes migrations actions.
 
-	db [create|dump|load] <model>
+	db [dump|load] <all|model>
 		Actions for database.
 
 DUMBO;
@@ -295,12 +295,15 @@ DUMBO;
 			die($this->showError('Error: Only one model for delete at once.'));
 		}
 
-		file_exists('./config/host.php') or die($this->showError('Migrations actions must be executed at the top level of project path.'.PHP_EOL));
+		file_exists('./config/host.php') or die($this->showError('Destroy actions must be executed at the top level of project path.'.PHP_EOL));
 
 		require_once './config/host.php';
 		require_once 'dumbophp.php';
 
 		switch ($this->arguments[0]) {
+			/**
+			 * @todo script for remove scaffolding files
+			 */
 			// case 'scaffold':
 			// 	$this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
 			// 	$generator->scaffold($this->params);
@@ -315,9 +318,83 @@ DUMBO;
 				file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
 				unlink($migration);
 			break;
+			/**
+			 * @todo script for remove controller and views
+			 */
+			// case 'controller':
+			// 	$controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
+			// 	$migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
+			// 	$this->showNotice('Deleting model: "'.$model.'".');
+			// 	file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
+			// 	unlink($model);
+			// 	$this->showNotice('Deleting migration: "'.$migration.'".');
+			// 	file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
+			// 	unlink($migration);
+			// break;
 			default:
 				$this->help();
 				die($this->showError('Option no valid for generate.'));
+			break;
+		}
+	}
+
+	private function dbScripts() {
+		if(empty($this->arguments[0]) or empty($this->arguments[1])) {
+			$this->help();
+			die($this->showError('Error: Missing params.'));
+		}
+
+		file_exists('./config/host.php') or die($this->showError('DB actions must be executed at the top level of project path.'.PHP_EOL));
+
+		require_once './config/host.php';
+		require_once 'dumbophp.php';
+
+		$modelsPath = INST_PATH.'app/models/';
+		$models = array();
+
+		if ($this->arguments[1] === 'all') {
+			$modelsDir = dir($modelsPath);
+			while (($file = $modelsDir->read()) != FALSE) {
+				if($file != "." and $file != ".." and preg_match('/(.+)\.php/', $file, $matches) === 1) {
+					$models[] = array('file'=>$matches[0],'model'=>$matches[1],'class'=>Camelize($matches[1]));
+				}
+			}
+		} else {
+			for ($i=1; $i < sizeof($this->arguments); $i++) {
+				$name = Singulars($this->arguments[$i]);
+				if (file_exists($modelsPath.$name.'.php')) {
+					$models[] = array('file'=>$name.'.php','model'=>$name,'class'=>Camelize($name));
+				} else {
+					$this->showError('Model not found: '.$this->arguments[$i]);
+				}
+			}
+		}
+
+		switch ($this->arguments[0]) {
+			case 'load':
+				if (!empty($models)) {
+					foreach ($models as $model) {
+						$this->showNotice('Exporting data for the model: "'.$model['model'].'".');
+						require_once $modelsPath.$model['file'];
+						$obj = new $model['class']();
+						$obj->LoadDump();
+					}
+				}
+			break;
+			case 'dump':
+				if (!empty($models)) {
+					foreach ($models as $model) {
+						$this->showNotice('Loading data for the model: "'.$model['model'].'".');
+						require_once $modelsPath.$model['file'];
+						$obj = new $model['class']();
+						$data = $obj->Find();
+						$data->Dump();
+					}
+				}
+			break;
+			default:
+				$this->help();
+				die($this->showError('Error: Option no valid.'));
 			break;
 		}
 	}
