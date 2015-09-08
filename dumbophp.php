@@ -1544,7 +1544,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->before_delete as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
-				if($this->_error->isActived()){
+				if(!empty($this->_error) && $this->_error->isActived()){
 					return false;
 				}
 			}
