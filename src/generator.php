@@ -1,8 +1,9 @@
 <?php
+set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp')));
 file_exists('./config/host.php') or die('Generator must be executed at the top level of project path.'.PHP_EOL);
 
 require_once './config/host.php';
-require_once INST_PATH.'dumbophp.php';
+require_once 'dumbophp.php';
 
 class FieldObject {
 
