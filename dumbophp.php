@@ -1322,7 +1322,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->validate['unique'] as $field){
 					if(!empty($this->_data[$field])){
 						$obj1 = new $this;
-						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->_data[$field]."' AND ".$this->pk."<>'".$this->_data[$this->pk]."'"));
+						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->_data[$field]."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated.', 'code'=>212));
 					}
 				}
@@ -2173,11 +2173,10 @@ abstract class Migrations extends Core_General_Class {
 
 			$tablName = $table['Table'];
 			$query = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
-			$presentedId = false;
+			$query .= "`id` INT PRIMARY KEY ,";
 			foreach($table as $key => $Field){
 				if(strcmp($key, 'Table') != 0){
 					if($Field['type'] == 'VARCHAR' and empty($Field['limit'])) $Field['limit'] = 250;
-					if(in_array('id', $Field)) $presentedId = true;
 					$query .= (!empty($Field['field']) and !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
 					$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
 					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
@@ -2185,9 +2184,6 @@ abstract class Migrations extends Core_General_Class {
 					$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
 					$query .= " ,";
 				}
-			}
-			if(!$presentedId){
-				$query .= "`id` INT PRIMARY KEY ,";
 			}
 			if(AUTO_AUDITS){
 				$query .= "`created_at` INT NOT NULL ,";
