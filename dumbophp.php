@@ -2063,22 +2063,25 @@ abstract class Page extends Core_General_Class {
 			if(!empty($this->params['callback'])) echo ');';
 			exit();
 		}
-		if(isset($this->render) and is_array($this->render)):
-			if(!empty($this->render['file'])):
+		if(isset($this->render) and is_array($this->render)){
+			if (isset($this->render['action']) && $this->render['action'] === false) {
+				$this->yield = '';
+				$renderPage = FALSE;
+			}elseif(!empty($this->render['file'])){
 				$view = $this->render['file'];
-			elseif(!empty($this->render['partial'])):
+			}elseif(!empty($this->render['partial'])){
 				$view = _CONTROLLER.'/_'.$this->render['partial'].'.phtml';
-			elseif(!empty($this->render['text'])):
+			}elseif(!empty($this->render['text'])){
 				$this->yield = $this->render['text'];
 				$renderPage = FALSE;
-			elseif(!empty($this->render['action'])):
+			}elseif(!empty($this->render['action'])){
 				$view = _CONTROLLER.'/'.$this->render['action'].'.phtml';
-			else:
+			}else{
 				$view = _CONTROLLER.'/'._ACTION.'.phtml';
-			endif;
-		else:
+			}
+		}else{
 			$view = _CONTROLLER.'/'._ACTION.'.phtml';
-		endif;
+		}
 
 		if($renderPage):
 			ob_start();
