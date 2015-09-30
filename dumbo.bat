@@ -1,2 +1,2 @@
 @echo OFF
-php.exe dumbo %*
+php %SYSTEMROOT%\dumbophp\dumbo %*
