@@ -2190,8 +2190,9 @@ abstract class Migrations extends Core_General_Class {
 			}
 			if(AUTO_AUDITS){
 				$query .= "`created_at` INT NOT NULL ,";
-				$query .= "`updated_at` INT NOT NULL ";
+				$query .= "`updated_at` INT NOT NULL ,";
 			}
+			$query = substr($query, 0, -2);
 			$query .= ");";
 			echo 'Running query: ', $query, PHP_EOL;
 			$Ar = new NewAr();
