@@ -997,12 +997,15 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		$this->_data = NULL;
 		$this->_data = array();
+		$this->_attrs = NULL;
+		$this->_attrs = array();
 		$result = array();
-		if ($this->_counter > 0) {
-			for ($i=0; $i < $this->_counter; $i++) {
-				$this->offsetUnset($i);
-			}
+
+		foreach($this as $i => $val) {
+			$this[$i] = null;
+			$this->offsetUnset($i);
 		}
+
 		$j=0;
 		$regs = NULL;
 		if(empty($this->driver)) $this->connect();
@@ -1025,7 +1028,7 @@ abstract class ActiveRecord extends Core_General_Class{
 							$this->_fields[] = $property;
 						}
 						$this[$j]->_counter = 1;
-						$this[$j]->{$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
+						$this[$j]->{'_data_'.$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
 					}
 				}
 			}
@@ -1050,7 +1053,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	}
 
 	public function Find($params = NULL){
-		$this->_data = null;
 		$memcached = $this->checkMemcached();
 		if(!empty($params)) $this->_params = $params;
 		if(sizeof($this->before_find) >0){
@@ -1145,7 +1147,6 @@ abstract class ActiveRecord extends Core_General_Class{
 			$memcached->set($key,$this);
 		}
 		$obj = clone($this);
-		unset($this);
 		return $obj;
 	}
 
@@ -1231,17 +1232,23 @@ abstract class ActiveRecord extends Core_General_Class{
 
  			$value = $toCast ?  0 + $value : $value;
 			$this->_fields[] = $row['Field'];
-			$this->{'_data_'.$row['Field']} = $value;
+			$this->_data[$row['Field']] = $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
 		}
 	}
 
 	public function Niu($contents = NULL){
-		$this->__destruct();
-		$this->__construct();
+
+		foreach($this as $i => $val) {
+			$this[$i] = null;
+			$this->offsetUnset($i);
+		}
+
 		$this->_data = NULL;
 		$this->_data = array();
+		$this->_attrs = NULL;
+		$this->_attrs = array();
 		$this->Connect();
 
 		$this->_set_attributes(array());
@@ -1597,51 +1604,52 @@ abstract class ActiveRecord extends Core_General_Class{
 		return true;
 	}
 
-	public function inspect(){
-		echo "\n".get_class($this)." ".gettype($this).": ".$this;
+	public function __debugInfo() {
+		$this->inspect();
+	}
+
+	public function inspect($tabs = 0){
+		echo get_class($this)," ActiveRecord (",sizeof($this),")",": ",$this->ListProperties_ToString($tabs);
 	}
 
 	protected function ListProperties_ToString($i=0){
-		$listProperties = "";
-		$l = $i+1;
-		$k=0;
+		$listProperties = "{\n";
+		foreach ($this->_data as $var => $value){
+			ob_start();
+			var_dump($value);
+			$buffer = ob_get_clean();
+			for($j=0; $j<$i+1; $j++){
+				$listProperties .= "\t";
+			}
+			$listProperties .= "{$var} => {$buffer}";
+		}
+		foreach ($this->_attrs as $var => $value){
+			ob_start();
+			var_dump($value);
+			$buffer = ob_get_clean();
+			for($j=0; $j<$i+1; $j++){
+				$listProperties .= "\t";
+			}
+			$listProperties .= "{$var}: => {$buffer}";
+		}
+		for ($m = 0; $m < sizeof($this); $m++){
+			$listProperties .= "[{$m}] :\n";
 
-		for($j=0; $j<$i; $j++){
-			$listProperties .= "\t";
-		}
-		$listProperties .= "{\n";
-		if($i>0){
-			$listProperties .= $this->_counter;
-		}
-		if($this->_counter <= 1){
-			foreach ($this->_data as $var => $value){
+
+			if(is_object($this[$m]) && get_parent_class($this[$m]) == 'ActiveRecord'){
 				ob_start();
-				var_dump($value);
+				$this[$m]->inspect(1);
 				$buffer = ob_get_clean();
-				$listProperties .= "\t{$var} => ".$buffer;
-			}
-		} else {
-			for ($m = 0; $m < $this->_counter; $m++){
-				if(is_object($this[$m]) && get_parent_class($this[$m]) == 'ActiveRecord'){
-					$listProperties .= "[$m] ";
-					if(is_object($this[$m])){
-						$listProperties .= get_class($this[$m]).' ';
-					}
-					$listProperties .= gettype($this[$m]);
 
-					$listProperties .= "{\n";
-					foreach ($this[$m]->_data as $var => $value){
-						ob_start();
-						var_dump($value);
-						$buffer = ob_get_clean();
-						$listProperties .= "\t{$var} => ".$buffer;
-					}
-					$listProperties .= "\t}\n";
-				} else {
-					$listProperties .= "[$m] =>".gettype($this[$m]).": ".$this[$m].PHP_EOL;
-				}
+				$listProperties .= "\t{$buffer}";
+			} else {
+				ob_start();
+				var_dump($this[$m]);
+				$buffer = ob_get_clean();
 
+				$listProperties .= "\t{$buffer}";
 			}
+
 		}
 
 		for($j=0; $j<$i; $j++){
