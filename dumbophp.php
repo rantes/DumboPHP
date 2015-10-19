@@ -1329,7 +1329,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->validate['unique'] as $field){
 					if(!empty($this->_data[$field])){
 						$obj1 = new $this;
-						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`$field`='".$this->_data[$field]."'"));
+						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->_data[$field]."' AND `{$this->pk}`<>'".$this->_data[$this->pk]."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated.', 'code'=>212));
 					}
 				}
