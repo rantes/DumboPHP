@@ -1530,7 +1530,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		!empty($this->driver) or $this->Connect();
 		if($this->_counter > 1){
 			$conditions = array();
-			foreach($this->_data as $ele){
+			foreach($this as $ele){
 				$conditions[] = $ele->{$this->pk};
 			}
 		}
@@ -1544,7 +1544,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				$this->{$this->pk} = $conditions;
 				$query .= "WHERE ".$this->pk."='$conditions'";
 			}elseif(is_array($conditions) && empty($conditions['conditions'])){
-				$query .= 'WHERE `id` IN ('.implode(',', $conditions).')';
+				$query .= 'WHERE `'.$this->pk.'` IN ('.implode(',', $conditions).')';
 			}elseif(!empty($conditions['conditions'])){
 				$query .= 'WHERE '.$conditions['conditions'];
 			}
