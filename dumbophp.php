@@ -1173,47 +1173,32 @@ abstract class ActiveRecord extends Core_General_Class{
 	private function _set_attributes($resultset) {
 
 		$fields = array();
-		if(sizeof($resultset) < 1){
-			switch ($this->engine) {
-				case 'mysql':
-					$result1 = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
-				break;
-				case 'firebird':
-					$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
-				break;
-				case 'sqlite':
-				case 'sqlite2':
-					$result1 = $this->driver->query("PRAGMA table_info(".$this->_TableName().")");
-				break;
-			}
+		switch ($this->engine) {
+			case 'mysql':
+				$result1 = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
+			break;
+			case 'firebird':
+				$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
+			break;
+			case 'sqlite':
+			case 'sqlite2':
+				$result1 = $this->driver->query("PRAGMA table_info(".$this->_TableName().")");
+			break;
+		}
 
-			$result1->setFetchMode(PDO::FETCH_ASSOC);
-			$resultset1 = $result1->fetchAll();
-			foreach ($resultset1 as $res){
-				if($this->engine === 'sqlite'){
-					$res['Field'] = $res['name'];
-					$res['Type'] = $res['type'];
-				}
-				$type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
-				$fields[] = array(
-							'Field'=>$res['Field'],
-							'Type'=>$type,
-							'Value' => null
-							);
+		$result1->setFetchMode(PDO::FETCH_ASSOC);
+		$resultset1 = $result1->fetchAll();
+		foreach ($resultset1 as $res){
+			if($this->engine === 'sqlite'){
+				$res['Field'] = $res['name'];
+				$res['Type'] = $res['type'];
 			}
-		} else {
-			$r = $resultset[0];
-
-			foreach ($r as $key => $value) {
-				$a = array(
-						'Field'=>$key,
-						'Type'=>'STRING',
-						'Value'=>$value
-					);
-
-				if (is_numeric($value)) $a['Type'] = 'NUMERIC';
-				$fields[] = $a;
-			}
+			$type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+			$fields[] = array(
+						'Field'=>$res['Field'],
+						'Type'=>$type,
+						'Value' => null
+						);
 		}
 
 		foreach($fields as $row){
@@ -1230,9 +1215,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 			$value = '';
 
- 			$value = $toCast ?  0 + $value : $value;
 			$this->_fields[] = $row['Field'];
-			$this->_data[$row['Field']] = $value;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
 		}
