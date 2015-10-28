@@ -1216,6 +1216,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			$value = '';
 
 			$this->_fields[] = $row['Field'];
+			$this->_data[$row['Field']] = '';
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
 		}
