@@ -1250,6 +1250,9 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 			$this->_counter = 1;
 		} else {
+			foreach ($this->_fields as $field) {
+				$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 : '';
+			}
 			$this->_counter = 0;
 		}
 
