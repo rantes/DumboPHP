@@ -1385,16 +1385,19 @@ abstract class ActiveRecord extends Core_General_Class{
 		}else{
 			$kind = "insert";
 
+			if(isset($this->before_insert[0])){
+				foreach($this->before_insert as $functiontoRun){
+					$this->{$functiontoRun}();
+				}
+			}
+
+			if($this->_error->isActived()) return false;
+
 			$this->_ValidateOnSave();
 			if($this->_error->isActived()) return false;
 
 			if($this->engine == 'firebird'){
 				$query = "INSERT INTO ".$this->_TableName()." ";
-				if(isset($this->before_insert[0])){
-					foreach($this->before_insert as $functiontoRun){
-						$this->{$functiontoRun}();
-					}
-				}
 				$fields = "";
 				$values = "";
 				$i=1;

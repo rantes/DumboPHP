@@ -349,7 +349,7 @@ DUMBOPHP;
 
 		$fileContent = <<<DUMBOPHP
 <?php
-	class Seed {
+	class Seed extends Page {
 		function sow() {
 
 		}
