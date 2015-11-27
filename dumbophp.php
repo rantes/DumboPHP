@@ -1171,7 +1171,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	}
 
 	private function _set_attributes($resultset) {
-
 		$fields = array();
 		switch ($this->engine) {
 			case 'mysql':
@@ -1201,9 +1200,9 @@ abstract class ActiveRecord extends Core_General_Class{
 						);
 		}
 
-		foreach($fields as $row){
+		foreach($fields as $row) {
 			$toCast= false;
-			switch($row['Type']){
+			switch($row['Type']) {
 				case 'NUMERIC':
 				case 'INTEGER':
 				case 'INT':
@@ -1219,6 +1218,17 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->_data[$row['Field']] = '';
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
+
+		}
+		if(!empty($resultset)) {
+			foreach ($resultset[0] as $key => $value) {
+				if(!in_array($key, $this->_fields)) {
+					$this->_fields[] = $key;
+					$this->_data[$key] = '';
+					$this->_dataAttributes[$key]['native_type'] = 'VARCHAR';
+					$this->_dataAttributes[$key]['cast'] = false;
+				}
+			}
 		}
 	}
 
@@ -1235,7 +1245,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		$this->_attrs = array();
 		$this->Connect();
 
-		$this->_set_attributes(array());
+		empty($this->_fields) and $this->_set_attributes(array());
 
 		if (!empty($contents)) {
 			foreach ($contents as $field => $content) {
@@ -1385,7 +1395,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		}else{
 			$kind = "insert";
 
-			if(isset($this->before_insert[0])){
+			if(!empty($this->before_insert)){
 				foreach($this->before_insert as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
