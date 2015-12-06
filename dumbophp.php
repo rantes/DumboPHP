@@ -3,17 +3,17 @@ if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
 	parse_str(implode('&', array_slice($argv, 1)), $_GET);
 }
 
-define('HTTP_200_STATUS', 200);
-define('HTTP_201_CREATED', 201);
-define('HTTP_204_NO_STATUS', 204);
-define('HTTP_304_NOT_CHANGE', 304);
-define('HTTP_400_BAD_REQUEST', 400);
-define('HTTP_401_UNATHORIZED', 401);
-define('HTTP_403_FORBIDDEN', 403);
-define('HTTP_404_NOT_FOUND', 404);
-define('HTTP_405_METHOD_NOT_ALLOWED', 405);
-define('HTTP_406_NOT_ACCEPTABLE', 406);
-define('HTTP_500_SERVER_ERROR', 500);
+define('HTTP_200', 200);
+define('HTTP_201', 201);
+define('HTTP_204', 204);
+define('HTTP_304', 304);
+define('HTTP_400', 400);
+define('HTTP_401', 401);
+define('HTTP_403', 403);
+define('HTTP_404', 404);
+define('HTTP_405', 405);
+define('HTTP_406', 406);
+define('HTTP_500', 500);
 
 final class IrregularNouns {
 	public $singular = array();
