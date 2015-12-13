@@ -792,10 +792,11 @@ abstract class ActiveRecord extends Core_General_Class{
 	final public function __construct() {
 		$a = func_get_args();
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->_attrs = NULL;
-		$this->_attrs = array();
+		// $this->_data = NULL;
+		// $this->_data = array();
+		// $this->_attrs = NULL;
+		// $this->_attrs = array();
+		$this->__destruct();
 		$this->checkMemcached();
 		if(!empty($a[0]) && is_object($a[0]) && get_class($a[0]) === 'Driver') {
 			$this->driver = $a[0];
@@ -812,6 +813,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		$this->_attrs = NULL;
 		$this->_attrs = array();
 		$this->_error = NULL;
+		$this->_params = null;
 	}
 
 	public function serialize() {
@@ -1053,6 +1055,7 @@ abstract class ActiveRecord extends Core_General_Class{
 	}
 
 	public function Find($params = NULL){
+		$this->_params = null;
 		$memcached = $this->checkMemcached();
 		if(!empty($params)) $this->_params = $params;
 		if(sizeof($this->before_find) >0){
@@ -1062,7 +1065,6 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 
 		$sql = '';
-
 		if(!empty($this->_params)){
 			if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = 0 + $this->_params;
 			$type = gettype($this->_params);
