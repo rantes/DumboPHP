@@ -1064,18 +1064,21 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		}
 
-		$sql = '';
+		$tail = '';
+		$head = 'SELECT ';
+		$body = " FROM {$this->_TableName()} ";
+
 		if(!empty($this->_params)){
 			if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = 0 + $this->_params;
 			$type = gettype($this->_params);
 			$strint = '';
 			switch($type){
 				case 'integer':
-					$sql .= " WHERE ".$this->pk." in ($this->_params)";
+					$tail .= " WHERE ".$this->pk." in ($this->_params)";
 				break;
 				case 'string':
 					if(strpos($this->_params,',')!== FALSE){
-						$sql .= " WHERE ".$this->pk." in ($this->_params)";
+						$tail .= " WHERE ".$this->pk." in ({$this->_params})";
 					}
 				break;
 				case 'array':
@@ -1086,26 +1089,29 @@ abstract class ActiveRecord extends Core_General_Class{
 								$NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
 							}
 							if(!$NotOnlyInt){
-								$sql .= $this->pk." in (".implode(',',$this->_params['conditions']).")";
+								$tail .= $this->pk." in (".implode(',',$this->_params['conditions']).")";
 							}else{
 								foreach($this->_params['conditions'] as $field => $value){
-									if(is_numeric($field)) $sql .= " AND ".$value;
-									else $sql .= " AND $field='$value'";
+									if(is_numeric($field)) $tail .= " AND ".$value;
+									else $tail .= " AND $field='$value'";
 								}
-								$sql = substr($sql, 4);
+								$tail = substr($tail, 4);
 							}
 						}elseif(is_string($this->_params['conditions'])){
-							$sql .= $this->_params['conditions'];
+							$tail .= $this->_params['conditions'];
 						}
-						$sql = ' WHERE '.$sql;
+						$tail = ' WHERE '.$tail;
+					}
+					if(!empty($this->_params['join'])){
+						$body .= $this->_params['join'];
 					}
 					if(isset($this->_params['group'])){
-						$sql .= " GROUP BY ".$this->_params['group'];
+						$tail .= " GROUP BY ".$this->_params['group'];
 					}
 					if(isset($this->_params['sort'])){
 						switch (gettype($this->_params['sort'])){
 							case 'string':
-								$sql .= " ORDER BY ".$this->_params['sort'];
+								$tail .= " ORDER BY ".$this->_params['sort'];
 							break;
 							case 'array':
 								null;
@@ -1114,12 +1120,12 @@ abstract class ActiveRecord extends Core_General_Class{
 					}
 
 					if(isset($this->_params['limit'])){
-						$sql .= " LIMIT ".$this->_params['limit'];
+						$tail .= " LIMIT ".$this->_params['limit'];
 					}
 					if(isset($this->_params[0])){
 						switch($this->_params[0]){
 						case ':first':
-							$sql .= " LIMIT 1";
+							$tail .= " LIMIT 1";
 						break;
 						}
 					}
@@ -1127,7 +1133,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		}
 		$fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
-		$sql = "SELECT {$fields} FROM {$this->_TableName()}" . $sql;
+		$sql = $head.$fields.$body.$tail;
 		$this->_sqlQuery = $sql;
 		if(CAN_USE_MEMCACHED){
 			$key = md5($sql);
@@ -1886,12 +1892,13 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 		$start = ($this->PaginatePageNumber-1)*$per_page;
 		if(isset($params['conditions'])) $arr_2['conditions'] = $arr_params['conditions'] = $params['conditions'];
+		if(isset($params['join'])) $arr_2['join'] = $arr_params['join'] = $params['join'];
 		if(isset($params['fields'])) $arr_params['fields'] = $params['fields'];
 		if(isset($params['group'])) $arr_2['group'] = $arr_params['group'] = $params['group'];
 		if(isset($params['sort'])) $arr_2['sort'] = $arr_params['sort'] = $params['sort'];
 		$arr_params['limit'] = $start.",".$per_page;
-		$arr_2['fields'] = 'COUNT(id)';
-		$this->PaginateTotalItems = $this->Find($arr_2)->{'COUNT(id)'};
+		$arr_2['fields'] = "COUNT({$this->_TableName()}.{$this->pk})";
+		$this->PaginateTotalItems = $this->Find($arr_2)->PaginateTotalRegs;
 		$this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
 
 		return $this->Find($arr_params);
