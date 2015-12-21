@@ -1897,7 +1897,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		if(isset($params['group'])) $arr_2['group'] = $arr_params['group'] = $params['group'];
 		if(isset($params['sort'])) $arr_2['sort'] = $arr_params['sort'] = $params['sort'];
 		$arr_params['limit'] = $start.",".$per_page;
-		$arr_2['fields'] = "COUNT({$this->_TableName()}.{$this->pk})";
+		$arr_2['fields'] = "COUNT({$this->_TableName()}.{$this->pk}) AS PaginateTotalRegs";
 		$this->PaginateTotalItems = $this->Find($arr_2)->PaginateTotalRegs;
 		$this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
 
