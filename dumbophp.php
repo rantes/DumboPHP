@@ -1322,7 +1322,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->validate['email'] as $field){
 					$message = 'The email provided is not a valid email address.';
 					if (is_array($field)) {
-						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
@@ -1335,7 +1335,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->validate['numeric'] as $field){
 					$message = 'This Field must be numeric.';
 					if (is_array($field)) {
-						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
@@ -1347,7 +1347,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->validate['unique'] as $field){
 					$message = 'This field can not be duplicated.';
 					if (is_array($field)) {
-						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
@@ -1363,7 +1363,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->validate['presence_of'] as $field){
 					$message = 'This field can not be empty or null.';
 					if (is_array($field)) {
-						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
@@ -2235,8 +2235,6 @@ abstract class Migrations extends Core_General_Class {
 			if ($Ar->driver->settings['database']['driver'] == 'mysql') {
 				$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
 				echo 'Running query: ', $query, PHP_EOL;
-				// $Ar = new NewAr();
-				// $Ar->Connect();
 				if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
 			}
 		}
@@ -2251,9 +2249,9 @@ abstract class Migrations extends Core_General_Class {
 	}
 
 	protected function Add_Column($columns = NULL){
-		if($columns !== NULL or !is_array($columns)){
-			if(!isset($columns['length']) and strcmp($columns['type'], 'integer') != 0) $columns['length'] = '255';
-			$query = "ALTER TABLE `".$columns['Table']."` ADD COLUMN `".$columns['field']."` ".strtoupper($columns['type']);
+		if(is_array($columns) && !empty($columns)){
+			if($columns['type'] == 'VARCHAR' and empty($columns['limit'])) $columns['length'] = '255';
+			$query = "ALTER TABLE `".$columns['Table']."` ADD COLUMN IF NOT EXISTS `".$columns['field']."` ".strtoupper($columns['type']);
 			$query .= (isset($columns['length']) and $columns['length'] != '')? "(".$columns['length'].")" : NULL;
 			$query .= (isset($columns['null']) and $columns['null'] != '')? " NOT NULL" : NULL;
 			$query .= (isset($columns['default']) and $columns['default'] != '')? " DEFAULT '".$columns['default']."'" : NULL;
