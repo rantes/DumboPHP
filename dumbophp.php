@@ -1320,38 +1320,54 @@ abstract class ActiveRecord extends Core_General_Class{
 		if(!empty($this->validate)){
 			if(!empty($this->validate['email'])){
 				foreach($this->validate['email'] as $field){
-					isset($this->_data[$field]) and empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>'The email provided is not a valid email address.'));
+					$message = 'The email provided is not a valid email address.';
+					if (is_array($field)) {
+						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						empty($field['message']) or ($message = $field['message']);
+						$field = $field['field'];
+					}
+
+					isset($this->_data[$field]) and empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
 
 			if(!empty($this->validate['numeric'])){
 				foreach($this->validate['numeric'] as $field){
-					isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>'This Field must be numeric.'));
+					$message = 'This Field must be numeric.';
+					if (is_array($field)) {
+						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						empty($field['message']) or ($message = $field['message']);
+						$field = $field['field'];
+					}
+					isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
 
 			if(!empty($this->validate['unique'])){
 				foreach($this->validate['unique'] as $field){
+					$message = 'This field can not be duplicated.';
+					if (is_array($field)) {
+						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						empty($field['message']) or ($message = $field['message']);
+						$field = $field['field'];
+					}
 					if(!empty($this->_data[$field])){
 						$obj1 = new $this;
 						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->_data[$field]."' AND `{$this->pk}`<>'".$this->_data[$this->pk]."'"));
-						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>'This field can not be duplicated.', 'code'=>212));
+						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
 					}
 				}
 			}
 
 			if(!empty($this->validate['presence_of'])){
-				switch ($action) {
-					case 'insert':
-						foreach($this->validate['presence_of'] as $field){
-							empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>'This field can not be empty or null.'));
-						}
-					break;
-					case 'update':
-						foreach($this->validate['presence_of'] as $field){
-							isset($this->_data[$field]) and empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>'This field can not be empty or null.'));
-						}
-					break;
+				foreach($this->validate['presence_of'] as $field){
+					$message = 'This field can not be empty or null.';
+					if (is_array($field)) {
+						empty($field['field']) and throw new Exception('Field key must be defined in array.');
+						empty($field['message']) or ($message = $field['message']);
+						$field = $field['field'];
+					}
+					empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>$message));
 				}
 			}
 		}
