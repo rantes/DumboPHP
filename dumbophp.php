@@ -610,37 +610,42 @@ function javascript_include_tag($params, &$obj = NULL){
 }
 
 class Driver extends PDO {
-	public $settings = null;
+	private $_settings = null;
+	public $engine = null;
 
-	function __construct($file = 'config/db_settings.ini') {
-		if (!$this->settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
-		switch ($this->settings['database']['driver']) {
+	function __construct($file = 'config/db__settings.ini') {
+		if (!$this->_settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
+		$this->engine = $this->_settings['database']['driver'];
+		switch ($this->engine) {
 			case 'firebird':
-				$dsn = 'firebird:dbname='.$this->settings['database']['host'].'/'.$this->settings['database']['port'].':'.$this->settings['database']['schema'];
+				$dsn = 'firebird:dbname='.$this->_settings['database']['host'].'/'.$this->_settings['database']['port'].':'.$this->_settings['database']['schema'];
 			break;
 			case 'sqlite':
 			case 'sqlite2':
-				if($this->settings['database']['schema'] === 'memory'){
-					$dsn = $this->settings['database']['driver'].'::memory:';
+				if($this->_settings['database']['schema'] === 'memory'){
+					$dsn = $this->engine.'::memory:';
 				} else {
-					$dsn = $this->settings['database']['driver'].':'.$this->settings['database']['schema'];
+					$dsn = $this->engine.':'.$this->_settings['database']['schema'];
 				}
 			break;
 
 			default:
-				$dsn = $this->settings['database']['driver'] .
-				((!empty($this->settings['database']['host'])) ? (':host=' . $this->settings['database']['host']) : '') .
-				((!empty($this->settings['database']['port'])) ? (';port=' . $this->settings['database']['port']) : '') .
-				';dbname=' . $this->settings['database']['schema'] .
-				((!empty($this->settings['database']['dialect'])) ? (';dialect=' . $this->settings['database']['dialect']) : '') .
-				((!empty($this->settings['database']['charset'])) ? (';charset=' . $this->settings['database']['charset']) : '');
+				$dsn = $this->engine .
+				((!empty($this->_settings['database']['host'])) ? (':host=' . $this->_settings['database']['host']) : '') .
+				((!empty($this->_settings['database']['port'])) ? (';port=' . $this->_settings['database']['port']) : '') .
+				';dbname=' . $this->_settings['database']['schema'] .
+				((!empty($this->_settings['database']['dialect'])) ? (';dialect=' . $this->_settings['database']['dialect']) : '') .
+				((!empty($this->_settings['database']['charset'])) ? (';charset=' . $this->_settings['database']['charset']) : '');
 			break;
 		}
-		empty($this->settings['database']['username']) and $this->settings['database']['username'] = null;
-		empty($this->settings['database']['password']) and $this->settings['database']['password'] = null;
-		parent::__construct($dsn, $this->settings['database']['username'], $this->settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
+		empty($this->_settings['database']['username']) and $this->_settings['database']['username'] = null;
+		empty($this->_settings['database']['password']) and $this->_settings['database']['password'] = null;
+		parent::__construct($dsn, $this->_settings['database']['username'], $this->_settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
 	}
 }
+
+$Driver = new Driver(INST_PATH.'config/db_settings.ini');
+require_once dirname(__FILE__).'/src/db_drivers/'.$Driver->engine.'.php';
 
 class Errors{
 	private $actived = FALSE;
@@ -790,18 +795,44 @@ abstract class ActiveRecord extends Core_General_Class{
 	public function _init_(){}
 
 	final public function __construct() {
-		$a = func_get_args();
+		global $Driver;
+
+		$className =  unCamelize(get_class($this));
+		$words = explode("_", $className);
+		$i = sizeof($words) - 1;
+		$words[$i] = Plurals($words[$i]);
+		$this->_ObjTable = implode("_", $words);
+
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-		// $this->_data = NULL;
-		// $this->_data = array();
-		// $this->_attrs = NULL;
-		// $this->_attrs = array();
 		$this->__destruct();
 		$this->checkMemcached();
-		if(!empty($a[0]) && is_object($a[0]) && get_class($a[0]) === 'Driver') {
-			$this->driver = $a[0];
-		} else {
-			$this->Connect();
+		$engine = $Driver->engine.'Driver';
+		$this->driver = new $engine();
+		$this->driver->tableName = $this->_ObjTable;
+		$this->driver->pk = $this->pk;
+
+		if (empty($this->_fields)) {
+			$fields = $this->driver->getColumns();
+
+			foreach($fields as $row) {
+				$toCast= false;
+				switch($row['Type']) {
+					case 'NUMERIC':
+					case 'INTEGER':
+					case 'INT':
+					case 'FLOAT':
+					case 'DOUBLE':
+						$toCast = true;
+					break;
+				}
+
+				$value = '';
+
+				$this->_fields[] = $row['Field'];
+				$this->_data[$row['Field']] = '';
+				$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
+				$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
+			}
 		}
 
 		$this->_init_();
@@ -951,9 +982,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	public function __get($name) {
 
 			switch($name){
-				case '_ObjTable':
-					return $this->_TableName();
-				break;
 				case '_errors':
 					return $this->_errors;
 				break;
@@ -970,29 +998,15 @@ abstract class ActiveRecord extends Core_General_Class{
 		return null;
 	}
 
-	public function Connect(){
-
-		if($this->driver === NULL and !is_object($this->driver) and get_class($this->driver) != 'Driver'){
-			$this->driver = new Driver(INST_PATH.'config/db_settings.ini');
-			$this->engine = $this->driver->getAttribute(PDO::ATTR_DRIVER_NAME);
-		}
-
-		$this->_error = new Errors();
-
-		return true;
-	}
-
 	private function checkMemcached(){
-		$memcached = null;
 		defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
 
 		if(CAN_USE_MEMCACHED && empty($this->memcached)){
-			$memcached = new Memcached();
+			$this->memcached = new Memcached();
 			defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
 			defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
-			$memcached->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
+			$this->memcached->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
 		}
-		return $memcached;
 	}
 
 	protected function getData($query){
@@ -1010,19 +1024,17 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		$j=0;
 		$regs = NULL;
-		if(empty($this->driver)) $this->connect();
-		$regs = $this->driver->query($query);
+		$regs = $GLOBALS['Driver']->query($query);
 		if(!is_object($regs)) die("Error in SQL Query. Please check the SQL Query: ".$query);
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset = $regs->fetchAll();
-		$classToUse = get_class($this);
 		$count = sizeof($resultset);
 
 		$this->_set_attributes($resultset);
 
 		if($count > 0){
 			for($j = 0; $j < $count; $j++){
-				$this->offsetSet($j, new $classToUse($this->driver));
+				$this->offsetSet($j, clone $this);
 
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
@@ -1054,95 +1066,24 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 	}
 
-	public function Find($params = NULL){
-		$this->_params = null;
-		$memcached = $this->checkMemcached();
-		if(!empty($params)) $this->_params = $params;
+	public function Find($params = NULL) {
 		if(sizeof($this->before_find) >0){
 			foreach($this->before_find as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
 		}
 
-		$tail = '';
-		$head = 'SELECT ';
-		$body = " FROM {$this->_TableName()} ";
-
-		if(!empty($this->_params)){
-			if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = 0 + $this->_params;
-			$type = gettype($this->_params);
-			$strint = '';
-			switch($type){
-				case 'integer':
-					$tail .= " WHERE ".$this->pk." in ($this->_params)";
-				break;
-				case 'string':
-					if(strpos($this->_params,',')!== FALSE){
-						$tail .= " WHERE ".$this->pk." in ({$this->_params})";
-					}
-				break;
-				case 'array':
-					if(!empty($this->_params['conditions'])){
-						if(is_array($this->_params['conditions'])){
-							$NotOnlyInt = FALSE;
-							while(!$NotOnlyInt and (list($key, $value) = each($this->_params['conditions']))){
-								$NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
-							}
-							if(!$NotOnlyInt){
-								$tail .= $this->pk." in (".implode(',',$this->_params['conditions']).")";
-							}else{
-								foreach($this->_params['conditions'] as $field => $value){
-									if(is_numeric($field)) $tail .= " AND ".$value;
-									else $tail .= " AND $field='$value'";
-								}
-								$tail = substr($tail, 4);
-							}
-						}elseif(is_string($this->_params['conditions'])){
-							$tail .= $this->_params['conditions'];
-						}
-						$tail = ' WHERE '.$tail;
-					}
-					if(!empty($this->_params['join'])){
-						$body .= $this->_params['join'];
-					}
-					if(isset($this->_params['group'])){
-						$tail .= " GROUP BY ".$this->_params['group'];
-					}
-					if(isset($this->_params['sort'])){
-						switch (gettype($this->_params['sort'])){
-							case 'string':
-								$tail .= " ORDER BY ".$this->_params['sort'];
-							break;
-							case 'array':
-								null;
-							break;
-						}
-					}
-
-					if(isset($this->_params['limit'])){
-						$tail .= " LIMIT ".$this->_params['limit'];
-					}
-					if(isset($this->_params[0])){
-						switch($this->_params[0]){
-						case ':first':
-							$tail .= " LIMIT 1";
-						break;
-						}
-					}
-				break;
-			}
-		}
-		$fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
-		$sql = $head.$fields.$body.$tail;
-		$this->_sqlQuery = $sql;
 		if(CAN_USE_MEMCACHED){
-			$key = md5($sql);
+			$key = md5($this->_ObjTable.':'.serialize($params));
 			$res = null;
-			$res = $memcached->get($key);
-			if($memcached->getResultCode() == 0 && is_object($res)){
+			$res = $this->memcached->get($key);
+			if($this->memcached->getResultCode() == 0 && is_object($res)){
 				return $res;
 			}
 		}
+
+		$sql = $this->driver->select($params);
+
 		$this->getData($sql);
 		$this->_sqlQuery = $sql;
 
@@ -1151,8 +1092,9 @@ abstract class ActiveRecord extends Core_General_Class{
 				$this->{$functiontoRun}();
 			}
 		}
+
 		if(CAN_USE_MEMCACHED){
-			$memcached->set($key,$this);
+			$this->memcached->set($key,$this);
 		}
 		$obj = clone($this);
 		return $obj;
@@ -1179,55 +1121,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	}
 
 	private function _set_attributes($resultset) {
-		$fields = array();
-		switch ($this->engine) {
-			case 'mysql':
-				$result1 = $this->driver->query("SHOW COLUMNS FROM ".$this->_TableName());
-			break;
-			case 'firebird':
-				$result1 = $this->driver->query("SELECT rdb\$field_name FROM rdb\$relation_fields WHERE rdb\$relation_name='".$this->_TableName()."'");
-			break;
-			case 'sqlite':
-			case 'sqlite2':
-				$result1 = $this->driver->query("PRAGMA table_info(".$this->_TableName().")");
-			break;
-		}
-
-		$result1->setFetchMode(PDO::FETCH_ASSOC);
-		$resultset1 = $result1->fetchAll();
-		foreach ($resultset1 as $res){
-			if($this->engine === 'sqlite'){
-				$res['Field'] = $res['name'];
-				$res['Type'] = $res['type'];
-			}
-			$type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
-			$fields[] = array(
-						'Field'=>$res['Field'],
-						'Type'=>$type,
-						'Value' => null
-						);
-		}
-
-		foreach($fields as $row) {
-			$toCast= false;
-			switch($row['Type']) {
-				case 'NUMERIC':
-				case 'INTEGER':
-				case 'INT':
-				case 'FLOAT':
-				case 'DOUBLE':
-					$toCast = true;
-				break;
-			}
-
-			$value = '';
-
-			$this->_fields[] = $row['Field'];
-			$this->_data[$row['Field']] = '';
-			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
-
-		}
 		if(!empty($resultset)) {
 			foreach ($resultset[0] as $key => $value) {
 				if(!in_array($key, $this->_fields)) {
@@ -1838,19 +1731,6 @@ abstract class ActiveRecord extends Core_General_Class{
 
 	public function last(){
 		return $this->_counter > 0 ? $this[$this->counter() - 1] : FALSE;
-	}
-
-	public function _TableName($name = null){
-		if(!empty($name)){
-			$this->_ObjTable = $name;
-		}elseif(empty($this->_ObjTable) or strlen($this->_ObjTable) < 1){
-			$className =  unCamelize(get_class($this));
-			$words = explode("_", $className);
-			$i = sizeof($words) - 1;
-			$words[$i] = Plurals($words[$i]);
-			$this->_ObjTable = implode("_", $words);
-		}
-		return $this->_ObjTable;
 	}
 
 	public function _sqlQuery(){

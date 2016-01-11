@@ -37,10 +37,22 @@ file_exists($dumboSystemPathSrc) ||	mkdir($dumboSystemPathSrc, 0777, TRUE);
 
 $d = dir($pathSrc);
 while (false !== ($entry = $d->read())) {
-   if($entry != '.' && $entry != '..'){
+   if($entry != '.' && $entry != '..' && !is_dir($pathSrc.'/'.$entry)){
    		echo 'copying '.$pathSrc.'/'.$entry.' to '.$dumboSystemPathSrc.'/'.$entry.PHP_EOL;
    		file_exists($dumboSystemPathSrc.'/'.$entry) && unlink($dumboSystemPathSrc.'/'.$entry);
    		copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
+   }
+}
+$d->close();
+
+file_exists($dumboSystemPathSrc.'/db_drivers') || mkdir($dumboSystemPathSrc.'/db_drivers', 0777, TRUE);
+
+$d = dir($pathSrc.'/db_drivers');
+while (false !== ($entry = $d->read())) {
+   if($entry != '.' && $entry != '..' && !is_dir($entry)){
+         echo 'copying '.$pathSrc.'/db_drivers/'.$entry.' to '.$dumboSystemPathSrc.'/db_drivers/'.$entry.PHP_EOL;
+         file_exists($dumboSystemPathSrc.'/db_drivers/'.$entry) && unlink($dumboSystemPathSrc.'/db_drivers/'.$entry);
+         copy($pathSrc.'/db_drivers/'.$entry, $dumboSystemPathSrc.'/db_drivers/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
