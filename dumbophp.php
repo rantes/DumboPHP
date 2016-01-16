@@ -2250,9 +2250,9 @@ abstract class Migrations extends Core_General_Class {
 
 	protected function Add_Column($columns = NULL){
 		if(is_array($columns) && !empty($columns)){
-			if($columns['type'] == 'VARCHAR' and empty($columns['limit'])) $columns['length'] = '255';
+			if($columns['type'] == 'VARCHAR' and empty($columns['limit'])) $columns['limit'] = '255';
 			$query = "ALTER TABLE `".$columns['Table']."` ADD COLUMN `".$columns['field']."` ".strtoupper($columns['type']);
-			$query .= (isset($columns['length']) and $columns['length'] != '')? "(".$columns['length'].")" : NULL;
+			$query .= (isset($columns['limit']) and $columns['limit'] != '')? "(".$columns['limit'].")" : NULL;
 			$query .= (isset($columns['null']) and $columns['null'] != '')? " NOT NULL" : NULL;
 			$query .= (isset($columns['default']) and $columns['default'] != '')? " DEFAULT '".$columns['default']."'" : NULL;
 			$query .= (!empty($columns['comments']))? " COMMENT '".$columns['comment']."'" : NULL;
