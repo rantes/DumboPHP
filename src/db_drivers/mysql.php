@@ -9,7 +9,7 @@ class mysqlDriver {
 
 	public function getColumns() {
 		$fields = array();
-		$result1 = $GLOBALS['Driver']->query("SHOW COLUMNS FROM {$this->tableName}");
+		$result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$this->tableName}");
 
 		$result1->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset1 = $result1->fetchAll();
@@ -25,7 +25,7 @@ class mysqlDriver {
 		return $fields;
 	}
 
-	public function select($params = null) {
+	public function Select($params = null) {
 		$this->_params = $params;
 
 		$tail = '';
@@ -100,7 +100,66 @@ class mysqlDriver {
 		$sql = $head.$fields.$body.$tail;
 
 		return $sql;
+	}
 
+	public function Update($params = null) {
+		$prepared = array();
+		$query = 'UPDATE `'.$this->tableName.'` SET ';
+		foreach ($params['data'] as $field => $value) {
+			if($field != $this->pk &&  $value !== null){
+				$query .= "`$field`=:$field,";
+				$prepared[':'.$field] = $value;
+			}
+		}
+
+		$query = substr($query, 0, -1);
+		AUTO_AUDITS && ($query .= ',`updated_at`='.time());
+
+		$query .= ' WHERE '.$params['conditions'];
+
+		return array('query'=>$query, 'prepared'=>$prepared);
+	}
+
+	public function Insert($params = null) {
+		if(empty($params)){
+			throw new Exception("Empty params for insertion.", 1);
+		}
+
+		$prepared = array();
+		$fields = '';
+		$values = '';
+
+		$query = "INSERT INTO `{$this->tableName}` ";
+		foreach($params as $field => $value){
+			if(!empty($value) && !is_array($value)){
+				$fields .= "`$field`,";
+				$values .= ":".$field.",";
+				$prepared[':'.$field] = $value;
+			}
+		}
+
+		$fields = substr($fields, 0, -1);
+		$values = substr($values, 0, -1);
+
+		$query .= "({$fields}) VALUES ({$values})";
+
+		return array('query' => $query, 'prepared' => $prepared);
+	}
+
+	public function Delete($conditions) {
+		$query = "DELETE FROM `{$this->tableName}` ";
+		if(is_numeric($conditions)){
+			$this->{$this->pk} = $conditions;
+			$query .= "WHERE ".$this->pk."='$conditions'";
+		}elseif(is_array($conditions) && empty($conditions['conditions'])){
+			$query .= 'WHERE `'.$this->pk.'` IN ('.implode(',', $conditions).')';
+		}elseif(!empty($conditions['conditions']) && is_string($conditions['conditions'])){
+			$query .= 'WHERE '.$conditions['conditions'];
+		} else {
+			throw new Exception("Invalid conditions for delete.", 1);
+		}
+
+		return $query;
 	}
 }
 
