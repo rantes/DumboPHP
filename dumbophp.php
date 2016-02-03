@@ -644,8 +644,8 @@ class Connection extends PDO {
 	}
 }
 
-$Connection = new Connection(INST_PATH.'config/db_settings.ini');
-require_once dirname(__FILE__).'/src/db_drivers/'.$Connection->engine.'.php';
+$GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
+require_once dirname(__FILE__).'/src/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
 
 class Errors{
 	private $actived = FALSE;
@@ -704,7 +704,7 @@ class Errors{
 	}
 }
 
-$Errors = new Errors;
+// $Errors = new Errors;
 
 abstract class Core_General_Class extends ArrayObject{
 
@@ -805,12 +805,13 @@ abstract class ActiveRecord extends Core_General_Class{
 		$this->_ObjTable = implode("_", $words);
 
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-		$this->__destruct();
 		$this->checkMemcached();
 		$driver = $GLOBALS['Connection']->engine.'Driver';
 		$this->driver = new $driver();
 		$this->driver->tableName = $this->_ObjTable;
 		$this->driver->pk = $this->pk;
+
+		$this->_error = new Errors;
 
 		if (empty($this->_fields)) {
 			$fields = $this->driver->getColumns();
@@ -982,9 +983,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	public function __get($name) {
 
 			switch($name){
-				case '_errors':
-					return $GLOBALS['Errors'];
-				break;
 				default:
 					if (isset($this->_data[$name])){
 						return $this->_data[$name];
@@ -1189,25 +1187,27 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$GLOBALS['Errors']->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			return false;
 		}
 
 		return true;
 	}
 
-	public function Insert(array $params) {
+	public function Insert($params = null) {
 
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 
-		$prepared = $this->driver->Insert($params);
+		$data = empty($params) ? $this->_data : $params;
+
+		$prepared = $this->driver->Insert($data);
 		$this->_sqlQuery = $prepared['query'];
 
 		$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
 
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$GLOBALS['Errors']->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			return false;
 		}
 
@@ -1225,7 +1225,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						$field = $field['field'];
 					}
 
-					isset($this->_data[$field]) and empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $GLOBALS['Errors']->add(array('field' => $field,'message'=>$message));
+					isset($this->_data[$field]) and empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
 
@@ -1237,7 +1237,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $GLOBALS['Errors']->add(array('field' => $field,'message'=>$message));
+					isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
 
@@ -1252,7 +1252,7 @@ abstract class ActiveRecord extends Core_General_Class{
 					if(!empty($this->_data[$field])){
 						$obj1 = new $this;
 						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->_data[$field]."' AND `{$this->pk}`<>'".$this->_data[$this->pk]."'"));
-						if($resultset->counter()>0) $GLOBALS['Errors']->add(array('field' => $field,'message'=>$message));
+						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
 					}
 				}
 			}
@@ -1265,7 +1265,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					empty($this->_data[$field]) and $GLOBALS['Errors']->add(array('field'=>$field,'message'=>$message));
+					empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>$message));
 				}
 			}
 		}
@@ -1280,35 +1280,28 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		}
 
-		if($GLOBALS['Errors']->isActived()) return FALSE;
+		if($this->_error->isActived()) return FALSE;
 
 		if(!empty($this->{$this->pk})){
 
 			$this->_ValidateOnSave('update');
-			if($GLOBALS['Errors']->isActived()) return false;
+			if($this->_error->isActived()) return false;
 
 			AUTO_AUDITS && ($this->_data['updated_at'] = time());
 
 			$prepared = $this->driver->Update(array('data'=>$this->_data, 'conditions'=>"{$this->_ObjTable}.{$this->pk} = ".$this->{$this->pk}));
 		}else{
-			$kind = "insert";
-
 			if(!empty($this->before_insert)){
 				foreach($this->before_insert as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
 			}
 
-			if($GLOBALS['Errors']->isActived()) return false;
+			if($this->_error->isActived()) return false;
 
 			$this->_ValidateOnSave();
-			if($GLOBALS['Errors']->isActived()) return false;
 
-			if(isset($this->before_insert[0])){
-				foreach($this->before_insert as $functiontoRun){
-					$this->{$functiontoRun}();
-				}
-			}
+			if($this->_error->isActived()) return false;
 
 			AUTO_AUDITS && ($this->_data['created_at'] = time());
 
@@ -1320,7 +1313,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if (!$sh->execute($prepared['prepared'])) {
 		    $e = $GLOBALS['Connection']->errorInfo();
-		    $GLOBALS['Errors']->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+		    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 		    return FALSE;
 		}
 
@@ -1351,7 +1344,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 		if($conditions === NULL and !empty($this->{$this->pk})) $conditions = $this->{$this->pk};
 		if($conditions === NULL and empty($this->{$this->pk})){
-			$GLOBALS['Errors']->add(array('field' => $this->_ObjTable,'message'=>"Must specify a register to delete"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>"Must specify a register to delete"));
 			return FALSE;
 		}else{
 			$this->_sqlQuery = $this->driver->Delete($conditions);
@@ -1359,14 +1352,14 @@ abstract class ActiveRecord extends Core_General_Class{
 				foreach($this->before_delete as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
-				if(!empty($GLOBALS['Errors']) && $GLOBALS['Errors']->isActived()){
+				if(!empty($this->_error) && $this->_error->isActived()){
 					return false;
 				}
 			}
-			$this->_delete_or_nullify_dependents((integer)$conditions) or print($GLOBALS['Errors']);
+			$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
 			if(!$GLOBALS['Connection']->exec($this->_sqlQuery)){
 			    $e = $GLOBALS['Connection']->errorInfo();
-			    $GLOBALS['Errors']->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+			    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			    return FALSE;
 			}
 			if(sizeof($this->after_delete) >0){
@@ -1391,14 +1384,14 @@ abstract class ActiveRecord extends Core_General_Class{
 						switch ($this->dependents){
 							case 'destroy':
 								if(!$child->Delete()){
-								    $GLOBALS['Errors']->add(array('field' => $this->_ObjTable,'message'=>"Cannot delete dependents"));
+								    $this->_error->add(array('field' => $this->_ObjTable,'message'=>"Cannot delete dependents"));
 								    return FALSE;
 								}
 							break;
 							case 'nullify':
 								$child->{$this->_ObjTable.'_id'}='';
 								if(!$child->Save()){
-								    $GLOBALS['Errors']->add(array('field' => $this->_ObjTable,'message'=>"Cannot nullify dependents"));
+								    $this->_error->add(array('field' => $this->_ObjTable,'message'=>"Cannot nullify dependents"));
 								    return FALSE;
 								}
 							break;
@@ -1474,32 +1467,30 @@ abstract class ActiveRecord extends Core_General_Class{
 	public function getArray(){
 		$arraux = array();
 
-		if($this->_counter > 0){
-			if($this->_counter === 1) {
-				foreach($this->_data as $property => $value){
-			        $arraux[0][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray() : $value;
-		        }
-				foreach ($this->_attrs as $index => $attribute) {
-					if(!empty($arraux[0][$index])) $index .= '_1';
-					$arraux[0][$index] = (is_object($attribute) and get_parent_class($attribute) == 'ActiveRecord')? $attribute->getArray() : $attribute;
-				}
-			} else {
-				$n=$m=0;
-		        for($t = 0; $t < $this->_counter; $t++){
-		        	if(!empty($this[$t]->_data)){
-				        foreach($this[$t]->_data as $property => $value){
-					        $arraux[$n][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
-				        }
-				        $n++;
-			        }
-			        if(!empty($this[$t]->_attrs)){
-			        	foreach($this[$t]->_attrs as $property => $value){
-			        		$arraux[$m][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
-			        	}
-			        	$m++;
-			        }
-		        }
+		if($this->_counter <= 1) {
+			foreach($this->_data as $property => $value){
+		        $arraux[0][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray() : $value;
+	        }
+			foreach ($this->_attrs as $index => $attribute) {
+				if(!empty($arraux[0][$index])) $index .= '_1';
+				$arraux[0][$index] = (is_object($attribute) and get_parent_class($attribute) == 'ActiveRecord')? $attribute->getArray() : $attribute;
 			}
+		} else {
+			$n=$m=0;
+	        for($t = 0; $t < $this->_counter; $t++){
+	        	if(!empty($this[$t]->_data)){
+			        foreach($this[$t]->_data as $property => $value){
+				        $arraux[$n][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
+			        }
+			        $n++;
+		        }
+		        if(!empty($this[$t]->_attrs)){
+		        	foreach($this[$t]->_attrs as $property => $value){
+		        		$arraux[$m][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
+		        	}
+		        	$m++;
+		        }
+	        }
 		}
 		return $arraux;
 	}
@@ -1537,11 +1528,12 @@ abstract class ActiveRecord extends Core_General_Class{
 			$idfield = $xitem->getElementsByTagName($this->pk);
 			if($idfield->length > 0){
 				$id  = $idfield->item(0)->nodeValue;
-				$Obj = Camelize(Singulars($this->_ObjTable));
-				$Obj = new $Obj();
+
+				$Obj = new $this;
 				$Obj->Niu();
-				$arrObj = $Obj->GetFields();
+				$arrObj = $Obj->getArray()[0];
 				$Obj->{$this->pk} = $id;
+
 				foreach($arrObj as $key => $value){
 					if($key != 'table'){
 						$field = $xitem->getElementsByTagName("$key");
@@ -1577,33 +1569,6 @@ abstract class ActiveRecord extends Core_General_Class{
 			fwrite($fp, $stringtoINI);
 			fclose($fp);
 		}
-	}
-
-	public function GetFields(){
-
-		switch ($this->engine) {
-			case 'mysql':
-				$result = $this->driver->query("SHOW COLUMNS FROM `".$this->_ObjTable."`") or die(print_r($this->driver->errorInfo(), true));
-			break;
-
-			case 'sqlite':
-				$result = $this->driver->query("PRAGMA table_info(".$this->_ObjTable.")") or die(print_r($this->driver->errorInfo(), true));
-			break;
-		}
-
-		$arraux = array();
-		$result->setFetchMode(PDO::FETCH_ASSOC);
-		$resultset = $result->fetchAll();
-		foreach($resultset as $row){
-			if($this->engine === 'sqlite'){
-				$row['Field'] = $row['name'];
-				$row['Type'] = $row['type'];
-			}
-
-			$arraux[$row['Field']] = $row['Type'];
-		}
-
-		return $arraux;
 	}
 
 	public function getError(){
@@ -1885,9 +1850,15 @@ abstract class Page extends Core_General_Class {
 			$view = _CONTROLLER.'/'._ACTION.'.phtml';
 		}
 
+		$viewsFolder = INST_PATH.'app/views/';
+		if (is_dir(INST_PATH.'app/templates/')) {
+			trigger_error('Templates folder is not longer used. Change name to views', E_USER_DEPRECATED);
+			$viewsFolder = INST_PATH.'app/templates/';
+		}
+
 		if($renderPage):
 			ob_start();
-			include_once(INST_PATH."app/templates/".$view);
+			include_once($viewsFolder.$view);
 			$this->yield = ob_get_clean();
 		endif;
 
@@ -1902,7 +1873,7 @@ abstract class Page extends Core_General_Class {
 
 		if(strlen($this->layout)>0):
 			ob_start();
-			include_once(INST_PATH."app/templates/".$this->layout.".phtml");
+			include_once($viewsFolder.$this->layout.".phtml");
 			$this->htmlcontent = ob_get_clean();
 		else:
 			$this->htmlcontent = $this->yield;
@@ -1940,11 +1911,15 @@ abstract class Page extends Core_General_Class {
 	}
 }
 
-class NewAr extends ActiveRecord{}
+// class NewAr extends ActiveRecord{}
 
 abstract class Migrations extends Core_General_Class {
+	private $driver = null;
 
-	public function __construct(){}
+	public function __construct(){
+		$driver = $GLOBALS['Connection']->engine.'Driver';
+		$this->driver = new $driver();
+	}
 
 	public function __destruct(){}
 
@@ -1997,22 +1972,18 @@ abstract class Migrations extends Core_General_Class {
 			$query = substr($query, 0, -2);
 			$query .= ");";
 			echo 'Running query: ', $query, PHP_EOL;
-			$Ar = new NewAr();
-			if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
-			$Ar->WriteSchema($tablName);
-			if ($Ar->driver->settings['database']['driver'] == 'mysql') {
-				$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
-				echo 'Running query: ', $query, PHP_EOL;
-				if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
-			}
+			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
+			$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
+			echo 'Running query: ', $query, PHP_EOL;
+			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 		}
 	}
 
 	protected function Drop_Table($table){
 		$query = "DROP TABLE IF EXISTS `".$table."`";
 		echo 'Running query: ', $query, PHP_EOL;
-		$Ar = new NewAr();
-		if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
+
+		if($GLOBALS['Connection']->exec($query) === false) print_r($Ar->driver->errorInfo());
 	}
 
 	protected function Add_Column($columns = NULL){

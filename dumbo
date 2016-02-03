@@ -347,7 +347,7 @@ DUMBO;
 		file_exists('./config/host.php') or die($this->showError('DB actions must be executed at the top level of project path.'.PHP_EOL));
 
 		require_once './config/host.php';
-		require_once 'dumbophp.php';
+		require 'dumbophp.php';
 
 		$modelsPath = INST_PATH.'app/models/';
 		$models = array();
@@ -374,7 +374,7 @@ DUMBO;
 			case 'load':
 				if (!empty($models)) {
 					foreach ($models as $model) {
-						$this->showNotice('Exporting data for the model: "'.$model['model'].'".');
+						$this->showNotice('Loading data for the model: "'.$model['model'].'".');
 						require_once $modelsPath.$model['file'];
 						$obj = new $model['class']();
 						$obj->LoadDump();
@@ -384,7 +384,7 @@ DUMBO;
 			case 'dump':
 				if (!empty($models)) {
 					foreach ($models as $model) {
-						$this->showNotice('Loading data for the model: "'.$model['model'].'".');
+						$this->showNotice('Exporting data for the model: "'.$model['model'].'".');
 						require_once $modelsPath.$model['file'];
 						$obj = new $model['class']();
 						$data = $obj->Find();
@@ -409,7 +409,9 @@ DUMBO;
 			$this->params[] = $this->arguments[$i];
 		}
 
-		($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die(PHP_EOL.'Not enough arguments; the migrations to affect must be defined.'.PHP_EOL);
+		empty($this->arguments[0]) && die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
+
+		($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
 
 		$migrationsPath = INST_PATH.'migrations/';
 
