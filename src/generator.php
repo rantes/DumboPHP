@@ -206,7 +206,7 @@ DUMBOPHP;
 
 		empty($this->tblName) and $this->setNames($params[0]);
 
-		$path = INST_PATH.'app/templates/'.$this->singularized.'/';
+		$path = INST_PATH.'app/views/'.$this->singularized.'/';
 		is_dir($path) or mkdir($path);
 
 		if ($isScaffold) {
