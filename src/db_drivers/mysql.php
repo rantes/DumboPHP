@@ -10,7 +10,6 @@ class mysqlDriver {
 	public function getColumns() {
 		$fields = array();
 		$result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$this->tableName}");
-
 		$result1->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset1 = $result1->fetchAll();
 		foreach ($resultset1 as $res){

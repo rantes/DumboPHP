@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp')));
+set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp', INST_PATH.'/DumboPHP')));
 
 class Colors {
 	private $foreground_colors = array();

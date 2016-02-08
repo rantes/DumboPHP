@@ -798,11 +798,13 @@ abstract class ActiveRecord extends Core_General_Class{
 
 	final public function __construct() {
 
-		$className =  unCamelize(get_class($this));
-		$words = explode("_", $className);
-		$i = sizeof($words) - 1;
-		$words[$i] = Plurals($words[$i]);
-		$this->_ObjTable = implode("_", $words);
+		if (empty($this->_ObjTable)) {
+			$className =  unCamelize(get_class($this));
+			$words = explode("_", $className);
+			$i = sizeof($words) - 1;
+			$words[$i] = Plurals($words[$i]);
+			$this->_ObjTable = implode("_", $words);
+		}
 
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		$this->checkMemcached();
