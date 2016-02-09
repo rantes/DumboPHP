@@ -204,7 +204,7 @@ DUMBO;
 			'Creating directory: '.$this->fullPathTarget.'/app/controllers' => '/app/controllers',
 			'Creating directory: '.$this->fullPathTarget.'/app/helpers' =>'/app/helpers',
 			'Creating directory: '.$this->fullPathTarget.'/app/models' =>'/app/models',
-			'Creating directory: '.$this->fullPathTarget.'/app/templates' =>'/app/templates',
+			'Creating directory: '.$this->fullPathTarget.'/app/views' =>'/app/views',
 			'Creating directory: '.$this->fullPathTarget.'/app/webroot' =>'/app/webroot',
 			'Creating directory: '.$this->fullPathTarget.'/app/webroot/css' =>'/app/webroot/css',
 			'Creating directory: '.$this->fullPathTarget.'/app/webroot/fonts' =>'/app/webroot/fonts',
@@ -228,7 +228,7 @@ DUMBO;
 			'Creating file system: config/db' => array($this->dumboSource.'/db_settings.ini', $this->fullPathTarget.'/config/db_settings.ini'),
 			'Creating file system: config/host' => array($this->dumboSource.'/host.php', $this->fullPathTarget.'/config/host.php'),
 			'Creating file system: config/index' => array($this->dumboSource.'/index.php', $this->fullPathTarget.'/app/webroot/index.php'),
-			'Creating file system: layout' => array($this->dumboSource.'/layout.phtml', $this->fullPathTarget.'/app/templates/layout.phtml')
+			'Creating file system: layout' => array($this->dumboSource.'/layout.phtml', $this->fullPathTarget.'/app/views/layout.phtml')
 		);
 
 		reset($actions);

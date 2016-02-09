@@ -1315,7 +1315,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if (!$sh->execute($prepared['prepared'])) {
 		    $e = $GLOBALS['Connection']->errorInfo();
-		    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+		    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
 		    return FALSE;
 		}
 
@@ -1361,7 +1361,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
 			if(!$GLOBALS['Connection']->exec($this->_sqlQuery)){
 			    $e = $GLOBALS['Connection']->errorInfo();
-			    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+			    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
 			    return FALSE;
 			}
 			if(sizeof($this->after_delete) >0){
