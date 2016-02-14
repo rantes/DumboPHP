@@ -1,4 +1,5 @@
 # DumboPHP #
+[![Build Status](https://travis-ci.org/rantes/DumboPHP.svg?branch=master)](https://travis-ci.org/rantes/DumboPHP)
 
 ### Summary ###
 
