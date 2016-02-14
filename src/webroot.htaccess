@@ -4,10 +4,10 @@
     RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule ^(.*\.php)$ index.php?url=$1&%1 [QSA,L]
 
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule    ^(.*)$ $1  [NC,L]
-    RewriteRule    ^(.*\.(png|gif|jpg|html|jpeg|swf|js|pdf|css|ico))$ $1  [NC,L]
-
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)$ index.php?url=$1&%1 [QSA,L]
+
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule    ^(.*)$ $1  [NC,L]
+    RewriteRule    ^(.*\.(png|gif|jpg|html|htm|jpeg|swf|js|pdf|css|ico))$ $1  [NC,L]
  </IfModule>
