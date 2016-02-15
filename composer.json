@@ -1,0 +1,6 @@
+{
+	"name": "Dumbo PHP framework",
+    "require" : {
+        "php" : "^5.2
+    }
+}
