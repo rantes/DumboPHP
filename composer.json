@@ -1,5 +1,5 @@
 {
-    "name": "rantes/DumbPHP",
+    "name": "rantes/dumbophp",
     "type": "framework",
     "description": "PHP Framework project built with MVC architecture, OOP paradigm and full ORM (native, not vendor).",
     "keywords": ["php","framework","oop","orm","mvc","active","record"],
