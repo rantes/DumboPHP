@@ -1,3 +1,19 @@
 {
-	"name": "Dumbo PHP framework"
+    "name": "rantes/DumbPHP",
+    "type": "framework",
+    "description": "PHP Framework project built with MVC architecture, OOP paradigm and full ORM (native, not vendor).",
+    "keywords": ["php","framework","oop","orm","mvc","active","record"],
+    "homepage": "https://github.com/rantes/DumboPHP",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Javier Serrano",
+            "email": "rantes.javier@gmail.com",
+            "homepage": "http://rantes.info",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.2.0"
+    }
 }
