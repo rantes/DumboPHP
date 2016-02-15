@@ -12,7 +12,7 @@ PHP Framework project built with MVC architecture, OOP paradigm and full ORM (na
 * Go to the folder and run the install script:
 
 ```
-[![Latest Stable Version](https://poser.pugx.org/rantes/dumbophp/v/stable)](https://packagist.org/packages/rantes/dumbophp) [![Total Downloads](https://poser.pugx.org/rantes/dumbophp/downloads)](https://packagist.org/packages/rantes/dumbophp) [![Latest Unstable Version](https://poser.pugx.org/rantes/dumbophp/v/unstable)](https://packagist.org/packages/rantes/dumbophp) [![License](https://poser.pugx.org/rantes/dumbophp/license)](https://packagist.org/packages/rantes/dumbophp)cd /path/to/DumboPHP/
+cd /path/to/DumboPHP/
 sudo ./install.php
 ```
 
