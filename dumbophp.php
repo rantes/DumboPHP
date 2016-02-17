@@ -1189,7 +1189,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
 			return false;
 		}
 
@@ -1209,7 +1209,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
 			return false;
 		}
 
