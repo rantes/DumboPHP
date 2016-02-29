@@ -68,7 +68,8 @@ class dumboShell{
 				'db',
 				'generate',
 				'destroy',
-				'migration'
+				'migration',
+				'run'
 			);
 	private $command = null;
 	private $dumboSource = '/etc/dumbophp/src';
@@ -102,7 +103,7 @@ class dumboShell{
 		// print_r(apache_get_modules());
 	}
 
-	public function run($argv) {
+	public function execute($argv) {
 		if(empty($argv[1]) || sizeof($argv) < 2) {
 			$this->help();
 			die($this->showError('Error: Option not valid.'));
@@ -131,6 +132,9 @@ class dumboShell{
 				break;
 				case 'init':
 					$this->initAppScript();
+				break;
+				case 'run':
+					$this->runControllerActionScript();
 				break;
 				default:
 					$this->help();
@@ -170,8 +174,25 @@ Commands:
 	db [dump|load] <all|model>
 		Actions for database.
 
+	run controller\action param1=value1 paramN=valueN
+
 DUMBO;
 		echo $text;
+	}
+
+	private function runControllerActionScript() {
+		empty($this->arguments[0]) and die($this->showError('Cannot run action: Missing params.'));
+		$url = explode('/', $this->arguments[0]);
+		sizeof($url) === 2 or die($this->showError('Cannot run action: controller/action param malformed.'));
+		$_GET['url'] = array_shift($this->arguments);
+
+		for ($i=0; $i < sizeof($this->arguments); $i++) {
+			$param = explode('=', $this->arguments[$i]);
+			if (sizeof($param) === 2) {
+				$_GET[$param[0]] = $param[1];
+			}
+		}
+		require_once 'app/webroot/index.php';
 	}
 
 	private function initAppScript() {
@@ -476,5 +497,5 @@ DUMBO;
 }
 
 $shell = new dumboShell();
-$shell->run($argv);
+$shell->execute($argv);
 ?>
