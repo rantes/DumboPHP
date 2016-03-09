@@ -761,6 +761,7 @@ abstract class ActiveRecord extends Core_General_Class{
 	public $PaginateTotalItems = 0;
 	public $PaginateTotalPages = 0;
 	public $PaginatePageNumber = 1;
+	public $paginateURL = '/';
 	public $driver = NULL;
 	public $_error = NULL;
 	public $_sqlQuery = '';
@@ -1636,6 +1637,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		$arr_params = array();
 		$arr_2 = array();
 		$per_page = (isset($params['per_page']))?$params['per_page']:10;
+		$this->paginateURL = empty($params['url']) ? '/' : $params['url'];
 		if(!empty($params['varPageName'])) {
 			$this->PaginatePageVarName = $params['varPageName'];
 		}
@@ -1662,8 +1664,8 @@ abstract class ActiveRecord extends Core_General_Class{
 		$tail = '';
 		$i = 1;
 		if($this->PaginatePageNumber > 1):
-			$str .= '<a class="paginate paginate-first-page" href="?'.$this->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
-			$str .= '<a class="paginate paginate-prev-page" href="?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
+			$str .= '<a class="paginate paginate-first-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
+			$str .= '<a class="paginate paginate-prev-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
 		endif;
 		$top = $this->PaginateTotalPages;
 		if($this->PaginateTotalPages > 10):
@@ -1673,11 +1675,11 @@ abstract class ActiveRecord extends Core_General_Class{
 			if($i < 1) $i = 1;
 		endif;
 		if($this->PaginatePageNumber < $this->PaginateTotalPages):
-			$tail .= '<a class="paginate paginate-next-page" href="?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
-			$tail .= '<a class="paginate paginate-last-page" href="?'.$this->PaginatePageVarName.'='.($this->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
+			$tail .= '<a class="paginate paginate-next-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
+			$tail .= '<a class="paginate paginate-last-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
 		endif;
 		for(; $i <= $top; $i++){
-			$str .= '<a class="paginate paginate-page'.($this->PaginatePageNumber == $i ? " paginate-active-page" : "").'" href="?'.$this->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
+			$str .= '<a class="paginate paginate-page'.($this->PaginatePageNumber == $i ? " paginate-active-page" : "").'" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
 		}
 		$str .= $tail;
 		return $str;
