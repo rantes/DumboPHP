@@ -3,17 +3,12 @@ if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
 	parse_str(implode('&', array_slice($argv, 1)), $_GET);
 }
 
-define('HTTP_200', 200);
-define('HTTP_201', 201);
-define('HTTP_204', 204);
-define('HTTP_304', 304);
-define('HTTP_400', 400);
-define('HTTP_401', 401);
-define('HTTP_403', 403);
-define('HTTP_404', 404);
-define('HTTP_405', 405);
-define('HTTP_406', 406);
-define('HTTP_500', 500);
+for($i = 1; $i <= 5; $i++) {
+	for($j = 0; $j <= 10; $j++) {
+		$code = ($i * 100) + $j;
+		define('HTTP_'.$code, $code);
+	}
+}
 
 final class IrregularNouns {
 	public $singular = array();
@@ -640,7 +635,8 @@ class Connection extends PDO {
 		}
 		empty($this->_settings['database']['username']) and $this->_settings['database']['username'] = null;
 		empty($this->_settings['database']['password']) and $this->_settings['database']['password'] = null;
-		parent::__construct($dsn, $this->_settings['database']['username'], $this->_settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
+		parent::__construct($dsn, $this->_settings['database']['username'], $this->_settings['database']['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => true,PDO::ATTR_PERSISTENT => true));
+		$this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	}
 }
 
@@ -704,9 +700,7 @@ class Errors{
 	}
 }
 
-// $Errors = new Errors;
-
-abstract class Core_General_Class extends ArrayObject{
+abstract class Core_General_Class extends ArrayObject {
 
 	public function __call($ClassName, $val = NULL){
 		$field = Singulars(strtolower($ClassName));
@@ -767,6 +761,8 @@ abstract class ActiveRecord extends Core_General_Class{
 	public $_sqlQuery = '';
 	public $candump = true;
 	public $wakedUpVars = array();
+	public $created_at = 0;
+	public $updated_at = 0;
 	protected $_ObjTable;
 	protected $_singularName;
 	protected $_counter = 0;
@@ -784,16 +780,13 @@ abstract class ActiveRecord extends Core_General_Class{
 	protected $after_delete = array();
 	protected $before_delete = array();
 	protected $dependents = '';
-	protected $_data = array();
-	protected $_attrs = array();
 	protected $_dataAttributes = array();
-	protected $_models = array();
 	protected $_params = array('fields'=>'*','conditions'=>'');
 	protected $pk = 'id';
 	protected $escapeField = array();
 	private $memcached = null;
 	private $engine = 'mysql';
-	private $_fields = array();
+	protected $_fields = array();
 
 	public function _init_(){}
 
@@ -816,38 +809,10 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		$this->_error = new Errors;
 
-		if (empty($this->_fields)) {
-			$fields = $this->driver->getColumns();
-
-			foreach($fields as $row) {
-				$toCast= false;
-				switch($row['Type']) {
-					case 'NUMERIC':
-					case 'INTEGER':
-					case 'INT':
-					case 'FLOAT':
-					case 'DOUBLE':
-						$toCast = true;
-					break;
-				}
-
-				$value = '';
-
-				$this->_fields[] = $row['Field'];
-				$this->_data[$row['Field']] = '';
-				$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-				$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
-			}
-		}
-
 		$this->_init_();
 	}
 
 	public function __destruct(){
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->_attrs = NULL;
-		$this->_attrs = array();
 		$this->_params = null;
 	}
 
@@ -951,55 +916,11 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 	}
 
-	public function __set($name, $value) {
-		if(isset($this->_data[$name]) || preg_match('/_data_/', $name) || in_array($name, $this->_fields)){
-			$name = str_replace("_data_", '', $name);
-			$this->_data[$name] = $value;
-		} else {
-			$this->_attrs[$name] = $value;
-		}
-	}
-
-	public function __unset($name) {
-		if(isset($this->_attrs[$name])) {
-			$this->_attrs[$name] = NULL;
-			unset($this->_attrs[$name]);
-		}
-		if (isset($this->_data[$name])) {
-			$this->_data[$name] = NULL;
-			unset($this->_data[$name]);
-		}
-		if (isset($this->{$name})) {
-			$this->{$name} = NULL;
-			unset($this->{$name});
-		}
-	}
-
-	public function __isset($var){
-		return ((!empty($this->_attrs) and array_key_exists($var, $this->_attrs)) || (!empty($this->_data) and array_key_exists($var, $this->_data)));
-	}
-
 	public function getIterator() {
             return new ArrayIterator($this);
     }
 
-	public function __get($name) {
-
-			switch($name){
-				default:
-					if (isset($this->_data[$name])){
-						return $this->_data[$name];
-					} elseif(isset($this->_attrs[$name])){
-						return $this->_attrs[$name];
-					}else{
-						return null;
-					}
-				break;
-			}
-		return null;
-	}
-
-	private function checkMemcached(){
+	private function checkMemcached() {
 		defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
 
 		if(CAN_USE_MEMCACHED && empty($this->memcached)){
@@ -1010,12 +931,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 	}
 
-	protected function getData($query){
-
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->_attrs = NULL;
-		$this->_attrs = array();
+	protected function getData($query) {
 		$result = array();
 
 		foreach($this as $i => $val) {
@@ -1030,20 +946,20 @@ abstract class ActiveRecord extends Core_General_Class{
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset = $regs->fetchAll();
 		$count = sizeof($resultset);
-
 		$this->_set_attributes($resultset);
 
 		if($count > 0){
 			for($j = 0; $j < $count; $j++){
-				$this->offsetSet($j, clone $this);
+				$this->offsetSet($j, new $this);
 
+				$this[$j]->_counter = 1;
+				$this[$j]->_fields = $this->_fields;
+			}
+
+			for($j = 0; $j < $count; $j++){
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-						if (!in_array($property, $this->_fields)) {
-							$this->_fields[] = $property;
-						}
-						$this[$j]->_counter = 1;
-						$this[$j]->{'_data_'.$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
+						$this[$j]->{$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
 					}
 				}
 			}
@@ -1053,11 +969,9 @@ abstract class ActiveRecord extends Core_General_Class{
 		if($this->_counter === 0){
 			$this->offsetSet(0, NULL);
 			$this[0] = NULL;
-			$this->_data = NULL;
 			unset($this[0]);
 			$this->Niu();
 		}
-
 		if($this->_counter === 1) {
 			foreach ($this->_fields as $field) {
 				if(isset($this[0]->{$field})) {
@@ -1095,8 +1009,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		CAN_USE_MEMCACHED && $this->memcached->set($key,$this);
 
-		$obj = clone($this);
-		return $obj;
+		return clone($this);
 	}
 
 	public function Find_by_SQL($query = NULL){
@@ -1124,9 +1037,9 @@ abstract class ActiveRecord extends Core_General_Class{
 			foreach ($resultset[0] as $key => $value) {
 				if(!in_array($key, $this->_fields)) {
 					$this->_fields[] = $key;
-					$this->_data[$key] = '';
-					$this->_dataAttributes[$key]['native_type'] = 'VARCHAR';
-					$this->_dataAttributes[$key]['cast'] = false;
+					$this->{$key} = '';
+					$this->_dataAttributes[$key]['native_type'] = is_numeric($value) ? 'NUMERIC' : 'STRING';
+					$this->_dataAttributes[$key]['cast'] = is_numeric($value);
 				}
 			}
 		}
@@ -1139,31 +1052,54 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->offsetUnset($i);
 		}
 
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->_attrs = NULL;
-		$this->_attrs = array();
+		$fields = $this->driver->getColumns();
 
-		empty($this->_fields) and $this->_set_attributes(array());
+		foreach($fields as $row) {
+			$toCast= false;
+			switch($row['Type']) {
+				case 'NUMERIC':
+				case 'INTEGER':
+				case 'INT':
+				case 'FLOAT':
+				case 'DOUBLE':
+					$toCast = true;
+				break;
+			}
+
+			$value = '';
+
+			$this->_fields[] = $row['Field'];
+			$this->{$row['Field']} = null;
+			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
+			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
+		}
 
 		if (!empty($contents)) {
 			foreach ($contents as $field => $content) {
 				if (in_array($field, $this->_fields)) {
-					$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
+					$this->{$field} = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
 				}
 			}
-			foreach ($this->_data as $field => $value) {
-				if(empty($value) && $value !== 0) {
+			foreach ($this->_fields as $field) {
+				if(empty($this->{$field}) && $this->{$field} !== 0) {
 					unset($this->{$field});
-					unset($this->_data[$field]);
 				}
 			}
 			$this->_counter = 1;
 		} else {
 			foreach ($this->_fields as $field) {
-				$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 : '';
+				$this->{$field} = $this->_dataAttributes[$field]['cast'] ? 0 : '';
 			}
 			$this->_counter = 0;
+		}
+
+		if($this->_counter === 1) {
+			$this->offsetSet(0, new $this);
+			foreach ($this->_fields as $field) {
+				if(isset($this->{$field})) {
+					$this[0]->{$field} = $this->{$field};
+				}
+			}
 		}
 
 		return clone($this);
@@ -1190,27 +1126,33 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			return false;
 		}
 
 		return true;
 	}
 
-	public function Insert($params = null) {
+	public function load($params = null) {
 
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 
-		$data = empty($params) ? $this->_data : $params;
+		if (empty($params)) {
+			foreach ($this->_fields as $field) {
+				if (isset($this->{$field})) {
+					$params[$field] = $this->{$field};
+				}
+			}
+		}
 
-		$prepared = $this->driver->Insert($data);
+		$prepared = $this->driver->Insert($params);
 		$this->_sqlQuery = $prepared['query'];
 
 		$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
 
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			return false;
 		}
 
@@ -1227,8 +1169,8 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-
-					isset($this->_data[$field]) and empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>$message));
+					preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this[$field],$matches);
+					isset($this->{$field}) and empty($matches) and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
 
@@ -1240,7 +1182,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>$message));
+					isset($this->{$field}) and (!is_numeric($this->{$field})) and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
 
@@ -1252,9 +1194,9 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					if(!empty($this->_data[$field])){
+					if(!empty($this[$field])){
 						$obj1 = new $this;
-						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->_data[$field]."' AND `{$this->pk}`<>'".$this->_data[$this->pk]."'"));
+						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->{$field}."' AND `{$this->pk}`<>'".$this[$this->pk]."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
 					}
 				}
@@ -1268,7 +1210,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>$message));
+					empty($this->{$field}) and $this->_error->add(array('field'=>$field,'message'=>$message));
 				}
 			}
 		}
@@ -1290,9 +1232,16 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->_ValidateOnSave('update');
 			if($this->_error->isActived()) return false;
 
-			AUTO_AUDITS && ($this->_data['updated_at'] = time());
+			$this->updated_at = time();
 
-			$prepared = $this->driver->Update(array('data'=>$this->_data, 'conditions'=>"{$this->_ObjTable}.{$this->pk} = ".$this->{$this->pk}));
+			$data = array();
+			foreach ($this->_fields as $key) {
+				if($key !== $this->pk && (isset($this->{$key}) && (!empty($this->{$key}) || $this->{$key} === 0))) {
+					$data[$key] = $this->{$key};
+				}
+			}
+
+			$prepared = $this->driver->Update(array('data'=>$data, 'conditions'=>"{$this->_ObjTable}.{$this->pk} = ".$this->{$this->pk}));
 		}else{
 			if(!empty($this->before_insert)){
 				foreach($this->before_insert as $functiontoRun){
@@ -1306,9 +1255,17 @@ abstract class ActiveRecord extends Core_General_Class{
 
 			if($this->_error->isActived()) return false;
 
-			AUTO_AUDITS && ($this->_data['created_at'] = time());
+			$this->created_at = time();
 
-			$prepared = $this->driver->Insert($this->_data);
+			$data = array();
+
+			foreach ($this->_fields as $key) {
+				if($key !== $this->pk && (!empty($this->{$key}) || $this->{$key} === 0)) {
+					$data[$key] = $this->{$key};
+				}
+			}
+
+			$prepared = $this->driver->Insert($data);
 
 		}
 		$this->_sqlQuery = $prepared['query'];
@@ -1322,7 +1279,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if(empty($this->{$this->pk})){
 			$this->{$this->pk} = $GLOBALS['Connection']->lastInsertId() + 0;
-			$this[0]->_data[$this->pk] = $this->{$this->pk};
+			$this[0][$this->pk] = $this->{$this->pk};
 			if(sizeof($this->after_insert)>0){
 				foreach($this->after_insert as $functiontoRun){
 					$this->{$functiontoRun}();
@@ -1417,42 +1374,20 @@ abstract class ActiveRecord extends Core_General_Class{
 
 	protected function ListProperties_ToString($i=0){
 		$listProperties = "{\n";
-		foreach ($this->_data as $var => $value){
-			ob_start();
-			var_dump($value);
-			$buffer = ob_get_clean();
-			for($j=0; $j<$i+1; $j++){
-				$listProperties .= "\t";
-			}
-			$listProperties .= "{$var} => {$buffer}";
-		}
-		foreach ($this->_attrs as $var => $value){
-			ob_start();
-			var_dump($value);
-			$buffer = ob_get_clean();
-			for($j=0; $j<$i+1; $j++){
-				$listProperties .= "\t";
-			}
-			$listProperties .= "{$var}: => {$buffer}";
-		}
-		for ($m = 0; $m < sizeof($this); $m++){
-			$listProperties .= "[{$m}] :\n";
-
-
-			if(is_object($this[$m]) && get_parent_class($this[$m]) == 'ActiveRecord'){
+		if($this->_counter === 1) {
+			foreach ($this->_fields as $key){
 				ob_start();
-				$this[$m]->inspect(1);
+				var_dump($this->{$key});
 				$buffer = ob_get_clean();
-
-				$listProperties .= "\t{$buffer}";
-			} else {
-				ob_start();
-				var_dump($this[$m]);
-				$buffer = ob_get_clean();
-
-				$listProperties .= "\t{$buffer}";
+				for($j=0; $j<$i+1; $j++){
+					$listProperties .= "\t";
+				}
+				$listProperties .= "{$key} => {$buffer}";
 			}
-
+		} else {
+			for($j = 0; $j < $this->_counter; $j++) {
+				$this[$j]->inspect($i + 1);
+			}
 		}
 
 		for($j=0; $j<$i; $j++){
@@ -1469,32 +1404,16 @@ abstract class ActiveRecord extends Core_General_Class{
 
 	public function getArray(){
 		$arraux = array();
-
-		if($this->_counter <= 1) {
-			foreach($this->_data as $property => $value){
-		        $arraux[0][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray() : $value;
-	        }
-			foreach ($this->_attrs as $index => $attribute) {
-				if(!empty($arraux[0][$index])) $index .= '_1';
-				$arraux[0][$index] = (is_object($attribute) and get_parent_class($attribute) == 'ActiveRecord')? $attribute->getArray() : $attribute;
-			}
-		} else {
-			$n=$m=0;
-	        for($t = 0; $t < $this->_counter; $t++){
-	        	if(!empty($this[$t]->_data)){
-			        foreach($this[$t]->_data as $property => $value){
-				        $arraux[$n][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
+		if($this->_counter > 0) {
+			for($j = 0; $j < $this->_counter; $j++) {
+				foreach($this->_fields as $key){
+					if(isset($this[$j]->{$key})) {
+			        	$arraux[$j][$key] = (is_object($this[$j]->{$key}) && get_parent_class($this[$j]->{$key}) == 'ActiveRecord')? $this[$j]->{$key}->getArray() : $this[$j]->{$key};
 			        }
-			        $n++;
 		        }
-		        if(!empty($this[$t]->_attrs)){
-		        	foreach($this[$t]->_attrs as $property => $value){
-		        		$arraux[$m][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
-		        	}
-		        	$m++;
-		        }
-	        }
+			}
 		}
+
 		return $arraux;
 	}
 
@@ -1528,25 +1447,34 @@ abstract class ActiveRecord extends Core_General_Class{
 		$items = $doc->getElementsByTagName($this->_ObjTable);
 		for($i=0; $i<$items->length; $i++){
 			$xitem = $items->item($i);
-			$idfield = $xitem->getElementsByTagName($this->pk);
-			if($idfield->length > 0){
-				$id  = $idfield->item(0)->nodeValue;
 
-				$Obj = new $this;
-				$Obj->Niu();
-				$arrObj = $Obj->getArray()[0];
-				$Obj->{$this->pk} = $id;
+			$data = array();
 
-				foreach($arrObj as $key => $value){
-					if($key != 'table'){
-						$field = $xitem->getElementsByTagName("$key");
-						$Obj->{$key} = (is_object($field->item(0)))?addslashes($field->item(0)->nodeValue):'';
-					}
+			if (empty($this->_fields)) {
+				$fields = $this->driver->getColumns();
+
+				foreach($fields as $row) {
+					$this->_fields[] = $row['Field'];
 				}
-				$Obj->Insert() or die($Obj->_error);
+			}
+
+			foreach($this->_fields as $key){
+				if($key != 'table'){
+					$field = $xitem->getElementsByTagName($key);
+					$data[$key] = (is_object($field->item(0)))?$field->item(0)->nodeValue:'';
+				}
+			}
+
+			$prepared = $this->driver->Insert($data);
+
+			$this->_sqlQuery = $prepared['query'];
+			$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+
+			if (!$sh->execute($prepared['prepared'])) {
+			    $e = $GLOBALS['Connection']->errorInfo();
+			    die($e[2]."{$this->_sqlQuery}");
 			}
 		}
-
 	}
 
 	public function WriteSchema($tableName){
@@ -1614,18 +1542,18 @@ abstract class ActiveRecord extends Core_General_Class{
 		return $arr;
 	}
 
-	public function _unset($index = 0) {
-		if($this->_counter === 1) {
-			$this->_data = null;
-			$this->_attrs = null;
-		} elseif($this->offsetExists($index)) {
-			$this[$index]->_data = null;
-			$this[$index]->_attrs = null;
-			$this->offsetUnSet($index);
-		}
-		$this->_counter--;
-		if($this->_counter < 0) $this->_counter = 0;
-	}
+	// public function _unset($index = 0) {
+	// 	if($this->_counter === 1) {
+	// 		$this->_data = null;
+	// 		$this->_attrs = null;
+	// 	} elseif($this->offsetExists($index)) {
+	// 		$this[$index]->_data = null;
+	// 		$this[$index]->_attrs = null;
+	// 		$this->offsetUnSet($index);
+	// 	}
+	// 	$this->_counter--;
+	// 	if($this->_counter < 0) $this->_counter = 0;
+	// }
 
 	public function toJSON() {
 		return json_encode($this->getArray());
@@ -1634,28 +1562,27 @@ abstract class ActiveRecord extends Core_General_Class{
 	public function Paginate($params = NULL){
 
 		if(is_array($params) && sizeof($params) === 1 && !empty($params[0])) $params = $params[0];
-		$arr_params = array();
-		$arr_2 = array();
+		$params2 = $params;
 		$per_page = (isset($params['per_page']))?$params['per_page']:10;
 		$this->paginateURL = empty($params['url']) ? '/' : $params['url'];
-		if(!empty($params['varPageName'])) {
-			$this->PaginatePageVarName = $params['varPageName'];
-		}
-		if(!empty($params['page'])) {
-			$this->PaginatePageNumber = $params['page'];
-		}
+
+		empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
+
+		empty($params['page']) or $this->PaginatePageNumber = $params['page'];
+
 		$start = ($this->PaginatePageNumber-1)*$per_page;
-		if(isset($params['conditions'])) $arr_2['conditions'] = $arr_params['conditions'] = $params['conditions'];
-		if(isset($params['join'])) $arr_2['join'] = $arr_params['join'] = $params['join'];
-		if(isset($params['fields'])) $arr_params['fields'] = $params['fields'];
-		if(isset($params['group'])) $arr_2['group'] = $arr_params['group'] = $params['group'];
-		if(isset($params['sort'])) $arr_2['sort'] = $arr_params['sort'] = $params['sort'];
+
 		$arr_params['limit'] = $start.",".$per_page;
-		$arr_2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
-		$this->PaginateTotalItems = $this->Find($arr_2)->PaginateTotalRegs;
+		$params2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
+		$queryCounter = $this->driver->Select($params2);
+		$regs = $GLOBALS['Connection']->query($queryCounter);
+		$regs->setFetchMode(PDO::FETCH_ASSOC);
+		$resultset = $regs->fetchAll();
+
+		$this->PaginateTotalItems = 0 + $resultset[0]['PaginateTotalRegs'];
 		$this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
 
-		return $this->Find($arr_params);
+		return $this->Find($params);
 	}
 
 	public function WillPaginate($params = NULL){
@@ -1739,17 +1666,17 @@ abstract class ActiveRecord extends Core_General_Class{
 			switch ($type) {
 				case 'text':
 				case 'hidden':
-					$input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->_data[$field].'" />';
+					$input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->{$field}.'" />';
 				break;
 				case 'textarea':
-					$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->_data[$field].'</textarea>';
+					$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field}.'</textarea>';
 				break;
 				case 'select':
 					$cont = !empty($params['first']) ? '<option value="">'.$params['first'].'</option>' : '';
 
 					foreach($params['list'] as $value => $option):
 						$default = '';
-						if($this->_data[$field] == $value) $default = 'selected="selected"';
+						if($this->{$field} == $value) $default = 'selected="selected"';
 						$cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
 					endforeach;
 					$input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
@@ -1832,7 +1759,8 @@ abstract class Page extends Core_General_Class {
 			}
 			echo $this->respondToAJAX();
 			if(!empty($this->params['callback'])) echo ');';
-			exit();
+			$renderPage = false;
+			$this->layout = '';
 		}
 		if(isset($this->render) and is_array($this->render)){
 			if (isset($this->render['action']) && $this->render['action'] === false) {
