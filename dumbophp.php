@@ -750,6 +750,16 @@ abstract class Core_General_Class extends ArrayObject {
 	}
 }
 
+
+defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
+
+if(CAN_USE_MEMCACHED && empty($GLOBALS['memcached'])){
+	$GLOBALS['memcached'] = new Memcached();
+	defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
+	defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
+	$GLOBALS['memcached']->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
+}
+
 abstract class ActiveRecord extends Core_General_Class{
 	public $PaginatePageVarName = 'page';
 	public $PaginateTotalItems = 0;
@@ -760,7 +770,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	public $_error = NULL;
 	public $_sqlQuery = '';
 	public $candump = true;
-	public $wakedUpVars = array();
 	public $created_at = 0;
 	public $updated_at = 0;
 	protected $_ObjTable;
@@ -784,7 +793,6 @@ abstract class ActiveRecord extends Core_General_Class{
 	protected $_params = array('fields'=>'*','conditions'=>'');
 	protected $pk = 'id';
 	protected $escapeField = array();
-	private $memcached = null;
 	private $engine = 'mysql';
 	protected $_fields = array();
 
@@ -799,9 +807,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			$words[$i] = Plurals($words[$i]);
 			$this->_ObjTable = implode("_", $words);
 		}
-
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-		$this->checkMemcached();
 		$driver = $GLOBALS['Connection']->engine.'Driver';
 		$this->driver = new $driver();
 		$this->driver->tableName = $this->_ObjTable;
@@ -812,124 +818,37 @@ abstract class ActiveRecord extends Core_General_Class{
 		$this->_init_();
 	}
 
+	private function _setMemcacheKey($key) {
+		$res = $GLOBALS['memcached']->get($this->_ObjTable);
+
+		($GLOBALS['memcached']->getResultCode() === 0 && is_array($res)) || ($res = array());
+
+		in_array($key,$res) || array_push($res, $key);
+
+		$GLOBALS['memcached']->set($this->_ObjTable,$res);
+	}
+
+	private function _refreshCache() {
+		$res = $GLOBALS['memcached']->get($this->_ObjTable);
+		
+		($GLOBALS['memcached']->getResultCode() === 0 && is_array($res)) || ($res = array());
+
+		foreach ($res as $key) {
+			$GLOBALS['memcached']->delete($key);
+		}
+	}
+
+	public function GetFields() {
+		return $this->_fields;
+	}
+
 	public function __destruct(){
 		$this->_params = null;
-	}
-
-	public function serialize() {
-		$name = get_class($this);
-		$countVars = 0;
-		$conts = '';
-		$backtrace = debug_backtrace();
-		if(sizeof($backtrace) <= 1)	throw new Exception('Active Record objects can not be storaged into session due to security reasons.');
-		$serializes = null;
-		$vars = get_class_vars($name);
-		foreach ($vars as $var => $type){
-			if(!empty($this->{$var}) && $var !== 'driver'){
-				$countVars++;
-				$typeof = gettype($this->{$var});
-				$conts .= 's:'.strlen($var).':"'.$var.'";';
-				switch ($typeof){
-					case 'integer':
-						$conts .= 'i:'.$this->{$var}.';';
-						break;
-					case 'string':
-						$conts .= 's:'.strlen($this->{$var}).':"'.$this->{$var}.'";';
-						break;
-					case 'boolean':
-						$conts .= 'b:'.((integer)$this->{$var}).';';
-						break;
-					case 'array':
-					case 'object':
-						$conts .= serialize($this->{$var});
-						break;
-				}
-			}
-		}
-		$serializes = $conts;
-
-		if($this->_counter > 1){
-			$countVars += $this->_counter;
-			for($i = 0; $i < $this->_counter; $i++){
-				$countVars1 = 0;
-				$conts = '';
-				foreach ($vars as $var => $type){
-					if(!empty($this[$i]->{$var}) && $var !== 'driver'){
-						$countVars1++;
-						$typeof = gettype($this[$i]->{$var});
-						$conts .= 's:'.strlen($var).':"'.$var.'";';
-						switch ($typeof){
-							case 'integer':
-								$conts .= 'i:'.$this[$i]->{$var}.';';
-								break;
-							case 'string':
-								$conts .= 's:'.strlen($this[$i]->{$var}).':"'.$this[$i]->{$var}.'";';
-								break;
-							case 'boolean':
-								$conts .= 'b:'.((integer)$this[$i]->{$var}).';';
-								break;
-							case 'array':
-							case 'object':
-								$conts .= serialize($this[$i]->{$var});
-								break;
-						}
-					}
-				}
-				$serializes1 = 'O:'.strlen($name).':"'.$name.'":'.$countVars1.':{'.$conts.'}';
-				$serializes .= 'i:'.$i.';C:'.strlen($name).':"'.$name.'":'.strlen($serializes1).':{'.$serializes1.'}';
-			}
-		}
-		$serializes = 'O:'.strlen($name).':"'.$name.'":'.$countVars.':{'.$serializes.'}';
-		return $serializes;
-	}
-
-	public function unserialize($data) {
-		$a = unserialize($data);
-		if(!empty($a->wakedUpVars['main'][1]['_counter']) && $a->wakedUpVars['main'][1]['_counter'] <= 1){
-			$min = sizeof($a->wakedUpVars['main']) - $a->wakedUpVars['main'][1]['_counter'];
-			for($i = 0; $i < $a->wakedUpVars['main'][1]['_counter']; $i++){
-				$this->offsetSet($i, NULL);
-				$classToUse = get_class($this);
-				$this[$i] = new $classToUse();
-				foreach($a->wakedUpVars['main'][$min+$i] as $obj){
-					$this[$i] = $obj;
-				}
-			}
-		} else {
-			foreach ($a->wakedUpVars['main'] as $var){
-				foreach ($var as $key => $value){
-					if(is_numeric($key)){
-						$this->offsetSet($key, NULL);
-						$classToUse = get_class($this);
-						$this[$key] = $value;
-					} else {
-						$this->{$key} = $value;
-					}
-				}
-			}
-		}
-	}
-
-	public function __wakeup(){
-		foreach($this as $key => $value){
-			$this->wakedUpVars['main'][] = array($key => $value);
-		}
 	}
 
 	public function getIterator() {
             return new ArrayIterator($this);
     }
-
-	private function checkMemcached() {
-		defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
-
-		if(CAN_USE_MEMCACHED && empty($this->memcached)){
-			$this->memcached = new Memcached();
-			defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
-			defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
-			$this->memcached->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
-		}
-	}
 
 	protected function getData($query) {
 		$result = array();
@@ -940,7 +859,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 
 		$j=0;
-		$regs = NULL;
+		
 		$regs = $GLOBALS['Connection']->query($query);
 		if(!is_object($regs)) die("Error in SQL Query. Please check the SQL Query: ".$query);
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
@@ -990,9 +909,8 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		if(CAN_USE_MEMCACHED){
 			$key = md5($this->_ObjTable.':'.serialize($params));
-			$res = null;
-			$res = $this->memcached->get($key);
-			if($this->memcached->getResultCode() == 0 && is_object($res)){
+			$res = $GLOBALS['memcached']->get($key);
+			if($GLOBALS['memcached']->getResultCode() == 0 && is_object($res)){
 				return $res;
 			}
 		}
@@ -1007,7 +925,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		}
 
-		CAN_USE_MEMCACHED && $this->memcached->set($key,$this);
+		CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key,$this) && $this->_setMemcacheKey($key);
 
 		return clone($this);
 	}
@@ -1027,7 +945,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				}
 			}
 			$this->getData($query);
-			CAN_USE_MEMCACHED && $this->memcached->set($key,$this);
+			CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key,$this);
 			return clone($this);
 		}
 	}
@@ -1129,7 +1047,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			return false;
 		}
-
+		CAN_USE_MEMCACHED && $this->_refreshCache();
 		return true;
 	}
 
@@ -1194,9 +1112,9 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					if(!empty($this[$field])){
+					if(!empty($this->{$field})){
 						$obj1 = new $this;
-						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->{$field}."' AND `{$this->pk}`<>'".$this[$this->pk]."'"));
+						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->{$field}."' AND `{$this->pk}`<>'".$this->{$this->pk}."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
 					}
 				}
@@ -1292,6 +1210,9 @@ abstract class ActiveRecord extends Core_General_Class{
 				$this->{$functiontoRun}();
 			}
 		}
+
+		CAN_USE_MEMCACHED && $this->_refreshCache();
+
 		return true;
 	}
 
@@ -1306,33 +1227,33 @@ abstract class ActiveRecord extends Core_General_Class{
 		if($conditions === NULL and empty($this->{$this->pk})){
 			$this->_error->add(array('field' => $this->_ObjTable,'message'=>"Must specify a register to delete"));
 			return FALSE;
-		}else{
-			$this->_sqlQuery = $this->driver->Delete($conditions);
-			if(sizeof($this->before_delete) >0){
-				foreach($this->before_delete as $functiontoRun){
-					$this->{$functiontoRun}();
-				}
-				if(!empty($this->_error) && $this->_error->isActived()){
-					return false;
-				}
-			}
-			$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
-			if(!$GLOBALS['Connection']->exec($this->_sqlQuery)){
-			    $e = $GLOBALS['Connection']->errorInfo();
-			    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
-			    return FALSE;
-			}
-			if(sizeof($this->after_delete) >0){
-				foreach($this->after_delete as $functiontoRun){
-					$this->{$functiontoRun}();
-				}
-			}
-			return TRUE;
 		}
+		$this->_sqlQuery = $this->driver->Delete($conditions);
+		if(sizeof($this->before_delete) >0){
+			foreach($this->before_delete as $functiontoRun){
+				$this->{$functiontoRun}();
+			}
+			if(!empty($this->_error) && $this->_error->isActived()){
+				return false;
+			}
+		}
+		$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
+		if(!$GLOBALS['Connection']->exec($this->_sqlQuery)){
+		    $e = $GLOBALS['Connection']->errorInfo();
+		    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
+		    return FALSE;
+		}
+		if(sizeof($this->after_delete) >0){
+			foreach($this->after_delete as $functiontoRun){
+				$this->{$functiontoRun}();
+			}
+		}
+		CAN_USE_MEMCACHED && $this->_refreshCache();
+		return TRUE;
 	}
 
 	protected function _delete_or_nullify_dependents($id){
-		if (!empty($this->dependents) and $id != 0){
+		if (!empty($this->dependents) && !empty($id)) {
 			foreach ($this->has_many as $model){
 				$s = Singulars($model);
 				$m = Camelize($s);

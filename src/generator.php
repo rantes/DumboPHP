@@ -87,6 +87,7 @@ class DumboGeneratorClass {
 	public $tblName = '';
 	public $camelized = '';
 	public $singularized = '';
+	private $fields = array();
 
 
 	public function __construct() {
@@ -213,15 +214,15 @@ DUMBOPHP;
 			require_once INST_PATH.'app/models/'.$this->singularized.'.php';
 			$model = new $this->camelized();
 
-			$fields = $model->GetFields();
+			// $fields = $model->GetFields();
 			$columnNames = '';
 			$dataRow = '';
 			$formContent = '';
-			foreach($fields as $field => $type){
-				$columnNames .= "\t\t\t\t\t<th>$field</th>\n";
-				$dataRow .= "\t\t\t\t\t<td><?=\$row->$field;?></td>\n\t\t\t\t\t";
-				$formContent .= ($field !== 'id')? "\t\t\t\t<label>$field :</label>\n" : '';
-				$formContent .= "\t\t\t\t<?=\$this->data->input_for(array('$field'));?>\n";
+			foreach($this->fields as $field){
+				$columnNames .= "\t\t\t\t\t<th>{$field->name}</th>\n";
+				$dataRow .= "\t\t\t\t\t<td><?=\$row->{$field->name};?></td>\n\t\t\t\t\t";
+				$formContent .= ($field !== 'id')? "\t\t\t\t<label>{$field->name} :</label>\n" : '';
+				$formContent .= "\t\t\t\t<?=\$this->data->input_for(array('{$field->name}'));?>\n";
 			}
 
 			$file = 'index.phtml';
@@ -232,7 +233,7 @@ DUMBOPHP;
 					<table>
 						<thead>
 						<tr>
-							$columnNames
+							{$columnNames}
 							<th>Actions</th>
 						</tr>
 						</thead>
@@ -263,7 +264,7 @@ DUMBOPHP;
 	<div>
 		<div>
 			<?=\$this->data->form_for(array('action'=>INST_URI.'{$this->singularized}/create/'));?>
-			$formContent
+$formContent
 			<input name="submit" type="submit" id="submit" value="Submit" />
 			<?=end_form_for();?>
 		</div>
@@ -289,10 +290,8 @@ DUMBOPHP;
 
 		empty($params[1]) and die('Error on Building: fields params are mandatory.'.PHP_EOL);
 
-		$fields = array();
-
 		for ($i=1; $i < sizeof($params); $i++) {
-			$fields[] = new FieldObject($params[$i]);
+			$this->fields[] = new FieldObject($params[$i]);
 		}
 
 		empty($this->tblName) and $this->setNames($params[0]);
@@ -319,7 +318,7 @@ DUMBOPHP;
 	}
 ?>
 DUMBOPHP;
-		$fieldsString = implode(",\n\t\t\t\t\t", $fields);
+		$fieldsString = implode(",\n\t\t\t\t\t", $this->fields);
 		$fileContent = str_replace('{{fields}}', $fieldsString, $fileContent);
 
 		file_put_contents("{$path}{$file}", $fileContent);

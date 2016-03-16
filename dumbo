@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
-
-set_include_path(implode(PATH_SEPARATOR, array('./vendors', get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp', './DumboPHP')));
+require_once './config/host.php';
+set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp', INST_PATH.'/DumboPHP')));
 
 class Colors {
 	private $foreground_colors = array();
@@ -64,12 +64,12 @@ class Colors {
 class dumboShell{
 	private $commands = array(
 				'create',
+				'run',
 				'init',
 				'db',
 				'generate',
 				'destroy',
-				'migration',
-				'run'
+				'migration'
 			);
 	private $command = null;
 	private $dumboSource = '/etc/dumbophp/src';
@@ -103,7 +103,7 @@ class dumboShell{
 		// print_r(apache_get_modules());
 	}
 
-	public function execute($argv) {
+	public function run($argv) {
 		if(empty($argv[1]) || sizeof($argv) < 2) {
 			$this->help();
 			die($this->showError('Error: Option not valid.'));
@@ -134,7 +134,7 @@ class dumboShell{
 					$this->initAppScript();
 				break;
 				case 'run':
-					$this->runControllerActionScript();
+					$this->runActionScript();
 				break;
 				default:
 					$this->help();
@@ -174,25 +174,11 @@ Commands:
 	db [dump|load] <all|model>
 		Actions for database.
 
-	run controller\action param1=value1 paramN=valueN
+	run [controller/action] [<param=val> <paramn=valn>]
+		executes a controller/action. index/index as default.
 
 DUMBO;
 		echo $text;
-	}
-
-	private function runControllerActionScript() {
-		empty($this->arguments[0]) and die($this->showError('Cannot run action: Missing params.'));
-		$url = explode('/', $this->arguments[0]);
-		sizeof($url) === 2 or die($this->showError('Cannot run action: controller/action param malformed.'));
-		$_GET['url'] = array_shift($this->arguments);
-
-		for ($i=0; $i < sizeof($this->arguments); $i++) {
-			$param = explode('=', $this->arguments[$i]);
-			if (sizeof($param) === 2) {
-				$_GET[$param[0]] = $param[1];
-			}
-		}
-		require_once 'app/webroot/index.php';
 	}
 
 	private function initAppScript() {
@@ -420,6 +406,16 @@ DUMBO;
 		}
 	}
 
+	private function runActionScript() {
+		$url = 'url=';
+		$url .= empty($this->arguments[0])? 'index/index' : $this->arguments[0];
+		array_shift($this->arguments);
+		$params = implode(' ', $this->arguments);
+		$output = shell_exec("php app/webroot/index.php $url $params");
+		echo PHP_EOL,$output,PHP_EOL;
+		// die();
+	}
+
 	private function migrationScripts() {
 		file_exists('./config/host.php') or die('Migrations actions must be executed at the top level of project path.'.PHP_EOL);
 
@@ -497,5 +493,5 @@ DUMBO;
 }
 
 $shell = new dumboShell();
-$shell->execute($argv);
+$shell->run($argv);
 ?>
