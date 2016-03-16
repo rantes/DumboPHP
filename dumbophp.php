@@ -939,7 +939,7 @@ abstract class ActiveRecord extends Core_General_Class{
 				$key = md5($query);
 				$res = null;
 				$res = $GLOBALS['memcached']->get($key);
-				if($memcached->getResultCode() == 0 && is_object($res)){
+				if($GLOBALS['memcached']->getResultCode() == 0 && is_object($res)){
 					return $res;
 				}
 			}
