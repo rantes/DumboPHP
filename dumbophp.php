@@ -752,8 +752,7 @@ abstract class Core_General_Class extends ArrayObject {
 
 
 defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
-
-if(CAN_USE_MEMCACHED && empty($GLOBALS['memcached'])){
+if(CAN_USE_MEMCACHED){
 	$GLOBALS['memcached'] = new Memcached();
 	defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
 	defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
@@ -830,7 +829,7 @@ abstract class ActiveRecord extends Core_General_Class{
 
 	private function _refreshCache() {
 		$res = $GLOBALS['memcached']->get($this->_ObjTable);
-		
+
 		($GLOBALS['memcached']->getResultCode() === 0 && is_array($res)) || ($res = array());
 
 		foreach ($res as $key) {
@@ -859,7 +858,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 
 		$j=0;
-		
+
 		$regs = $GLOBALS['Connection']->query($query);
 		if(!is_object($regs)) die("Error in SQL Query. Please check the SQL Query: ".$query);
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
@@ -1178,7 +1177,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			$data = array();
 
 			foreach ($this->_fields as $key) {
-				if($key !== $this->pk && (!empty($this->{$key}) || $this->{$key} === 0)) {
+				if($key !== $this->pk && isset($this->{$key})) {
 					$data[$key] = $this->{$key};
 				}
 			}
@@ -1463,25 +1462,12 @@ abstract class ActiveRecord extends Core_General_Class{
 		return $arr;
 	}
 
-	// public function _unset($index = 0) {
-	// 	if($this->_counter === 1) {
-	// 		$this->_data = null;
-	// 		$this->_attrs = null;
-	// 	} elseif($this->offsetExists($index)) {
-	// 		$this[$index]->_data = null;
-	// 		$this[$index]->_attrs = null;
-	// 		$this->offsetUnSet($index);
-	// 	}
-	// 	$this->_counter--;
-	// 	if($this->_counter < 0) $this->_counter = 0;
-	// }
-
 	public function toJSON() {
 		return json_encode($this->getArray());
 	}
 
 	public function Paginate($params = NULL){
-
+		$resultset = array();
 		if(is_array($params) && sizeof($params) === 1 && !empty($params[0])) $params = $params[0];
 		$params2 = $params;
 		$per_page = (isset($params['per_page']))?$params['per_page']:10;
@@ -1493,16 +1479,28 @@ abstract class ActiveRecord extends Core_General_Class{
 
 		$start = ($this->PaginatePageNumber-1)*$per_page;
 
-		$arr_params['limit'] = $start.",".$per_page;
+		$params['limit'] = $start.",".$per_page;
 		$params2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
 		$queryCounter = $this->driver->Select($params2);
-		$regs = $GLOBALS['Connection']->query($queryCounter);
-		$regs->setFetchMode(PDO::FETCH_ASSOC);
-		$resultset = $regs->fetchAll();
+		if (CAN_USE_MEMCACHED) {
+			$key = md5($queryCounter);
+			$resultset = $GLOBALS['memcached']->get($key);
+		}
+
+		if(empty($resultset) || !is_array($resultset)) {
+			$regs = $GLOBALS['Connection']->query($queryCounter);
+			$regs->setFetchMode(PDO::FETCH_ASSOC);
+			$resultset = $regs->fetchAll();
+
+			if (CAN_USE_MEMCACHED) {
+				$key = md5($queryCounter);
+				$GLOBALS['memcached']->set($key,$resultset);
+				$this->_setMemcacheKey($key);
+			}
+		}
 
 		$this->PaginateTotalItems = 0 + $resultset[0]['PaginateTotalRegs'];
 		$this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
-
 		return $this->Find($params);
 	}
 
