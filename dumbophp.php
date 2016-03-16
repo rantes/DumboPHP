@@ -938,7 +938,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			if(CAN_USE_MEMCACHED){
 				$key = md5($query);
 				$res = null;
-				$res = $memcached->get($key);
+				$res = $GLOBALS['memcached']->get($key);
 				if($memcached->getResultCode() == 0 && is_object($res)){
 					return $res;
 				}
