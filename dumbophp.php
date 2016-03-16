@@ -1177,7 +1177,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			$data = array();
 
 			foreach ($this->_fields as $key) {
-				if($key !== $this->pk && isset($this->{$key})) {
+				if($key !== $this->pk && isset($this->{$key}) && (!empty($this->{$key}) || $this->{$key} == 0)) {
 					$data[$key] = $this->{$key};
 				}
 			}
