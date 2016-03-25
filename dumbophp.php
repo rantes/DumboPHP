@@ -1,7 +1,10 @@
 <?php
+$in_shell = false;
 if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
 	parse_str(implode('&', array_slice($argv, 1)), $_GET);
+	$in_shell = true;
 }
+define('_IN_SHELL_',$in_shell);
 for($i = 1; $i <= 5; $i++) {
 	for($j = 0; $j <= 10; $j++) {
 		$code = ($i * 100) + $j;
@@ -1593,15 +1596,15 @@ abstract class Migrations extends Core_General_Class {
 		$this->alter();
 	}
 	protected function Create_Table($table = NULL){
-		defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
+		defined('AUTO_AUDITS') || define('AUTO_AUDITS', true);
 		if($table !== NULL){
 			$tablName = $table['Table'];
 			$query = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
 			$query .= "`id` INT PRIMARY KEY ,";
 			foreach($table as $key => $Field){
 				if(strcmp($key, 'Table') != 0){
-					if($Field['type'] == 'VARCHAR' and empty($Field['limit'])) $Field['limit'] = 250;
-					$query .= (!empty($Field['field']) and !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
+					if($Field['type'] == 'VARCHAR' && empty($Field['limit'])) $Field['limit'] = 250;
+					$query .= (!empty($Field['field']) && !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
 					$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
 					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
 					$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
@@ -1615,35 +1618,40 @@ abstract class Migrations extends Core_General_Class {
 			}
 			$query = substr($query, 0, -2);
 			$query .= ");";
-			echo 'Running query: ', $query, PHP_EOL;
+			_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
 			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 			$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
-			echo 'Running query: ', $query, PHP_EOL;
+			_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
 			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 		}
 	}
 	protected function Drop_Table($table){
 		$query = "DROP TABLE IF EXISTS `".$table."`";
-		echo 'Running query: ', $query, PHP_EOL;
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
 		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
-	protected function Add_Column($columns = NULL){
-		if(is_array($columns) && !empty($columns)){
-			if($columns['type'] == 'VARCHAR' and empty($columns['limit'])) $columns['limit'] = '255';
-			$query = "ALTER TABLE `".$columns['Table']."` ADD COLUMN `".$columns['field']."` ".strtoupper($columns['type']);
-			$query .= (isset($columns['limit']) and $columns['limit'] != '')? "(".$columns['limit'].")" : NULL;
-			$query .= (isset($columns['null']) and $columns['null'] != '')? " NOT NULL" : NULL;
-			$query .= (isset($columns['default']) and $columns['default'] != '')? " DEFAULT '".$columns['default']."'" : NULL;
-			$query .= (!empty($columns['comments']))? " COMMENT '".$columns['comment']."'" : NULL;
-			echo 'Running query: ', $query, PHP_EOL;
-			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
-		}else{
-			throw new Exception('Cannot add a column with '.gettype($columns).'.');
-		}
+	protected function Add_Column(array $params){
+		if($params['type'] == 'VARCHAR' && empty($params['limit'])) $params['limit'] = '255';
+		$query = "ALTER TABLE `".$params['Table']."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
+		$query .= (isset($params['limit']) && $params['limit'] != '')? "(".$params['limit'].")" : NULL;
+		$query .= (isset($params['null']) && $params['null'] != '')? " NOT NULL" : NULL;
+		$query .= (isset($params['default']) && $params['default'] != '')? " DEFAULT '".$params['default']."'" : NULL;
+		$query .= (!empty($params['comments']))? " COMMENT '".$params['comment']."'" : NULL;
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		$GLOBALS['Connection']->exec($query) || print_r($GLOBALS['Connection']->errorInfo());
+	}
+	protected function Add_Index(array $params) {
+		if(empty($params['Table'])) throw new Exception("Table param can not be empty", 1);
+		if(empty($params['name'])) throw new Exception("name param can not be empty", 1);
+		if(empty($params['fields'])) throw new Exception("fields param can not be empty", 1);
+		if(!is_array($params['fields'])) throw new Exception("fields param must be an array", 1);
+		$fields = implode(',',$params['fields']);
+		$query = "ALTER TABLE `{$params['Table']}` ADD INDEX `{$params['name']}` ({$fields})";
+		$GLOBALS['Connection']->exec($query) !== false || print_r($GLOBALS['Connection']->errorInfo());
 	}
 	protected function Remove_Column($column=NULL){
 		$query = "ALTER TABLE `".$column[0]."` DROP `".$column[1]."`";
-		echo 'Running query: ', $query, PHP_EOL;
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
 		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
 }
