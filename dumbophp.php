@@ -1595,35 +1595,33 @@ abstract class Migrations extends Core_General_Class {
 		$this->up();
 		$this->alter();
 	}
-	protected function Create_Table($table = NULL){
+	protected function Create_Table(array $table){
 		defined('AUTO_AUDITS') || define('AUTO_AUDITS', true);
-		if($table !== NULL){
-			$tablName = $table['Table'];
-			$query = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
-			$query .= "`id` INT PRIMARY KEY ,";
-			foreach($table as $key => $Field){
-				if(strcmp($key, 'Table') != 0){
-					if($Field['type'] == 'VARCHAR' && empty($Field['limit'])) $Field['limit'] = 250;
-					$query .= (!empty($Field['field']) && !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
-					$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
-					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
-					$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
-					$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
-					$query .= " ,";
-				}
+		$tablName = $table['Table'];
+		$query = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
+		$query .= "`id` INT PRIMARY KEY ,";
+		foreach($table as $key => $Field){
+			if(strcmp($key, 'Table') != 0){
+				if($Field['type'] == 'VARCHAR' && empty($Field['limit'])) $Field['limit'] = 250;
+				$query .= (!empty($Field['field']) && !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
+				$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
+				$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
+				$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
+				$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
+				$query .= " ,";
 			}
-			if(AUTO_AUDITS){
-				$query .= "`created_at` INT NOT NULL ,";
-				$query .= "`updated_at` INT NOT NULL ,";
-			}
-			$query = substr($query, 0, -2);
-			$query .= ");";
-			_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
-			$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
-			_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 		}
+		if(AUTO_AUDITS){
+			$query .= "`created_at` INT NOT NULL ,";
+			$query .= "`updated_at` INT NOT NULL ,";
+		}
+		$query = substr($query, 0, -2);
+		$query .= ");";
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
+		$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
 	protected function Drop_Table($table){
 		$query = "DROP TABLE IF EXISTS `".$table."`";
@@ -1638,7 +1636,7 @@ abstract class Migrations extends Core_General_Class {
 		$query .= (isset($params['default']) && $params['default'] != '')? " DEFAULT '".$params['default']."'" : NULL;
 		$query .= (!empty($params['comments']))? " COMMENT '".$params['comment']."'" : NULL;
 		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-		$GLOBALS['Connection']->exec($query) || print_r($GLOBALS['Connection']->errorInfo());
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
 	protected function Add_Index(array $params) {
 		if(empty($params['Table'])) throw new Exception("Table param can not be empty", 1);
