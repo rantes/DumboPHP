@@ -1,24 +1,19 @@
 <?php
+$in_shell = false;
 if(php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)){
 	parse_str(implode('&', array_slice($argv, 1)), $_GET);
+	$in_shell = true;
 }
-
-define('HTTP_200', 200);
-define('HTTP_201', 201);
-define('HTTP_204', 204);
-define('HTTP_304', 304);
-define('HTTP_400', 400);
-define('HTTP_401', 401);
-define('HTTP_403', 403);
-define('HTTP_404', 404);
-define('HTTP_405', 405);
-define('HTTP_406', 406);
-define('HTTP_500', 500);
-
+define('_IN_SHELL_',$in_shell);
+for($i = 1; $i <= 5; $i++) {
+	for($j = 0; $j <= 10; $j++) {
+		$code = ($i * 100) + $j;
+		define('HTTP_'.$code, $code);
+	}
+}
 final class IrregularNouns {
 	public $singular = array();
 	public $plural = array();
-
 	public function __construct(){
 		$this->singular[] =	'abyss';
 		$this->singular[] =	'alumnus';
@@ -126,7 +121,6 @@ final class IrregularNouns {
 		$this->singular[] =	'wharf';
 		$this->singular[] =	'wife';
 		$this->singular[] =	'woman';
-
 		$this->plural[] =	'abysses';
 		$this->plural[] =	'alumni';
 		$this->plural[] =	'analyses';
@@ -235,7 +229,6 @@ final class IrregularNouns {
 		$this->plural[] =	'women';
 	}
 }
-
 function Plurals($params, &$obj=NULL){
 	if($obj === NULL) $string = $params;
 	else $string = $params[0];
@@ -254,7 +247,6 @@ function Plurals($params, &$obj=NULL){
 			else:
 				$strconv = str_replace('y', 'ies', $string);
 			endif;
-
 		elseif(substr($string, -1, 1) == 'x' or substr($string, -1, 1) == 's' or substr($string, -2, 2) == 'ch' or substr($string, -2, 2) == 'sh' or substr($string, -2, 2) == 'ss'):
 			$strconv = $string.'es';
 		else:
@@ -263,14 +255,11 @@ function Plurals($params, &$obj=NULL){
 	endif;
 	return $strconv;
 }
-
 function Singulars($params, &$obj=NULL){
 	if($obj == NULL) $string = $params;
 	else $string = $params[0];
-
 	$IN = new IrregularNouns();
 	$strconv = '';
-
 	if(in_array($string, $IN->plural)):
 		$key = array_search($string, $IN->plural);
 		$strconv = $IN->singular[$key];
@@ -290,7 +279,6 @@ function Singulars($params, &$obj=NULL){
 	endif;
 	return $strconv;
 }
-
 function Camelize($params, &$obj=NULL){
 	if($obj === NULL) $string = $params;
 	else $string = $params[0];
@@ -307,14 +295,11 @@ function Camelize($params, &$obj=NULL){
 	endif;
 	return $newName;
 }
-
  function ToList(&$arr, &$obj = NULL){
  	$list = '';
-
 	if(isset($obj) and is_object($obj) and get_parent_class($obj) == 'ActiveRecord'):
 		$arr = $obj->getArray();
 	endif;
-
 	if(isset($arr) and sizeof($arr) > 0):
 		foreach($arr as $value){
 			if(is_array($value)):
@@ -324,17 +309,13 @@ function Camelize($params, &$obj=NULL){
 			endif;
 		}
 		$list = substr($list,0,-1);
-
 	endif;
-
  	return $list;
  }
-
  function unCamelize($params, &$obj=NULL){
 	if($obj === NULL) $string = $params;
 	else $string = $params[0];
 	$newstring = '';
-
 	if(isset($string) and is_string($string)):
 		$string[0] = strtolower($string[0]);
 		for($i = 0; $i < strlen($string); $i++){
@@ -342,14 +323,11 @@ function Camelize($params, &$obj=NULL){
 			$newstring .= strtolower($string[$i]);
 		}
 	endif;
-
  	return $newstring;
  }
-
  function cleanToSEO($params, &$obj = NULL){
 	if($obj === NULL) $string = $params;
 	else $string = $params[0];
-
 	$specialChars = array("/\xc0/","/\xc1/","/\xc2/","/\xc3/","/\xc4/","/\xc5/","/\xc6/","/\xc7/","/\xc8/","/\xc9/","/\xca/","/\xcb/","/\xcc/","/\xcd/","/\xce/","/\xcf/","/\xd0/","/\xd1/",
  			"/\xd2/","/\xd3/","/\xd4/","/\xd5/","/\xd6/","/\xd7/","/\xd8/","/\xd9/","/\xda/","/\xdb/","/\xdc/","/\xdd/","/\xde/","/\xdf/","/\xe0/","/\xe1/","/\xe2/","/\xe3/","/\xe4/","/\xe5/","/\xe6/",
  			"/\xe7/","/\xe8/","/\xe9/","/\xea/","/\xeb/","/\xec/","/\xed/","/\xee/","/\xef/","/\xf0/","/\xf1/","/\xf2/","/\xf3/","/\xf4/","/\xf5/","/\xf6/","/\xf7/","/\xf8/","/\xf9/","/\xfa/","/\xfb/","/\xfc/","/\xfd/","/\xfe/","/\xff/");
@@ -360,10 +338,8 @@ function Camelize($params, &$obj=NULL){
 	$string = strtolower($string);
 	$string = preg_replace('/[\s]+/', '-', $string);
 	$string = preg_replace('/[^a-zA-Z0-9-]/', '', $string);
-
 	return $string;
  }
-
  function cleanASCII($string) {
  	$specialChars = array("/\xc0/","/\xc1/","/\xc2/","/\xc3/","/\xc4/","/\xc5/","/\xc6/","/\xc7/","/\xc8/","/\xc9/","/\xca/","/\xcb/","/\xcc/","/\xcd/","/\xce/","/\xcf/","/\xd0/","/\xd1/",
  			"/\xd2/","/\xd3/","/\xd4/","/\xd5/","/\xd6/","/\xd7/","/\xd8/","/\xd9/","/\xda/","/\xdb/","/\xdc/","/\xdd/","/\xde/","/\xdf/","/\xe0/","/\xe1/","/\xe2/","/\xe3/","/\xe4/","/\xe5/","/\xe6/",
@@ -373,7 +349,6 @@ function Camelize($params, &$obj=NULL){
  			'&ograve;','&oacute;','&ocirc;','&otilde;','&ouml;','&oslash;','u','u','u','u','y','b','y');
  	return preg_replace($specialChars, $normalChars, $string);
  }
-
  function strGenerate($params = null) {
  	$length = 8;
  	$case = 'both';
@@ -413,10 +388,8 @@ function Camelize($params, &$obj=NULL){
  		$pos = mt_rand(0, $max);
  		$result .= $primaryString[$pos];
  	} while(strlen($result) < $length);
-
  	return $result;
  }
-
  function GetInput($type, &$obj=NULL){
 	if($obj!=NULL) $type = $type[0];
 	$type = strtolower($type);
@@ -426,15 +399,12 @@ function Camelize($params, &$obj=NULL){
 		return 'textarea';
 	endif;
 }
-
 function toOptions(&$arr, &$obj = NULL){
 	$arr1 = array();
 	$arraux = array();
-
 	if(isset($obj) and is_object($obj)):
 		$arr = $obj->getArray();
 	endif;
-
 	foreach($arr as $mainkey => $element):
 		$arraux = array();
 		foreach($element as $key => $value):
@@ -444,23 +414,17 @@ function toOptions(&$arr, &$obj = NULL){
 	endforeach;
 	return $arr1;
 }
-
 function checkBoxToInt(&$arr, &$obj = NULL){
 	if($arr !== NULL and $arr == 'on') return 1;
 	return 0;
 }
-
 function end_form_for(){
 	return '</form>';
 }
-
-
-
 function image_tag($params, &$obj=NULL){
 	$rute = 'images/';
 	$params = ($obj === NULL)? $params : $params[0];
 	if(is_array($params)):
-
 		if(isset($params['image'])):
 			if(isset($params['rute'])):
 				if($params['rute'] == 'absolute'):
@@ -478,7 +442,6 @@ function image_tag($params, &$obj=NULL){
 					$html_options .= " $attr=\"$value\"";
 				endforeach;
 			endif;
-
 			if(isset($params['alt'])) $html_options .= ' alt="'.$params['alt'].'"';
 			if(isset($params['border'])) $html_options .= ' border="'.$params['border'].'"';
 			return '<img src="'.INST_URI.'images/'.$params['image'].'" '.$html_options.' />';
@@ -488,7 +451,6 @@ function image_tag($params, &$obj=NULL){
 		return '<img src="'.INST_URI.'images/'.$image.'" />';
 	endif;
 }
-
 function stylesheet_link_tag($params, &$obj=NULL){
 	$css = NULL;
 	if(!is_array($params) and is_string($params)) $css = $params;
@@ -511,7 +473,6 @@ function stylesheet_link_tag($params, &$obj=NULL){
 		return "<link href=\"".INST_URI."css/$css\" type=\"$type\" rel=\"$rel\" media=\"$media\"  />";
 	endif;
 }
-
 function link_to($params = array(), &$obj = NULL){
 	$params = ($obj === NULL)? $params : $params[0];
 	$link = '';
@@ -552,7 +513,6 @@ function link_to($params = array(), &$obj = NULL){
 				}
 				unset($params['html']);
 			endif;
-
 			if(sizeof($params) > 0 and !is_array($params)):
 				if(sizeof($params) === 1):
 					list($var) = $params;
@@ -574,7 +534,6 @@ function link_to($params = array(), &$obj = NULL){
 		return "<a ".$link." $html_options>$content</a>";
 	endif;
 }
-
 function javascript_include_tag($params, &$obj = NULL){
 	$js = '';
 	$params = ($obj === NULL)? $params: $params[0];
@@ -608,11 +567,9 @@ function javascript_include_tag($params, &$obj = NULL){
 		return NULL;
 	endif;
 }
-
 class Connection extends PDO {
 	private $_settings = null;
 	public $engine = null;
-
 	function __construct($file = 'config/db__settings.ini') {
 		if (!$this->_settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
 		$this->engine = $this->_settings['database']['driver'];
@@ -628,7 +585,6 @@ class Connection extends PDO {
 					$dsn = $this->engine.':'.$this->_settings['database']['schema'];
 				}
 			break;
-
 			default:
 				$dsn = $this->engine .
 				((!empty($this->_settings['database']['host'])) ? (':host=' . $this->_settings['database']['host']) : '') .
@@ -640,18 +596,16 @@ class Connection extends PDO {
 		}
 		empty($this->_settings['database']['username']) and $this->_settings['database']['username'] = null;
 		empty($this->_settings['database']['password']) and $this->_settings['database']['password'] = null;
-		parent::__construct($dsn, $this->_settings['database']['username'], $this->_settings['database']['password'],array(PDO::ATTR_PERSISTENT => true));
+		parent::__construct($dsn, $this->_settings['database']['username'], $this->_settings['database']['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => true,PDO::ATTR_PERSISTENT => true));
+		$this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	}
 }
-
 $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
 require_once dirname(__FILE__).'/src/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
-
 class Errors{
 	private $actived = FALSE;
 	private $messages = array();
 	private $counter = 0;
-
 	public function add($params = NULL){
 		if($params === NULL or !is_array($params)):
 			throw new Exception("Must to give an array with the params to add.");
@@ -665,7 +619,6 @@ class Errors{
 			endif;
 		endif;
 	}
-
 	public function __toString(){
 		$strmes = '';
 		foreach($this->messages as $field => $messages){
@@ -676,11 +629,9 @@ class Errors{
 		}
 		return $strmes;
 	}
-
 	public function isActived(){
 		return $this->actived;
 	}
-
 	public function errCodes(){
 		$errorsCodes = array();
 		foreach($this->messages as $field => $messages){
@@ -690,7 +641,6 @@ class Errors{
 		}
 		return $errorCodes;
 	}
-
 	public function errFields(){
 		$errorsFields = array();
 		foreach($this->messages as $field => $messages){
@@ -698,16 +648,11 @@ class Errors{
 		}
 		return $errorFields;
 	}
-
 	public function hasErrorCode($code = NULL){
 		return in_array($code, $this->errCodes());
 	}
 }
-
-// $Errors = new Errors;
-
-abstract class Core_General_Class extends ArrayObject{
-
+abstract class Core_General_Class extends ArrayObject {
 	public function __call($ClassName, $val = NULL){
 		$field = Singulars(strtolower($ClassName));
 		$classFromCall = Camelize($ClassName);
@@ -742,7 +687,6 @@ abstract class Core_General_Class extends ArrayObject{
 				}elseif(in_array($ClassName, $this->belongs_to)){
 					$conditions = "`id`='".$this->{$foreign}."'";
 				}
-
 				$params['conditions'] = empty($params['conditions'])? $conditions : ' AND '.$conditions;
 				return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
 			}
@@ -755,7 +699,13 @@ abstract class Core_General_Class extends ArrayObject{
 		}
 	}
 }
-
+defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
+if(CAN_USE_MEMCACHED){
+	$GLOBALS['memcached'] = new Memcached();
+	defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
+	defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
+	$GLOBALS['memcached']->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
+}
 abstract class ActiveRecord extends Core_General_Class{
 	public $PaginatePageVarName = 'page';
 	public $PaginateTotalItems = 0;
@@ -766,7 +716,8 @@ abstract class ActiveRecord extends Core_General_Class{
 	public $_error = NULL;
 	public $_sqlQuery = '';
 	public $candump = true;
-	public $wakedUpVars = array();
+	public $created_at = 0;
+	public $updated_at = 0;
 	protected $_ObjTable;
 	protected $_singularName;
 	protected $_counter = 0;
@@ -784,21 +735,14 @@ abstract class ActiveRecord extends Core_General_Class{
 	protected $after_delete = array();
 	protected $before_delete = array();
 	protected $dependents = '';
-	protected $_data = array();
-	protected $_attrs = array();
 	protected $_dataAttributes = array();
-	protected $_models = array();
 	protected $_params = array('fields'=>'*','conditions'=>'');
 	protected $pk = 'id';
 	protected $escapeField = array();
-	private $memcached = null;
 	private $engine = 'mysql';
-	private $_fields = array();
-
+	protected $_fields = array();
 	public function _init_(){}
-
 	final public function __construct() {
-
 		if (empty($this->_ObjTable)) {
 			$className =  unCamelize(get_class($this));
 			$words = explode("_", $className);
@@ -806,258 +750,70 @@ abstract class ActiveRecord extends Core_General_Class{
 			$words[$i] = Plurals($words[$i]);
 			$this->_ObjTable = implode("_", $words);
 		}
-
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-		$this->checkMemcached();
 		$driver = $GLOBALS['Connection']->engine.'Driver';
 		$this->driver = new $driver();
 		$this->driver->tableName = $this->_ObjTable;
 		$this->driver->pk = $this->pk;
-
 		$this->_error = new Errors;
-
-		if (empty($this->_fields)) {
-			$fields = $this->driver->getColumns();
-
-			foreach($fields as $row) {
-				$toCast= false;
-				switch($row['Type']) {
-					case 'NUMERIC':
-					case 'INTEGER':
-					case 'INT':
-					case 'FLOAT':
-					case 'DOUBLE':
-						$toCast = true;
-					break;
-				}
-
-				$value = '';
-
-				$this->_fields[] = $row['Field'];
-				$this->_data[$row['Field']] = '';
-				$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-				$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
-			}
-		}
-
 		$this->_init_();
 	}
-
+	private function _setMemcacheKey($key) {
+		$res = $GLOBALS['memcached']->get($this->_ObjTable);
+		($GLOBALS['memcached']->getResultCode() === 0 && is_array($res)) || ($res = array());
+		in_array($key,$res) || array_push($res, $key);
+		$GLOBALS['memcached']->set($this->_ObjTable,$res);
+	}
+	private function _refreshCache() {
+		$res = $GLOBALS['memcached']->get($this->_ObjTable);
+		($GLOBALS['memcached']->getResultCode() === 0 && is_array($res)) || ($res = array());
+		foreach ($res as $key) {
+			$GLOBALS['memcached']->delete($key);
+		}
+	}
+	public function GetFields() {
+		return $this->_fields;
+	}
 	public function __destruct(){
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->_attrs = NULL;
-		$this->_attrs = array();
 		$this->_params = null;
 	}
-
-	public function serialize() {
-		$name = get_class($this);
-		$countVars = 0;
-		$conts = '';
-		$backtrace = debug_backtrace();
-		if(sizeof($backtrace) <= 1)	throw new Exception('Active Record objects can not be storaged into session due to security reasons.');
-		$serializes = null;
-		$vars = get_class_vars($name);
-		foreach ($vars as $var => $type){
-			if(!empty($this->{$var}) && $var !== 'driver'){
-				$countVars++;
-				$typeof = gettype($this->{$var});
-				$conts .= 's:'.strlen($var).':"'.$var.'";';
-				switch ($typeof){
-					case 'integer':
-						$conts .= 'i:'.$this->{$var}.';';
-						break;
-					case 'string':
-						$conts .= 's:'.strlen($this->{$var}).':"'.$this->{$var}.'";';
-						break;
-					case 'boolean':
-						$conts .= 'b:'.((integer)$this->{$var}).';';
-						break;
-					case 'array':
-					case 'object':
-						$conts .= serialize($this->{$var});
-						break;
-				}
-			}
-		}
-		$serializes = $conts;
-
-		if($this->_counter > 1){
-			$countVars += $this->_counter;
-			for($i = 0; $i < $this->_counter; $i++){
-				$countVars1 = 0;
-				$conts = '';
-				foreach ($vars as $var => $type){
-					if(!empty($this[$i]->{$var}) && $var !== 'driver'){
-						$countVars1++;
-						$typeof = gettype($this[$i]->{$var});
-						$conts .= 's:'.strlen($var).':"'.$var.'";';
-						switch ($typeof){
-							case 'integer':
-								$conts .= 'i:'.$this[$i]->{$var}.';';
-								break;
-							case 'string':
-								$conts .= 's:'.strlen($this[$i]->{$var}).':"'.$this[$i]->{$var}.'";';
-								break;
-							case 'boolean':
-								$conts .= 'b:'.((integer)$this[$i]->{$var}).';';
-								break;
-							case 'array':
-							case 'object':
-								$conts .= serialize($this[$i]->{$var});
-								break;
-						}
-					}
-				}
-				$serializes1 = 'O:'.strlen($name).':"'.$name.'":'.$countVars1.':{'.$conts.'}';
-				$serializes .= 'i:'.$i.';C:'.strlen($name).':"'.$name.'":'.strlen($serializes1).':{'.$serializes1.'}';
-			}
-		}
-		$serializes = 'O:'.strlen($name).':"'.$name.'":'.$countVars.':{'.$serializes.'}';
-		return $serializes;
-	}
-
-	public function unserialize($data) {
-		$a = unserialize($data);
-		if(!empty($a->wakedUpVars['main'][1]['_counter']) && $a->wakedUpVars['main'][1]['_counter'] <= 1){
-			$min = sizeof($a->wakedUpVars['main']) - $a->wakedUpVars['main'][1]['_counter'];
-			for($i = 0; $i < $a->wakedUpVars['main'][1]['_counter']; $i++){
-				$this->offsetSet($i, NULL);
-				$classToUse = get_class($this);
-				$this[$i] = new $classToUse();
-				foreach($a->wakedUpVars['main'][$min+$i] as $obj){
-					$this[$i] = $obj;
-				}
-			}
-		} else {
-			foreach ($a->wakedUpVars['main'] as $var){
-				foreach ($var as $key => $value){
-					if(is_numeric($key)){
-						$this->offsetSet($key, NULL);
-						$classToUse = get_class($this);
-						$this[$key] = $value;
-					} else {
-						$this->{$key} = $value;
-					}
-				}
-			}
-		}
-	}
-
-	public function __wakeup(){
-		foreach($this as $key => $value){
-			$this->wakedUpVars['main'][] = array($key => $value);
-		}
-	}
-
-	public function __set($name, $value) {
-		if(isset($this->_data[$name]) || preg_match('/_data_/', $name) || in_array($name, $this->_fields)){
-			$name = str_replace("_data_", '', $name);
-			$this->_data[$name] = $value;
-		} else {
-			$this->_attrs[$name] = $value;
-		}
-	}
-
-	public function __unset($name) {
-		if(isset($this->_attrs[$name])) {
-			$this->_attrs[$name] = NULL;
-			unset($this->_attrs[$name]);
-		}
-		if (isset($this->_data[$name])) {
-			$this->_data[$name] = NULL;
-			unset($this->_data[$name]);
-		}
-		if (isset($this->{$name})) {
-			$this->{$name} = NULL;
-			unset($this->{$name});
-		}
-	}
-
-	public function __isset($var){
-		return ((!empty($this->_attrs) and array_key_exists($var, $this->_attrs)) || (!empty($this->_data) and array_key_exists($var, $this->_data)));
-	}
-
 	public function getIterator() {
             return new ArrayIterator($this);
     }
-
-	public function __get($name) {
-
-			switch($name){
-				default:
-					if (isset($this->_data[$name])){
-						return $this->_data[$name];
-					} elseif(isset($this->_attrs[$name])){
-						return $this->_attrs[$name];
-					}else{
-						return null;
-					}
-				break;
-			}
-		return null;
-	}
-
-	private function checkMemcached(){
-		defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
-
-		if(CAN_USE_MEMCACHED && empty($this->memcached)){
-			$this->memcached = new Memcached();
-			defined('MEMCACHED_HOST') or define('MEMCACHED_HOST','localhost');
-			defined('MEMCACHED_PORT') or define('MEMCACHED_PORT','11211');
-			$this->memcached->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
-		}
-	}
-
-	protected function getData($query){
-
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->_attrs = NULL;
-		$this->_attrs = array();
+	protected function getData($query) {
 		$result = array();
-
 		foreach($this as $i => $val) {
 			$this[$i] = null;
 			$this->offsetUnset($i);
 		}
-
 		$j=0;
-		$regs = NULL;
 		$regs = $GLOBALS['Connection']->query($query);
 		if(!is_object($regs)) die("Error in SQL Query. Please check the SQL Query: ".$query);
 		$regs->setFetchMode(PDO::FETCH_ASSOC);
 		$resultset = $regs->fetchAll();
 		$count = sizeof($resultset);
-
 		$this->_set_attributes($resultset);
-
 		if($count > 0){
 			for($j = 0; $j < $count; $j++){
-				$this->offsetSet($j, clone $this);
-
+				$this->offsetSet($j, new $this);
+				$this[$j]->_counter = 1;
+				$this[$j]->_fields = $this->_fields;
+			}
+			for($j = 0; $j < $count; $j++){
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-						if (!in_array($property, $this->_fields)) {
-							$this->_fields[] = $property;
-						}
-						$this[$j]->_counter = 1;
-						$this[$j]->{'_data_'.$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
+						$this[$j]->{$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
 					}
 				}
 			}
 		}
-
 		$this->_counter = $j;
 		if($this->_counter === 0){
 			$this->offsetSet(0, NULL);
 			$this[0] = NULL;
-			$this->_data = NULL;
 			unset($this[0]);
 			$this->Niu();
 		}
-
 		if($this->_counter === 1) {
 			foreach ($this->_fields as $field) {
 				if(isset($this[0]->{$field})) {
@@ -1066,39 +822,29 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		}
 	}
-
 	public function Find($params = NULL) {
 		if(sizeof($this->before_find) >0){
 			foreach($this->before_find as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
 		}
-
 		if(CAN_USE_MEMCACHED){
 			$key = md5($this->_ObjTable.':'.serialize($params));
-			$res = null;
-			$res = $this->memcached->get($key);
-			if($this->memcached->getResultCode() == 0 && is_object($res)){
+			$res = $GLOBALS['memcached']->get($key);
+			if($GLOBALS['memcached']->getResultCode() == 0 && is_object($res)){
 				return $res;
 			}
 		}
-
 		$this->_sqlQuery = $this->driver->Select($params);
-
 		$this->getData($this->_sqlQuery);
-
 		if(sizeof($this->after_find)>0){
 			foreach($this->after_find as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
 		}
-
-		CAN_USE_MEMCACHED && $this->memcached->set($key,$this);
-
-		$obj = clone($this);
-		return $obj;
+		CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key,$this) && $this->_setMemcacheKey($key);
+		return clone($this);
 	}
-
 	public function Find_by_SQL($query = NULL){
 		if(!$query){
 			trigger_error( "The query can not be NULL", E_USER_ERROR );
@@ -1108,115 +854,120 @@ abstract class ActiveRecord extends Core_General_Class{
 			if(CAN_USE_MEMCACHED){
 				$key = md5($query);
 				$res = null;
-				$res = $memcached->get($key);
-				if($memcached->getResultCode() == 0 && is_object($res)){
+				$res = $GLOBALS['memcached']->get($key);
+				if($GLOBALS['memcached']->getResultCode() == 0 && is_object($res)){
 					return $res;
 				}
 			}
 			$this->getData($query);
-			CAN_USE_MEMCACHED && $this->memcached->set($key,$this);
+			CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key,$this);
 			return clone($this);
 		}
 	}
-
 	private function _set_attributes($resultset) {
 		if(!empty($resultset)) {
 			foreach ($resultset[0] as $key => $value) {
 				if(!in_array($key, $this->_fields)) {
 					$this->_fields[] = $key;
-					$this->_data[$key] = '';
-					$this->_dataAttributes[$key]['native_type'] = 'VARCHAR';
-					$this->_dataAttributes[$key]['cast'] = false;
+					$this->{$key} = '';
+					$this->_dataAttributes[$key]['native_type'] = is_numeric($value) ? 'NUMERIC' : 'STRING';
+					$this->_dataAttributes[$key]['cast'] = is_numeric($value);
 				}
 			}
 		}
 	}
-
 	public function Niu($contents = NULL){
-
 		foreach($this as $i => $val) {
 			$this[$i] = null;
 			$this->offsetUnset($i);
 		}
-
-		$this->_data = NULL;
-		$this->_data = array();
-		$this->_attrs = NULL;
-		$this->_attrs = array();
-
-		empty($this->_fields) and $this->_set_attributes(array());
-
+		$fields = $this->driver->getColumns();
+		foreach($fields as $row) {
+			$toCast= false;
+			switch($row['Type']) {
+				case 'NUMERIC':
+				case 'INTEGER':
+				case 'INT':
+				case 'FLOAT':
+				case 'DOUBLE':
+					$toCast = true;
+				break;
+			}
+			$value = '';
+			$this->_fields[] = $row['Field'];
+			$this->{$row['Field']} = null;
+			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
+			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
+		}
 		if (!empty($contents)) {
 			foreach ($contents as $field => $content) {
 				if (in_array($field, $this->_fields)) {
-					$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
+					$this->{$field} = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
 				}
 			}
-			foreach ($this->_data as $field => $value) {
-				if(empty($value) && $value !== 0) {
+			foreach ($this->_fields as $field) {
+				if(empty($this->{$field}) && $this->{$field} !== 0) {
 					unset($this->{$field});
-					unset($this->_data[$field]);
 				}
 			}
 			$this->_counter = 1;
 		} else {
 			foreach ($this->_fields as $field) {
-				$this->_data[$field] = $this->_dataAttributes[$field]['cast'] ? 0 : '';
+				$this->{$field} = $this->_dataAttributes[$field]['cast'] ? 0 : '';
 			}
 			$this->_counter = 0;
 		}
-
+		if($this->_counter === 1) {
+			$this->offsetSet(0, new $this);
+			foreach ($this->_fields as $field) {
+				if(isset($this->{$field})) {
+					$this[0]->{$field} = $this->{$field};
+				}
+			}
+		}
 		return clone($this);
 	}
-
 	public function Update($params) {
 		if(!is_array($params)){
 			throw new Exception('The params for the Update() method must be an array');
 		}
-
 		if(empty($params['conditions']) || !is_string($params['conditions'])){
 			throw new Exception('The param conditions should not be empty and must be string.');
 		}
-
 		if(empty($params['data']) || !is_array($params['data'])) {
 			throw new Exception('The param data should not be empty and must be array.');
 		}
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-
 		$prepared = $this->driver->Update($params);
 		$this->_sqlQuery = $prepared['query'];
-
 		$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			return false;
 		}
-
+		CAN_USE_MEMCACHED && $this->_refreshCache();
 		return true;
 	}
-
-	public function Insert($params = null) {
-
+	public function load($params = null) {
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-
-		$data = empty($params) ? $this->_data : $params;
-
-		$prepared = $this->driver->Insert($data);
+		if (empty($params)) {
+			foreach ($this->_fields as $field) {
+				if (isset($this->{$field})) {
+					$params[$field] = $this->{$field};
+				}
+			}
+		}
+		$prepared = $this->driver->Insert($params);
 		$this->_sqlQuery = $prepared['query'];
-
 		$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-
 		if(!$sh->execute($prepared['prepared'])) {
 			$e = $GLOBALS['Connection']->errorInfo();
-			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
+			$this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n $query"));
 			return false;
 		}
-
 		return true;
 	}
-
 	private function _ValidateOnSave($action = 'insert') {
 		if(!empty($this->validate)){
 			if(!empty($this->validate['email'])){
@@ -1227,11 +978,10 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-
-					isset($this->_data[$field]) and empty(preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->_data[$field]))  and $this->_error->add(array('field' => $field,'message'=>$message));
+					preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/",$this->{$field},$matches);
+					isset($this->{$field}) and empty($matches) and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
-
 			if(!empty($this->validate['numeric'])){
 				foreach($this->validate['numeric'] as $field){
 					$message = 'This Field must be numeric.';
@@ -1240,10 +990,9 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					isset($this->_data[$field]) and (!is_numeric($this->_data[$field])) and $this->_error->add(array('field' => $field,'message'=>$message));
+					isset($this->{$field}) and (!is_numeric($this->{$field})) and $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
-
 			if(!empty($this->validate['unique'])){
 				foreach($this->validate['unique'] as $field){
 					$message = 'This field can not be duplicated.';
@@ -1252,14 +1001,13 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					if(!empty($this->_data[$field])){
+					if(!empty($this->{$field})){
 						$obj1 = new $this;
-						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->_data[$field]."' AND `{$this->pk}`<>'".$this->_data[$this->pk]."'"));
+						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->{$field}."' AND `{$this->pk}`<>'".$this->{$this->pk}."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
 					}
 				}
 			}
-
 			if(!empty($this->validate['presence_of'])){
 				foreach($this->validate['presence_of'] as $field){
 					$message = 'This field can not be empty or null.';
@@ -1268,76 +1016,72 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) or ($message = $field['message']);
 						$field = $field['field'];
 					}
-					empty($this->_data[$field]) and $this->_error->add(array('field'=>$field,'message'=>$message));
+					empty($this->{$field}) and $this->_error->add(array('field'=>$field,'message'=>$message));
 				}
 			}
 		}
 	}
-
 	public function Save(){
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
-
 		if(sizeof($this->before_save)>0){
 			foreach($this->before_save as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
 		}
-
 		if($this->_error->isActived()) return FALSE;
-
 		if(!empty($this->{$this->pk})){
-
 			$this->_ValidateOnSave('update');
 			if($this->_error->isActived()) return false;
-
-			AUTO_AUDITS && ($this->_data['updated_at'] = time());
-
-			$prepared = $this->driver->Update(array('data'=>$this->_data, 'conditions'=>"{$this->_ObjTable}.{$this->pk} = ".$this->{$this->pk}));
+			$this->updated_at = time();
+			$data = array();
+			foreach ($this->_fields as $key) {
+				if($key !== $this->pk && (isset($this->{$key}) && (!empty($this->{$key}) || $this->{$key} === 0))) {
+					$data[$key] = $this->{$key};
+				}
+			}
+			$prepared = $this->driver->Update(array('data'=>$data, 'conditions'=>"{$this->_ObjTable}.{$this->pk} = ".$this->{$this->pk}));
 		}else{
 			if(!empty($this->before_insert)){
 				foreach($this->before_insert as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
 			}
-
 			if($this->_error->isActived()) return false;
-
 			$this->_ValidateOnSave();
-
 			if($this->_error->isActived()) return false;
-
-			AUTO_AUDITS && ($this->_data['created_at'] = time());
-
-			$prepared = $this->driver->Insert($this->_data);
-
+			$this->created_at = time();
+			$data = array();
+			foreach ($this->_fields as $key) {
+				if($key !== $this->pk && isset($this->{$key}) && (!empty($this->{$key}) || $this->{$key} == 0)) {
+					$data[$key] = $this->{$key};
+				}
+			}
+			$prepared = $this->driver->Insert($data);
 		}
 		$this->_sqlQuery = $prepared['query'];
 		$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-
 		if (!$sh->execute($prepared['prepared'])) {
 		    $e = $GLOBALS['Connection']->errorInfo();
 		    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
 		    return FALSE;
 		}
-
 		if(empty($this->{$this->pk})){
 			$this->{$this->pk} = $GLOBALS['Connection']->lastInsertId() + 0;
-			$this[0]->_data[$this->pk] = $this->{$this->pk};
+			$this[0][$this->pk] = $this->{$this->pk};
 			if(sizeof($this->after_insert)>0){
 				foreach($this->after_insert as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
 			}
 		}
-
 		if(sizeof($this->after_save)>0){
 			foreach($this->after_save as $functiontoRun){
 				$this->{$functiontoRun}();
 			}
 		}
+		CAN_USE_MEMCACHED && $this->_refreshCache();
 		return true;
 	}
-
 	public function Delete($conditions = NULL){
 		if($this->_counter > 1){
 			$conditions = array();
@@ -1349,33 +1093,32 @@ abstract class ActiveRecord extends Core_General_Class{
 		if($conditions === NULL and empty($this->{$this->pk})){
 			$this->_error->add(array('field' => $this->_ObjTable,'message'=>"Must specify a register to delete"));
 			return FALSE;
-		}else{
-			$this->_sqlQuery = $this->driver->Delete($conditions);
-			if(sizeof($this->before_delete) >0){
-				foreach($this->before_delete as $functiontoRun){
-					$this->{$functiontoRun}();
-				}
-				if(!empty($this->_error) && $this->_error->isActived()){
-					return false;
-				}
-			}
-			$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
-			if(!$GLOBALS['Connection']->exec($this->_sqlQuery)){
-			    $e = $GLOBALS['Connection']->errorInfo();
-			    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
-			    return FALSE;
-			}
-			if(sizeof($this->after_delete) >0){
-				foreach($this->after_delete as $functiontoRun){
-					$this->{$functiontoRun}();
-				}
-			}
-			return TRUE;
 		}
+		$this->_sqlQuery = $this->driver->Delete($conditions);
+		if(sizeof($this->before_delete) >0){
+			foreach($this->before_delete as $functiontoRun){
+				$this->{$functiontoRun}();
+			}
+			if(!empty($this->_error) && $this->_error->isActived()){
+				return false;
+			}
+		}
+		$this->_delete_or_nullify_dependents((integer)$conditions) or print($this->_error);
+		if(!$GLOBALS['Connection']->exec($this->_sqlQuery)){
+		    $e = $GLOBALS['Connection']->errorInfo();
+		    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
+		    return FALSE;
+		}
+		if(sizeof($this->after_delete) >0){
+			foreach($this->after_delete as $functiontoRun){
+				$this->{$functiontoRun}();
+			}
+		}
+		CAN_USE_MEMCACHED && $this->_refreshCache();
+		return TRUE;
 	}
-
 	protected function _delete_or_nullify_dependents($id){
-		if (!empty($this->dependents) and $id != 0){
+		if (!empty($this->dependents) && !empty($id)) {
 			foreach ($this->has_many as $model){
 				$s = Singulars($model);
 				$m = Camelize($s);
@@ -1399,112 +1142,63 @@ abstract class ActiveRecord extends Core_General_Class{
 								}
 							break;
 						}
-
 					}
 				}
 			}
 		}
 		return true;
 	}
-
 	public function __debugInfo() {
 		$this->inspect();
 	}
-
 	public function inspect($tabs = 0){
 		echo get_class($this)," ActiveRecord (",sizeof($this),")",": ",$this->ListProperties_ToString($tabs);
 	}
-
 	protected function ListProperties_ToString($i=0){
 		$listProperties = "{\n";
-		foreach ($this->_data as $var => $value){
-			ob_start();
-			var_dump($value);
-			$buffer = ob_get_clean();
-			for($j=0; $j<$i+1; $j++){
-				$listProperties .= "\t";
-			}
-			$listProperties .= "{$var} => {$buffer}";
-		}
-		foreach ($this->_attrs as $var => $value){
-			ob_start();
-			var_dump($value);
-			$buffer = ob_get_clean();
-			for($j=0; $j<$i+1; $j++){
-				$listProperties .= "\t";
-			}
-			$listProperties .= "{$var}: => {$buffer}";
-		}
-		for ($m = 0; $m < sizeof($this); $m++){
-			$listProperties .= "[{$m}] :\n";
-
-
-			if(is_object($this[$m]) && get_parent_class($this[$m]) == 'ActiveRecord'){
+		if($this->_counter === 1) {
+			foreach ($this->_fields as $key){
 				ob_start();
-				$this[$m]->inspect(1);
+				var_dump($this->{$key});
 				$buffer = ob_get_clean();
-
-				$listProperties .= "\t{$buffer}";
-			} else {
-				ob_start();
-				var_dump($this[$m]);
-				$buffer = ob_get_clean();
-
-				$listProperties .= "\t{$buffer}";
+				for($j=0; $j<$i+1; $j++){
+					$listProperties .= "\t";
+				}
+				$listProperties .= "{$key} => {$buffer}";
 			}
-
+		} else {
+			for($j = 0; $j < $this->_counter; $j++) {
+				$this[$j]->inspect($i + 1);
+			}
 		}
-
 		for($j=0; $j<$i; $j++){
 			$listProperties .= "\t";
 		}
 		$listProperties .= "}\n";
 		return $listProperties;
 	}
-
 	public function __toString(){
 		$a = $this->ListProperties_ToString();
 		return $a;
 	}
-
 	public function getArray(){
 		$arraux = array();
-
-		if($this->_counter <= 1) {
-			foreach($this->_data as $property => $value){
-		        $arraux[0][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray() : $value;
-	        }
-			foreach ($this->_attrs as $index => $attribute) {
-				if(!empty($arraux[0][$index])) $index .= '_1';
-				$arraux[0][$index] = (is_object($attribute) and get_parent_class($attribute) == 'ActiveRecord')? $attribute->getArray() : $attribute;
-			}
-		} else {
-			$n=$m=0;
-	        for($t = 0; $t < $this->_counter; $t++){
-	        	if(!empty($this[$t]->_data)){
-			        foreach($this[$t]->_data as $property => $value){
-				        $arraux[$n][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
+		if($this->_counter > 0) {
+			for($j = 0; $j < $this->_counter; $j++) {
+				foreach($this->_fields as $key){
+					if(isset($this[$j]->{$key})) {
+			        	$arraux[$j][$key] = (is_object($this[$j]->{$key}) && get_parent_class($this[$j]->{$key}) == 'ActiveRecord')? $this[$j]->{$key}->getArray() : $this[$j]->{$key};
 			        }
-			        $n++;
 		        }
-		        if(!empty($this[$t]->_attrs)){
-		        	foreach($this[$t]->_attrs as $property => $value){
-		        		$arraux[$m][$property] = (is_object($value) and get_parent_class($value) == 'ActiveRecord')? $value->getArray():$value;
-		        	}
-		        	$m++;
-		        }
-	        }
+			}
 		}
 		return $arraux;
 	}
-
 	public function Dump(){
 		$model = $this->_ObjTable;
 		$dom = new DOMDocument('1.0', 'utf-8');
-
 		$dataDump = $this->getArray();
 		$path = INST_PATH.'migrations/dumps/';
-
 		$sroot = $dom->appendChild(new DOMElement('table_'.$model));
 		foreach($dataDump as $reg){
 			$root = $sroot->appendChild(new DOMElement($model));
@@ -1518,37 +1212,36 @@ abstract class ActiveRecord extends Core_General_Class{
 				}
 			}
 		}
-
 		file_put_contents($path.$model.'.xml', $dom->saveXML());
 	}
-
 	public function LoadDump(){
 		$doc = new DOMDocument;
 		$doc->load(INST_PATH.'migrations/dumps/'.$this->_ObjTable.'.xml');
 		$items = $doc->getElementsByTagName($this->_ObjTable);
 		for($i=0; $i<$items->length; $i++){
 			$xitem = $items->item($i);
-			$idfield = $xitem->getElementsByTagName($this->pk);
-			if($idfield->length > 0){
-				$id  = $idfield->item(0)->nodeValue;
-
-				$Obj = new $this;
-				$Obj->Niu();
-				$arrObj = $Obj->getArray()[0];
-				$Obj->{$this->pk} = $id;
-
-				foreach($arrObj as $key => $value){
-					if($key != 'table'){
-						$field = $xitem->getElementsByTagName("$key");
-						$Obj->{$key} = (is_object($field->item(0)))?addslashes($field->item(0)->nodeValue):'';
-					}
+			$data = array();
+			if (empty($this->_fields)) {
+				$fields = $this->driver->getColumns();
+				foreach($fields as $row) {
+					$this->_fields[] = $row['Field'];
 				}
-				$Obj->Insert() or die($Obj->_error);
+			}
+			foreach($this->_fields as $key){
+				if($key != 'table'){
+					$field = $xitem->getElementsByTagName($key);
+					$data[$key] = (is_object($field->item(0)))?$field->item(0)->nodeValue:'';
+				}
+			}
+			$prepared = $this->driver->Insert($data);
+			$this->_sqlQuery = $prepared['query'];
+			$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+			if (!$sh->execute($prepared['prepared'])) {
+			    $e = $GLOBALS['Connection']->errorInfo();
+			    die($e[2]."{$this->_sqlQuery}");
 			}
 		}
-
 	}
-
 	public function WriteSchema($tableName){
 		$createFile = FALSE;
 		$stringtoINI = '';
@@ -1573,34 +1266,27 @@ abstract class ActiveRecord extends Core_General_Class{
 			fclose($fp);
 		}
 	}
-
 	public function getError(){
 		return $Errors;
 	}
-
 	public function counter(){
 		return (integer)$this->_counter;
 	}
-
 	public function first(){
 		return $this->_counter > 0 ? $this[0] : FALSE;
 	}
-
 	public function last(){
 		return $this->_counter > 0 ? $this[$this->counter() - 1] : FALSE;
 	}
-
 	public function _sqlQuery(){
 	    return $this->_sqlQuery;
 	}
-
 	public function _nativeType($field){
 		if (empty($this->_dataAttributes[$field]['native_type'])) {
 			return false;
 		}
 		return $this->_dataAttributes[$field]['native_type'];
 	}
-
 	public function slice($start = null, $length = null){
 		if(empty($length)) $length = $this->_counter;
 		if($start === null) $start = 0;
@@ -1613,51 +1299,39 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 		return $arr;
 	}
-
-	public function _unset($index = 0) {
-		if($this->_counter === 1) {
-			$this->_data = null;
-			$this->_attrs = null;
-		} elseif($this->offsetExists($index)) {
-			$this[$index]->_data = null;
-			$this[$index]->_attrs = null;
-			$this->offsetUnSet($index);
-		}
-		$this->_counter--;
-		if($this->_counter < 0) $this->_counter = 0;
-	}
-
 	public function toJSON() {
 		return json_encode($this->getArray());
 	}
-
 	public function Paginate($params = NULL){
-
+		$resultset = array();
 		if(is_array($params) && sizeof($params) === 1 && !empty($params[0])) $params = $params[0];
-		$arr_params = array();
-		$arr_2 = array();
+		$params2 = $params;
 		$per_page = (isset($params['per_page']))?$params['per_page']:10;
 		$this->paginateURL = empty($params['url']) ? '/' : $params['url'];
-		if(!empty($params['varPageName'])) {
-			$this->PaginatePageVarName = $params['varPageName'];
-		}
-		if(!empty($params['page'])) {
-			$this->PaginatePageNumber = $params['page'];
-		}
+		empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
+		empty($params['page']) or $this->PaginatePageNumber = $params['page'];
 		$start = ($this->PaginatePageNumber-1)*$per_page;
-		if(isset($params['conditions'])) $arr_2['conditions'] = $arr_params['conditions'] = $params['conditions'];
-		if(isset($params['join'])) $arr_2['join'] = $arr_params['join'] = $params['join'];
-		if(isset($params['fields'])) $arr_params['fields'] = $params['fields'];
-		if(isset($params['group'])) $arr_2['group'] = $arr_params['group'] = $params['group'];
-		if(isset($params['sort'])) $arr_2['sort'] = $arr_params['sort'] = $params['sort'];
-		$arr_params['limit'] = $start.",".$per_page;
-		$arr_2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
-		$this->PaginateTotalItems = $this->Find($arr_2)->PaginateTotalRegs;
+		$params['limit'] = $start.",".$per_page;
+		$params2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
+		$queryCounter = $this->driver->Select($params2);
+		if (CAN_USE_MEMCACHED) {
+			$key = md5($queryCounter);
+			$resultset = $GLOBALS['memcached']->get($key);
+		}
+		if(empty($resultset) || !is_array($resultset)) {
+			$regs = $GLOBALS['Connection']->query($queryCounter);
+			$regs->setFetchMode(PDO::FETCH_ASSOC);
+			$resultset = $regs->fetchAll();
+			if (CAN_USE_MEMCACHED) {
+				$key = md5($queryCounter);
+				$GLOBALS['memcached']->set($key,$resultset);
+				$this->_setMemcacheKey($key);
+			}
+		}
+		$this->PaginateTotalItems = 0 + $resultset[0]['PaginateTotalRegs'];
 		$this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
-
-		return $this->Find($arr_params);
+		return $this->Find($params);
 	}
-
 	public function WillPaginate($params = NULL){
 		if(is_array($params) && sizeof($params) === 1 && !empty($params[0])) $params = $params[0];
 		$str = '';
@@ -1684,7 +1358,6 @@ abstract class ActiveRecord extends Core_General_Class{
 		$str .= $tail;
 		return $str;
 	}
-
 	public function input_for($params){
 		$stringi = '<input';
 		$stringt = '<textarea';
@@ -1739,17 +1412,16 @@ abstract class ActiveRecord extends Core_General_Class{
 			switch ($type) {
 				case 'text':
 				case 'hidden':
-					$input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->_data[$field].'" />';
+					$input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->{$field}.'" />';
 				break;
 				case 'textarea':
-					$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->_data[$field].'</textarea>';
+					$input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field}.'</textarea>';
 				break;
 				case 'select':
 					$cont = !empty($params['first']) ? '<option value="">'.$params['first'].'</option>' : '';
-
 					foreach($params['list'] as $value => $option):
 						$default = '';
-						if($this->_data[$field] == $value) $default = 'selected="selected"';
+						if($this->{$field} == $value) $default = 'selected="selected"';
 						$cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
 					endforeach;
 					$input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
@@ -1759,10 +1431,8 @@ abstract class ActiveRecord extends Core_General_Class{
 			throw new Exception("Must to give the field to input.");
 			return null;
 		}
-
 		return $input;
 	}
-
 	public function form_for($params){
 		$string = '<form';
 		$method = 'post';
@@ -1770,7 +1440,6 @@ abstract class ActiveRecord extends Core_General_Class{
 		$name = '';
 		$id='';
 		$html = '';
-
 		$name = singulars(strtolower($this->_ObjTable));
 		$action = !empty($params['action'])? $params['action'] : INST_URI.strtolower($this->_ObjTable);
 		if(!empty($params['html']) and is_array($params['html'])){
@@ -1781,11 +1450,9 @@ abstract class ActiveRecord extends Core_General_Class{
 		$html = trim($html);
 		if(strlen($html)>0) $html = ' '.$html;
 		$string .= ' method="'.$method.'" action="'.$action.'" name="'.$name.'"'.$html.'>';
-
 		return $string;
 	}
 }
-
 abstract class Page extends Core_General_Class {
 	public $excepts_before_filter = array();
 	protected $layout = "";
@@ -1806,7 +1473,6 @@ abstract class Page extends Core_General_Class {
 	private $_respondToAJAX = '';
 	private $_canrespondtoajax = false;
 	private $models = array();
-
 	public function __get($var){
 		$model = unCamelize($var);
 		if(file_exists(INST_PATH.'app/models/'.$model.'.php')) {
@@ -1817,7 +1483,6 @@ abstract class Page extends Core_General_Class {
 			return $this->{$var};
 		}
 	}
-
 	public function display(){
 		$renderPage = TRUE;
 		$this->action = _ACTION;
@@ -1832,7 +1497,8 @@ abstract class Page extends Core_General_Class {
 			}
 			echo $this->respondToAJAX();
 			if(!empty($this->params['callback'])) echo ');';
-			exit();
+			$renderPage = false;
+			$this->layout = '';
 		}
 		if(isset($this->render) and is_array($this->render)){
 			if (isset($this->render['action']) && $this->render['action'] === false) {
@@ -1853,28 +1519,22 @@ abstract class Page extends Core_General_Class {
 		}else{
 			$view = _CONTROLLER.'/'._ACTION.'.phtml';
 		}
-
 		$viewsFolder = INST_PATH.'app/views/';
 		if (is_dir(INST_PATH.'app/templates/')) {
 			trigger_error('Templates folder is not longer used. Change name to views', E_USER_DEPRECATED);
 			$viewsFolder = INST_PATH.'app/templates/';
 		}
-
 		if($renderPage):
 			ob_start();
 			include_once($viewsFolder.$view);
 			$this->yield = ob_get_clean();
 		endif;
-
-
 		if(isset($this->render['layout']) and $this->render['layout'] !== false):
 			$this->layout = $this->render['layout'];
 		endif;
-
 		if(isset($this->render['layout']) and $this->render['layout'] === false):
 			$this->layout = '';
 		endif;
-
 		if(strlen($this->layout)>0):
 			ob_start();
 			include_once($viewsFolder.$this->layout.".phtml");
@@ -1886,7 +1546,6 @@ abstract class Page extends Core_General_Class {
 			echo $this->htmlcontent;
 		}
 	}
-
 	public function LoadHelper($helper=NULL){
 		if(isset($helper) and is_array($helper)):
 			foreach($helper as $file){
@@ -1896,11 +1555,9 @@ abstract class Page extends Core_General_Class {
 			 require_once(INST_PATH."app/helpers/".$helper."_Helper.php");
 		endif;
 	}
-
 	public function params($params = NULL){
 		$this->params = $params;
 	}
-
 	public function respondToAJAX($val = null){
 		if($val === null):
 			return $this->_respondToAJAX;
@@ -1909,111 +1566,93 @@ abstract class Page extends Core_General_Class {
 			$this->_canrespondtoajax = true;
 		endif;
 	}
-
 	public function canRespondToAJAX(){
 		return $this->_canrespondtoajax;
 	}
 }
-
 // class NewAr extends ActiveRecord{}
-
 abstract class Migrations extends Core_General_Class {
 	private $driver = null;
-
 	public function __construct(){
 		$driver = $GLOBALS['Connection']->engine.'Driver';
 		$this->driver = new $driver();
 	}
-
 	public function __destruct(){}
-
 	public function up(){
 		echo 'Nothing to do.';
 	}
-
 	public function down(){
 		echo 'Nothing to do.';
 	}
-
 	public function alter(){
 		echo 'Nothing to do.';
 	}
-
 	public function Reset(){
 		$this->down();
 		$this->up();
-
 	}
-
 	public function Run() {
 		$this->up();
 		$this->alter();
 	}
-
-
-	protected function Create_Table($table = NULL){
-		defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-		if($table !== NULL){
-
-			$tablName = $table['Table'];
-			$query = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
-			$query .= "`id` INT PRIMARY KEY ,";
-			foreach($table as $key => $Field){
-				if(strcmp($key, 'Table') != 0){
-					if($Field['type'] == 'VARCHAR' and empty($Field['limit'])) $Field['limit'] = 250;
-					$query .= (!empty($Field['field']) and !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
-					$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
-					$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
-					$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
-					$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
-					$query .= " ,";
-				}
+	protected function Create_Table(array $table){
+		defined('AUTO_AUDITS') || define('AUTO_AUDITS', true);
+		$tablName = $table['Table'];
+		$query = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
+		$query .= "`id` INT PRIMARY KEY ,";
+		foreach($table as $key => $Field){
+			if(strcmp($key, 'Table') != 0){
+				if($Field['type'] == 'VARCHAR' && empty($Field['limit'])) $Field['limit'] = 250;
+				$query .= (!empty($Field['field']) && !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
+				$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
+				$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
+				$query .= (!empty($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
+				$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
+				$query .= " ,";
 			}
-			if(AUTO_AUDITS){
-				$query .= "`created_at` INT NOT NULL ,";
-				$query .= "`updated_at` INT NOT NULL ,";
-			}
-			$query = substr($query, 0, -2);
-			$query .= ");";
-			echo 'Running query: ', $query, PHP_EOL;
-			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
-			$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
-			echo 'Running query: ', $query, PHP_EOL;
-			if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 		}
+		if(AUTO_AUDITS){
+			$query .= "`created_at` INT NOT NULL ,";
+			$query .= "`updated_at` INT NOT NULL ,";
+		}
+		$query = substr($query, 0, -2);
+		$query .= ");";
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
+		$query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
-
 	protected function Drop_Table($table){
 		$query = "DROP TABLE IF EXISTS `".$table."`";
-		echo 'Running query: ', $query, PHP_EOL;
-
-		if($GLOBALS['Connection']->exec($query) === false) print_r($Ar->driver->errorInfo());
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
-
-	protected function Add_Column($columns = NULL){
-		if(is_array($columns) && !empty($columns)){
-			if($columns['type'] == 'VARCHAR' and empty($columns['limit'])) $columns['limit'] = '255';
-			$query = "ALTER TABLE `".$columns['Table']."` ADD COLUMN `".$columns['field']."` ".strtoupper($columns['type']);
-			$query .= (isset($columns['limit']) and $columns['limit'] != '')? "(".$columns['limit'].")" : NULL;
-			$query .= (isset($columns['null']) and $columns['null'] != '')? " NOT NULL" : NULL;
-			$query .= (isset($columns['default']) and $columns['default'] != '')? " DEFAULT '".$columns['default']."'" : NULL;
-			$query .= (!empty($columns['comments']))? " COMMENT '".$columns['comment']."'" : NULL;
-			echo 'Running query: ', $query, PHP_EOL;
-			$Ar = new NewAr();
-			if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
-		}else{
-			throw new Exception('Cannot add a column with '.gettype($columns).'.');
-		}
+	protected function Add_Column(array $params){
+		if($params['type'] == 'VARCHAR' && empty($params['limit'])) $params['limit'] = '255';
+		$query = "ALTER TABLE `".$params['Table']."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
+		$query .= (isset($params['limit']) && $params['limit'] != '')? "(".$params['limit'].")" : NULL;
+		$query .= (isset($params['null']) && $params['null'] != '')? " NOT NULL" : NULL;
+		$query .= (isset($params['default']) && $params['default'] != '')? " DEFAULT '".$params['default']."'" : NULL;
+		$query .= (!empty($params['comments']))? " COMMENT '".$params['comment']."'" : NULL;
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
-
+	protected function Add_Index(array $params) {
+		if(empty($params['Table'])) throw new Exception("Table param can not be empty", 1);
+		if(empty($params['name'])) throw new Exception("name param can not be empty", 1);
+		if(empty($params['fields'])) throw new Exception("fields param can not be empty", 1);
+		if(!is_array($params['fields'])) throw new Exception("fields param must be an array", 1);
+		$fields = implode(',',$params['fields']);
+		$query = "ALTER TABLE `{$params['Table']}` ADD INDEX `{$params['name']}` ({$fields})";
+		$GLOBALS['Connection']->exec($query) !== false || print_r($GLOBALS['Connection']->errorInfo());
+	}
 	protected function Remove_Column($column=NULL){
 		$query = "ALTER TABLE `".$column[0]."` DROP `".$column[1]."`";
-		echo 'Running query: ', $query, PHP_EOL;
-		$Ar = new NewAr();
-		if($Ar->driver->exec($query) === false) print_r($Ar->driver->errorInfo());
+		_IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+		if($GLOBALS['Connection']->exec($query) === false) print_r($GLOBALS['Connection']->errorInfo());
 	}
 }
-
 class index {
 	public function __construct(){
 		if(isset($_GET['url'])){
@@ -2021,20 +1660,15 @@ class index {
 			unset($_GET['url']);
 		}
 		$path=INST_PATH.'app/controllers/';
-
 		if(!isset($request[0]) or strcmp($request[0], "") === 0) $request[0] = DEF_CONTROLLER;
-
 		if(!isset($request[1]) or strcmp($request[1], "") === 0) $request[1] = DEF_ACTION;
-
 		$controllerFile=$request[0]."_controller.php";
 		$controller = array_shift($request);
 		$action = array_shift($request);
-
 		foreach($request as $key => $value){
 			if(empty($value)) unset($request[$key]);
 		}
 		$params = array();
-
 		if(sizeof($request) === 1 and !strstr($request[0], "=") and is_numeric($request[0])){
 			$params['id'] = $request[0];
 		}elseif(sizeof($request)>0 and strstr($request[0], "=")){
@@ -2058,7 +1692,6 @@ class index {
 		}else{
 			$params = $_GET;
 		}
-
 		if(defined('SITE_STATUS') and SITE_STATUS == 'MAINTENANCE'){
 			$urlToLand = explode('/',LANDING_PAGE);
 			$replace = false;
@@ -2076,9 +1709,7 @@ class index {
 				$controllerFile = $controller.'_controller.php';
 			}
 		}
-
 		$canGo = true;
-
 		if(!file_exists($path.$controllerFile) && defined('USE_ALTER_URL') && USE_ALTER_URL){
 			$params['alter_controller'] = $controller;
 			$params['alter_action'] = $action;
@@ -2090,15 +1721,12 @@ class index {
 			$canGo = false;
 			echo "Missing Controller";
 		}
-
 		define('_CONTROLLER', $controller);
 		define('_ACTION', $action);
 		define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/?'.http_build_query($params));
-
 		if($canGo) {
 			require($path.$controllerFile);
 			$classPage = Camelize($controller)."Controller";
-
 			$page = new $classPage();
 			$page->params($params);
 			//loads of helpers
@@ -2108,7 +1736,6 @@ class index {
 			//before filter, executed before the action execution
 			if(method_exists($page,"before_filter")){
 				$actionsToExclude = $controllersToExclude = array();
-
 				if(!empty($page->excepts_before_filter) && is_array($page->excepts_before_filter)){
 					if(!empty($page->excepts_before_filter['actions']) && is_string($page->excepts_before_filter['actions'])){
 						$actionsToExclude = explode(',', $page->excepts_before_filter['actions']);
@@ -2123,18 +1750,15 @@ class index {
 						}
 					}
 				}
-
 				if(!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)){
 					$page->before_filter();
 				}
 			}
-
 			if(method_exists($page,$action."Action")){
 				$page->{$action."Action"}();
 				//before render, executed after the action execution and before the data renderize
 				if(method_exists($page,"before_render")){
 					$actionsToExclude = $controllersToExclude = array();
-
 					if(!empty($page->excepts_before_render) && is_array($page->excepts_before_render)){
 						if(!empty($page->excepts_before_render['actions']) && is_string($page->excepts_before_render['actions'])){
 							$actionsToExclude = explode(',', $page->excepts_before_render['actions']);
@@ -2153,12 +1777,9 @@ class index {
 						$page->before_render();
 					}
 				}
-
 				$page->display();
-
 				if(method_exists($page,"after_render")){
 					$actionsToExclude = $controllersToExclude = array();
-
 					if(!empty($page->excepts_after_render) && is_array($page->excepts_after_render)){
 						if(!empty($page->excepts_after_render['actions']) && is_string($page->excepts_after_render['actions'])){
 							$actionsToExclude = explode(',', $page->excepts_after_render['actions']);
