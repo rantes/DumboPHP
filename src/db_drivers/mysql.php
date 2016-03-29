@@ -130,7 +130,7 @@ class mysqlDriver {
 
 		$query = "INSERT INTO `{$this->tableName}` ";
 		foreach($params as $field => $value){
-			if(!empty($value) && !is_array($value)){
+			if(is_string($value) || is_numeric($value)){
 				$fields .= "`$field`,";
 				$values .= ":".$field.",";
 				$prepared[':'.$field] = $value;
