@@ -902,30 +902,17 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
 		}
+		$this->_counter = 0;
 		if (!empty($contents)) {
+			$this->_counter = 1;
+			$this->offsetSet(0, new $this);
 			foreach ($contents as $field => $content) {
 				if (array_key_exists($field, $this->_fields)) {
-					$this->{$field} = $this->_fields[$field] ? 0 + $content : $content;
+					$this[0]->{$field} = $this->{$field} = $this->_fields[$field] ? 0 + $content : $content;
 				}
 			}
 			foreach ($this->_fields as $field => $cast) {
-				if(empty($this->{$field}) && isset($this->{$field}) && (0 + $this->{$field}) !== 0) {
-					unset($this->{$field});
-				}
-			}
-			$this->_counter = 1;
-		} else {
-			// foreach ($this->_fields as $field => $cast) {
-			// 	$this->{$field} = $cast ? 0 : '';
-			// }
-			$this->_counter = 0;
-		}
-		if($this->_counter === 1) {
-			$this->offsetSet(0, new $this);
-			foreach ($this->_fields as $field => $cast) {
-				if(isset($this->{$field})) {
-					$this[0]->{$field} = $this->{$field};
-				}
+				if (!array_key_exists($field, $contents)) unset($this->{$field});
 			}
 		}
 		return clone($this);
