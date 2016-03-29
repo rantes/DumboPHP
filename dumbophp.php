@@ -913,8 +913,8 @@ abstract class ActiveRecord extends Core_General_Class{
 					$this->{$field} = $this->_fields[$field] ? 0 + $content : $content;
 				}
 			}
-			foreach ($this->_fields as $field) {
-				if(empty($this->{$field}) && (0 + $this->{$field}) !== 0) {
+			foreach ($this->_fields as $field => $cast) {
+				if(empty($this->{$field}) && isset($this->{$field}) && (0 + $this->{$field}) !== 0) {
 					unset($this->{$field});
 				}
 			}
