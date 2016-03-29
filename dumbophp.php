@@ -802,7 +802,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			for($j = 0; $j < $count; $j++){
 				foreach($resultset[$j] as $property => $value){
 					if(!is_numeric($property)){
-						$this[$j]->{$property} = (!empty($this->_dataAttributes[$property]) && $this->_dataAttributes[$property]['cast']) ? 0 + $value : $value;
+						$this[$j]->{$property} = $this->_fields[$property] ? 0 + $value : $value;
 					}
 				}
 			}
@@ -812,10 +812,20 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->offsetSet(0, NULL);
 			$this[0] = NULL;
 			unset($this[0]);
-			$this->Niu();
+			foreach ($this->_fields as $field => $cast) {
+				unset($this->{$field});
+			}
+			// $this->Niu();
+			// $fields = $this->driver->getColumns();
+			// foreach($fields as $row) {
+			// 	$this->_fields[$row['Field']] = false;
+			// 	// $this->{$row['Field']} = null;
+			// 	$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
+			// 	$this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
+			// }
 		}
 		if($this->_counter === 1) {
-			foreach ($this->_fields as $field) {
+			foreach ($this->_fields as $field => $cast) {
 				if(isset($this[0]->{$field})) {
 					$this->{$field} = $this[0]->{$field};
 				}
@@ -867,11 +877,11 @@ abstract class ActiveRecord extends Core_General_Class{
 	private function _set_attributes($resultset) {
 		if(!empty($resultset)) {
 			foreach ($resultset[0] as $key => $value) {
-				if(!in_array($key, $this->_fields)) {
-					$this->_fields[] = $key;
+				if(!array_key_exists($key, $this->_fields)) {
+					$this->_fields[$key] = is_numeric($value);
 					$this->{$key} = '';
 					$this->_dataAttributes[$key]['native_type'] = is_numeric($value) ? 'NUMERIC' : 'STRING';
-					$this->_dataAttributes[$key]['cast'] = is_numeric($value);
+					$this->_dataAttributes[$key]['cast'] = $this->_fields[$key];
 				}
 			}
 		}
@@ -883,43 +893,41 @@ abstract class ActiveRecord extends Core_General_Class{
 		}
 		$fields = $this->driver->getColumns();
 		foreach($fields as $row) {
-			$toCast= false;
+			$this->_fields[$row['Field']] = false;
 			switch($row['Type']) {
 				case 'NUMERIC':
 				case 'INTEGER':
 				case 'INT':
 				case 'FLOAT':
 				case 'DOUBLE':
-					$toCast = true;
+					$this->_fields[$row['Field']] = true;
 				break;
 			}
-			$value = '';
-			$this->_fields[] = $row['Field'];
-			$this->{$row['Field']} = null;
+			// $this->{$row['Field']} = null;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-			$this->_dataAttributes[$row['Field']]['cast'] = $toCast;
+			$this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
 		}
 		if (!empty($contents)) {
 			foreach ($contents as $field => $content) {
-				if (in_array($field, $this->_fields)) {
-					$this->{$field} = $this->_dataAttributes[$field]['cast'] ? 0 + $content : $content;
+				if (array_key_exists($field, $this->_fields)) {
+					$this->{$field} = $this->_fields[$field] ? 0 + $content : $content;
 				}
 			}
 			foreach ($this->_fields as $field) {
-				if(empty($this->{$field}) && $this->{$field} !== 0) {
+				if(empty($this->{$field}) && (0 + $this->{$field}) !== 0) {
 					unset($this->{$field});
 				}
 			}
 			$this->_counter = 1;
 		} else {
-			foreach ($this->_fields as $field) {
-				$this->{$field} = $this->_dataAttributes[$field]['cast'] ? 0 : '';
-			}
+			// foreach ($this->_fields as $field => $cast) {
+			// 	$this->{$field} = $cast ? 0 : '';
+			// }
 			$this->_counter = 0;
 		}
 		if($this->_counter === 1) {
 			$this->offsetSet(0, new $this);
-			foreach ($this->_fields as $field) {
+			foreach ($this->_fields as $field => $cast) {
 				if(isset($this->{$field})) {
 					$this[0]->{$field} = $this->{$field};
 				}
@@ -952,7 +960,7 @@ abstract class ActiveRecord extends Core_General_Class{
 	public function load($params = null) {
 		defined('AUTO_AUDITS') or define('AUTO_AUDITS',true);
 		if (empty($params)) {
-			foreach ($this->_fields as $field) {
+			foreach ($this->_fields as $field => $cast) {
 				if (isset($this->{$field})) {
 					$params[$field] = $this->{$field};
 				}
@@ -987,10 +995,10 @@ abstract class ActiveRecord extends Core_General_Class{
 					$message = 'This Field must be numeric.';
 					if (is_array($field)) {
 						if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
-						empty($field['message']) or ($message = $field['message']);
+						empty($field['message']) || ($message = $field['message']);
 						$field = $field['field'];
 					}
-					isset($this->{$field}) and (!is_numeric($this->{$field})) and $this->_error->add(array('field' => $field,'message'=>$message));
+					isset($this->{$field}) && (!is_numeric($this->{$field})) && $this->_error->add(array('field' => $field,'message'=>$message));
 				}
 			}
 			if(!empty($this->validate['unique'])){
@@ -998,10 +1006,10 @@ abstract class ActiveRecord extends Core_General_Class{
 					$message = 'This field can not be duplicated.';
 					if (is_array($field)) {
 						if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
-						empty($field['message']) or ($message = $field['message']);
+						empty($field['message']) || ($message = $field['message']);
 						$field = $field['field'];
 					}
-					if(!empty($this->{$field})){
+					if(!empty($this->{$field}) && !empty($this->{$this->pk})) {
 						$obj1 = new $this;
 						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->{$field}."' AND `{$this->pk}`<>'".$this->{$this->pk}."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
@@ -1034,9 +1042,9 @@ abstract class ActiveRecord extends Core_General_Class{
 			if($this->_error->isActived()) return false;
 			$this->updated_at = time();
 			$data = array();
-			foreach ($this->_fields as $key) {
-				if($key !== $this->pk && (isset($this->{$key}) && (!empty($this->{$key}) || $this->{$key} === 0))) {
-					$data[$key] = $this->{$key};
+			foreach ($this->_fields as $field => $cast) {
+				if($field !== $this->pk && isset($this->{$field})) {
+					$data[$field] = $this->{$field};
 				}
 			}
 			$prepared = $this->driver->Update(array('data'=>$data, 'conditions'=>"{$this->_ObjTable}.{$this->pk} = ".$this->{$this->pk}));
@@ -1051,9 +1059,9 @@ abstract class ActiveRecord extends Core_General_Class{
 			if($this->_error->isActived()) return false;
 			$this->created_at = time();
 			$data = array();
-			foreach ($this->_fields as $key) {
-				if($key !== $this->pk && isset($this->{$key}) && (!empty($this->{$key}) || $this->{$key} == 0)) {
-					$data[$key] = $this->{$key};
+			foreach ($this->_fields as $field => $cast) {
+				if($field !== $this->pk && isset($this->{$field})) {
+					$data[$field] = $this->{$field};
 				}
 			}
 			$prepared = $this->driver->Insert($data);
@@ -1152,19 +1160,22 @@ abstract class ActiveRecord extends Core_General_Class{
 		$this->inspect();
 	}
 	public function inspect($tabs = 0){
-		echo get_class($this)," ActiveRecord (",sizeof($this),")",": ",$this->ListProperties_ToString($tabs);
+		echo get_class($this)," ActiveRecord ({$this->_counter}): ",$this->ListProperties_ToString($tabs);
 	}
 	protected function ListProperties_ToString($i=0){
 		$listProperties = "{\n";
-		if($this->_counter === 1) {
-			foreach ($this->_fields as $key){
-				ob_start();
-				var_dump($this->{$key});
-				$buffer = ob_get_clean();
+		if($this->_counter <= 1) {
+			foreach ($this->_fields as $field => $cast){
+				$buffer = 'NULL'.PHP_EOL;
+				if (isset($this->{$field})) {
+					ob_start();
+					var_dump($this->{$field});
+					$buffer = ob_get_clean();
+				}
 				for($j=0; $j<$i+1; $j++){
 					$listProperties .= "\t";
 				}
-				$listProperties .= "{$key} => {$buffer}";
+				$listProperties .= "{$field} => {$buffer}";
 			}
 		} else {
 			for($j = 0; $j < $this->_counter; $j++) {
@@ -1181,20 +1192,20 @@ abstract class ActiveRecord extends Core_General_Class{
 		$a = $this->ListProperties_ToString();
 		return $a;
 	}
-	public function getArray(){
+	public function getArray() {
 		$arraux = array();
 		if($this->_counter > 0) {
 			for($j = 0; $j < $this->_counter; $j++) {
-				foreach($this->_fields as $key){
-					if(isset($this[$j]->{$key})) {
-			        	$arraux[$j][$key] = (is_object($this[$j]->{$key}) && get_parent_class($this[$j]->{$key}) == 'ActiveRecord')? $this[$j]->{$key}->getArray() : $this[$j]->{$key};
+				foreach($this->_fields as $field => $cast) {
+					if(isset($this[$j]->{$field})) {
+			        	$arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')? $this[$j]->{$field}->getArray() : $this[$j]->{$field};
 			        }
 		        }
 			}
 		}
 		return $arraux;
 	}
-	public function Dump(){
+	public function Dump() {
 		$model = $this->_ObjTable;
 		$dom = new DOMDocument('1.0', 'utf-8');
 		$dataDump = $this->getArray();
@@ -1224,14 +1235,12 @@ abstract class ActiveRecord extends Core_General_Class{
 			if (empty($this->_fields)) {
 				$fields = $this->driver->getColumns();
 				foreach($fields as $row) {
-					$this->_fields[] = $row['Field'];
+					$this->_fields[$row['Field']] = false;
 				}
 			}
-			foreach($this->_fields as $key){
-				if($key != 'table'){
-					$field = $xitem->getElementsByTagName($key);
-					$data[$key] = (is_object($field->item(0)))?$field->item(0)->nodeValue:'';
-				}
+			foreach($this->_fields as $field => $cast) {
+				$item = $xitem->getElementsByTagName($field);
+				$data[$field] = (is_object($item->item(0)))?$item->item(0)->nodeValue:'';
 			}
 			$prepared = $this->driver->Insert($data);
 			$this->_sqlQuery = $prepared['query'];
