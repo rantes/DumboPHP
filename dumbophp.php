@@ -812,19 +812,14 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->offsetSet(0, NULL);
 			$this[0] = NULL;
 			unset($this[0]);
-			foreach ($this->_fields as $field => $cast) {
-				unset($this->{$field});
+			$fields = $this->driver->getColumns();
+			foreach($fields as $row) {
+				$this->_fields[$row['Field']] = false;
+				$this->{$row['Field']} = null;
+				$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
+				$this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
 			}
-			// $this->Niu();
-			// $fields = $this->driver->getColumns();
-			// foreach($fields as $row) {
-			// 	$this->_fields[$row['Field']] = false;
-			// 	// $this->{$row['Field']} = null;
-			// 	$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-			// 	$this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
-			// }
-		}
-		if($this->_counter === 1) {
+		}elseif($this->_counter === 1) {
 			foreach ($this->_fields as $field => $cast) {
 				if(isset($this[0]->{$field})) {
 					$this->{$field} = $this[0]->{$field};
@@ -903,7 +898,7 @@ abstract class ActiveRecord extends Core_General_Class{
 					$this->_fields[$row['Field']] = true;
 				break;
 			}
-			// $this->{$row['Field']} = null;
+			$this->{$row['Field']} = null;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
 		}
