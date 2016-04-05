@@ -1184,6 +1184,12 @@ abstract class ActiveRecord extends Core_General_Class{
 			        }
 		        }
 			}
+		} else {
+			foreach($this->_fields as $field => $cast) {
+				if(isset($this->{$field})) {
+		        	$arraux[$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')? $this->{$field}->getArray() : $this->{$field};
+		        }
+	        }
 		}
 		return $arraux;
 	}
