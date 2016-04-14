@@ -991,7 +991,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) || ($message = $field['message']);
 						$field = $field['field'];
 					}
-					if(!empty($this->{$field}) && !empty($this->{$this->pk})) {
+					if(!empty($this->{$field})) {
 						$obj1 = new $this;
 						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->{$field}."' AND `{$this->pk}`<>'".$this->{$this->pk}."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
