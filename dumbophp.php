@@ -991,7 +991,7 @@ abstract class ActiveRecord extends Core_General_Class{
 						empty($field['message']) || ($message = $field['message']);
 						$field = $field['field'];
 					}
-					if(!empty($this->{$field}) && !empty($this->{$this->pk})) {
+					if(!empty($this->{$field})) {
 						$obj1 = new $this;
 						$resultset = $obj1->Find(array('fields'=>$field, 'conditions'=>"`{$field}`='".$this->{$field}."' AND `{$this->pk}`<>'".$this->{$this->pk}."'"));
 						if($resultset->counter()>0) $this->_error->add(array('field' => $field,'message'=>$message));
@@ -1602,7 +1602,7 @@ abstract class Migrations extends Core_General_Class {
 				if($Field['type'] == 'VARCHAR' && empty($Field['limit'])) $Field['limit'] = 250;
 				$query .= (!empty($Field['field']) && !empty($Field['type']))? "`".$Field['field']."` ".$Field['type'] : NULL;
 				$query .= (!empty($Field['limit']))? " (".$Field['limit'].")" : NULL;
-				$query .= (!empty($Field['null']))? " NOT NULL" : NULL;
+				$query .= (empty($Field['null']) || $Field['null'] === 'false')? " NOT NULL" : NULL;
 				$query .= (isset($Field['default']))? " DEFAULT '".$Field['default']."'" : NULL;
 				$query .= (!empty($Field['comments']))? " COMMENT '".$Field['comment']."'" : NULL;
 				$query .= " ,";
