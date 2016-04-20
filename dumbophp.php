@@ -716,6 +716,7 @@ abstract class ActiveRecord extends Core_General_Class{
 	public $_error = NULL;
 	public $_sqlQuery = '';
 	public $candump = true;
+	public $id = null;
 	public $created_at = 0;
 	public $updated_at = 0;
 	protected $_ObjTable;
@@ -898,7 +899,6 @@ abstract class ActiveRecord extends Core_General_Class{
 					$this->_fields[$row['Field']] = true;
 				break;
 			}
-			$this->{$row['Field']} = null;
 			$this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
 			$this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
 		}
@@ -911,8 +911,9 @@ abstract class ActiveRecord extends Core_General_Class{
 					$this[0]->{$field} = $this->{$field} = $this->_fields[$field] ? 0 + $content : $content;
 				}
 			}
+		} else {
 			foreach ($this->_fields as $field => $cast) {
-				if (!array_key_exists($field, $contents)) unset($this->{$field});
+				$this->{$row['Field']} = null;
 			}
 		}
 		return clone($this);
@@ -1042,12 +1043,13 @@ abstract class ActiveRecord extends Core_General_Class{
 			$this->created_at = time();
 			$data = array();
 			foreach ($this->_fields as $field => $cast) {
-				if($field !== $this->pk && isset($this->{$field})) {
+				if($field != $this->pk && isset($this->{$field})) {
 					$data[$field] = $this->{$field};
 				}
 			}
 			$prepared = $this->driver->Insert($data);
 		}
+
 		$this->_sqlQuery = $prepared['query'];
 		$sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
 		if (!$sh->execute($prepared['prepared'])) {
@@ -1055,15 +1057,17 @@ abstract class ActiveRecord extends Core_General_Class{
 		    $this->_error->add(array('field' => $this->_ObjTable,'message'=>$e[2]."\n {$this->_sqlQuery}"));
 		    return FALSE;
 		}
+
 		if(empty($this->{$this->pk})){
 			$this->{$this->pk} = $GLOBALS['Connection']->lastInsertId() + 0;
-			$this[0][$this->pk] = $this->{$this->pk};
+			isset($this[0]) && ($this[0]->{$this->pk} = $this->{$this->pk});
 			if(sizeof($this->after_insert)>0){
 				foreach($this->after_insert as $functiontoRun){
 					$this->{$functiontoRun}();
 				}
 			}
 		}
+
 		if(sizeof($this->after_save)>0){
 			foreach($this->after_save as $functiontoRun){
 				$this->{$functiontoRun}();
@@ -1072,6 +1076,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		CAN_USE_MEMCACHED && $this->_refreshCache();
 		return true;
 	}
+
 	public function Delete($conditions = NULL){
 		if($this->_counter > 1){
 			$conditions = array();
@@ -1187,7 +1192,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		} else {
 			foreach($this->_fields as $field => $cast) {
 				if(isset($this->{$field})) {
-		        	$arraux[$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')? $this->{$field}->getArray() : $this->{$field};
+		        	$arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')? $this->{$field}->getArray() : $this->{$field};
 		        }
 	        }
 		}
