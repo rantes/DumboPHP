@@ -913,7 +913,7 @@ abstract class ActiveRecord extends Core_General_Class{
 			}
 		} else {
 			foreach ($this->_fields as $field => $cast) {
-				$this->{$row['Field']} = null;
+				$this->{$field} = null;
 			}
 		}
 		return clone($this);
