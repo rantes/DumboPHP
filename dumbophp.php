@@ -622,7 +622,6 @@ class Errors{
 	public function __toString(){
 		$strmes = '';
 		foreach($this->messages as $field => $messages){
-			$strmes .= "Error on $field field: \n";
 			foreach($messages as $message){
 				$strmes .= "\t".$message['message']."\n";
 			}
