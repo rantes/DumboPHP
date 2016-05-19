@@ -1,7 +1,5 @@
 #!/usr/bin/php
 <?php
-require_once './config/host.php';
-set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp', INST_PATH.'/DumboPHP')));
 
 class Colors {
 	private $foreground_colors = array();
@@ -491,7 +489,10 @@ DUMBO;
 		}
 	}
 }
-
+if (file_exists('./config/host.php')) {
+	require_once './config/host.php';
+	set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp', INST_PATH.'/DumboPHP')));
+}
 $shell = new dumboShell();
 $shell->run($argv);
 ?>
