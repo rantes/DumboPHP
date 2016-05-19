@@ -5,7 +5,7 @@ $dumboSystemPath = '/etc/dumbophp';
 $path = dirname(__FILE__);
 $dumboSystemPathSrc = $dumboSystemPath.'/src';
 $pathSrc = $path.'/src';
-$binPath = '/usr/bin';
+$binPath = '/usr/local/bin';
 
 echo 'Installing DumboPHP. Please be patient...'.PHP_EOL;
 
@@ -60,7 +60,7 @@ $d->close();
 print('Creating bin file.'.PHP_EOL);
 file_exists($binPath.'/dumbo') && unlink($binPath.'/dumbo');
 
-(IS_WIN && copy($dumboSystemPath.'/dumbo.bat', $binPath.'/dumbo.bat')) or symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo') or (($binPath = '/usr/local/bin') and symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo'));
+(IS_WIN && copy($dumboSystemPath.'/dumbo.bat', $binPath.'/dumbo.bat')) or symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
 IS_WIN or chmod($binPath.'/dumbo', 0775);
 
 echo 'Install complete.'.PHP_EOL;
