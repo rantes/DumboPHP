@@ -60,7 +60,7 @@ $d->close();
 print('Creating bin file.'.PHP_EOL);
 file_exists($binPath.'/dumbo') && unlink($binPath.'/dumbo');
 
-(IS_WIN && copy($dumboSystemPath.'/dumbo.bat', $binPath.'/dumbo.bat')) or symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo') or symlink($dumboSystemPath.'/dumbo', '/usr/local/bin/dumbo');
+(IS_WIN && copy($dumboSystemPath.'/dumbo.bat', $binPath.'/dumbo.bat')) or symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo') or (($binPath = '/usr/local/bin') and symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo'));
 IS_WIN or chmod($binPath.'/dumbo', 0775);
 
 echo 'Install complete.'.PHP_EOL;
