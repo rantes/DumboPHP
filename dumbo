@@ -72,6 +72,7 @@ class dumboShell{
 	private $command = null;
 	private $dumboSource = '/etc/dumbophp/src';
 	private $dumboSystemPath = '/etc/dumbophp';
+	private $dumboLibs = '/etc/dumbophp/lib';
 	private $binPath = '/usr/bin';
 	private $fullPathTarget = '';
 	private $arguments = array();
@@ -261,7 +262,7 @@ DUMBO;
 			$this->params[] = $this->arguments[$i];
 		}
 
-		require_once realpath(dirname(__FILE__)).'/src/generator.php';
+		require_once __DIR__.'/lib/generator.php';
 		$generator = new DumboGeneratorClass();
 
 		switch ($this->arguments[0]) {
@@ -405,13 +406,16 @@ DUMBO;
 	}
 
 	private function runActionScript() {
-		$url = 'url=';
-		$url .= empty($this->arguments[0])? 'index/index' : $this->arguments[0];
+		empty($_SERVER['REQUEST_METHOD']) and ($_SERVER['REQUEST_METHOD'] = 'GET');
+		$_GET['url'] = empty($this->arguments[0])? 'index/index' : $this->arguments[0];
 		array_shift($this->arguments);
-		$params = implode(' ', $this->arguments);
-		$output = shell_exec("php app/webroot/index.php $url $params");
-		echo PHP_EOL,$output,PHP_EOL;
-		// die();
+		foreach ($this->arguments as $arg) {
+			$param = explode('=', $arg);
+			sizeof($param) === 2 and ($_GET[urldecode($param[0])] = urldecode($param[1]));
+		}
+
+		require_once('dumbophp.php');
+		$index = new index();
 	}
 
 	private function migrationScripts() {

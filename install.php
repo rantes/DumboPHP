@@ -4,7 +4,9 @@
 $dumboSystemPath = '/etc/dumbophp';
 $path = dirname(__FILE__);
 $dumboSystemPathSrc = $dumboSystemPath.'/src';
+$dumboSystemPathLib = $dumboSystemPath.'/lib';
 $pathSrc = $path.'/src';
+$pathLib = $path.'/lib';
 $binPath = '/usr/local/bin';
 
 echo 'Installing DumboPHP. Please be patient...'.PHP_EOL;
@@ -25,7 +27,7 @@ file_exists($dumboSystemPath) || mkdir($dumboSystemPath, 0777, TRUE);
 
 $d = dir($path);
 while (false !== ($entry = $d->read())) {
-   if($entry != '.' && $entry != '..' && $entry != 'install.php' && $entry != 'src' && $entry != '.git' && $entry != '.gitignore'){
+   if($entry != '.' && $entry != '..' && $entry != 'install.php' && $entry != 'src' && $entry != 'lib' && $entry != '.git' && $entry != '.gitignore'){
    		echo 'copying '.$path.'/'.$entry.' to '.$dumboSystemPath.'/'.$entry.PHP_EOL;
    		file_exists($dumboSystemPath.'/'.$entry) && unlink($dumboSystemPath.'/'.$entry);
    		copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry) or die('Could not copy file.');
@@ -45,14 +47,24 @@ while (false !== ($entry = $d->read())) {
 }
 $d->close();
 
-file_exists($dumboSystemPathSrc.'/db_drivers') || mkdir($dumboSystemPathSrc.'/db_drivers', 0777, TRUE);
+$d = dir($pathLib);
+while (false !== ($entry = $d->read())) {
+   if($entry != '.' && $entry != '..' && !is_dir($pathLib.'/'.$entry)){
+         echo 'copying '.$pathLib.'/'.$entry.' to '.$dumboSystemPathLib.'/'.$entry.PHP_EOL;
+         file_exists($dumboSystemPathLib.'/'.$entry) && unlink($dumboSystemPathLib.'/'.$entry);
+         copy($pathLib.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
+   }
+}
+$d->close();
 
-$d = dir($pathSrc.'/db_drivers');
+file_exists($dumboSystemPathLib.'/db_drivers') || mkdir($dumboSystemPathLib.'/db_drivers', 0777, TRUE);
+
+$d = dir($pathLib.'/db_drivers');
 while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..' && !is_dir($entry)){
-         echo 'copying '.$pathSrc.'/db_drivers/'.$entry.' to '.$dumboSystemPathSrc.'/db_drivers/'.$entry.PHP_EOL;
-         file_exists($dumboSystemPathSrc.'/db_drivers/'.$entry) && unlink($dumboSystemPathSrc.'/db_drivers/'.$entry);
-         copy($pathSrc.'/db_drivers/'.$entry, $dumboSystemPathSrc.'/db_drivers/'.$entry) or die('Could not copy file.');
+         echo 'copying '.$pathLib.'/db_drivers/'.$entry.' to '.$dumboSystemPathLib.'/db_drivers/'.$entry.PHP_EOL;
+         file_exists($dumboSystemPathLib.'/db_drivers/'.$entry) && unlink($dumboSystemPathLib.'/db_drivers/'.$entry);
+         copy($pathLib.'/db_drivers/'.$entry, $dumboSystemPathLib.'/db_drivers/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();

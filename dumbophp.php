@@ -601,7 +601,7 @@ class Connection extends PDO {
 	}
 }
 $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
-require_once dirname(__FILE__).'/src/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
+require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
 class Errors{
 	private $actived = FALSE;
 	private $messages = array();
@@ -1490,9 +1490,11 @@ abstract class Page extends Core_General_Class {
 		$this->controller = _CONTROLLER;
 		if(property_exists($this, 'noTemplate') and in_array(_ACTION, $this->noTemplate)) $renderPage = FALSE;
 		if($this->canRespondToAJAX()){
-			header('Cache-Control: no-cache, must-revalidate');
-			header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-			header('Content-type: application/json');
+			if (!headers_sent()) {
+				header('Cache-Control: no-cache, must-revalidate');
+				header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+				header('Content-type: application/json');
+			}
 			if(!empty($this->params['callback'])){
 				echo $this->params['callback'].'(';
 			}
