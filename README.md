@@ -1,6 +1,6 @@
 # DumboPHP #
 [![Build Status](https://travis-ci.org/rantes/DumboPHP.svg?branch=master)](https://travis-ci.org/rantes/DumboPHP)
-[![Latest Stable Version](https://poser.pugx.org/rantes/dumbophp/v/stable)](https://packagist.org/packages/rantes/dumbophp) [![Total Downloads](https://poser.pugx.org/rantes/dumbophp/downloads)](https://packagist.org/packages/rantes/dumbophp) [![Latest Unstable Version](https://poser.pugx.org/rantes/dumbophp/v/unstable)](https://packagist.org/packages/rantes/dumbophp) [![License](https://poser.pugx.org/rantes/dumbophp/license)](https://packagist.org/packages/rantes/dumbophp)
+[![Latest Stable Version](https://poser.pugx.org/rantes/dumbophp/v/stable)](https://packagist.org/packages/rantes/dumbophp) [![Total Downloads](https://poser.pugx.org/rantes/dumbophp/downloads)](https://packagist.org/packages/rantes/dumbophp) [![Monthly Downloads](https://poser.pugx.org/rantes/dumbophp/d/monthly)](https://packagist.org/packages/rantes/dumbophp) [![Daily Downloads](https://poser.pugx.org/rantes/dumbophp/d/daily)](https://packagist.org/packages/rantes/dumbophp) [![Latest Unstable Version](https://poser.pugx.org/rantes/dumbophp/v/unstable)](https://packagist.org/packages/rantes/dumbophp) [![License](https://poser.pugx.org/rantes/dumbophp/license)](https://packagist.org/packages/rantes/dumbophp)
 ![DumboPHP](http://www.dumbophp.com//images/dumbo_logo.png "DumboPHP")
 ### Summary ###
 

@@ -1201,7 +1201,7 @@ abstract class ActiveRecord extends Core_General_Class{
 		$model = $this->_ObjTable;
 		$dom = new DOMDocument('1.0', 'utf-8');
 		$dataDump = $this->getArray();
-		$path = INST_PATH.'migrations/dumps/';
+		$path = defined('DUMPS_PATH')? DUMPS_PATH : INST_PATH.'migrations/dumps/';
 		$sroot = $dom->appendChild(new DOMElement('table_'.$model));
 		foreach($dataDump as $reg){
 			$root = $sroot->appendChild(new DOMElement($model));
@@ -1219,7 +1219,8 @@ abstract class ActiveRecord extends Core_General_Class{
 	}
 	public function LoadDump(){
 		$doc = new DOMDocument;
-		$doc->load(INST_PATH.'migrations/dumps/'.$this->_ObjTable.'.xml');
+		$path = defined('DUMPS_PATH')? DUMPS_PATH : INST_PATH.'migrations/dumps/';
+		$doc->load($path.$this->_ObjTable.'.xml');
 		$items = $doc->getElementsByTagName($this->_ObjTable);
 		for($i=0; $i<$items->length; $i++){
 			$xitem = $items->item($i);
