@@ -35,17 +35,19 @@ while (false !== ($entry = $d->read())) {
 }
 $d->close();
 
-file_exists($dumboSystemPathSrc) ||	mkdir($dumboSystemPathSrc, 0777, TRUE);
+file_exists($dumboSystemPathSrc) || mkdir($dumboSystemPathSrc, 0777, TRUE);
 
 $d = dir($pathSrc);
 while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..' && !is_dir($pathSrc.'/'.$entry)){
-   		echo 'copying '.$pathSrc.'/'.$entry.' to '.$dumboSystemPathSrc.'/'.$entry.PHP_EOL;
-   		file_exists($dumboSystemPathSrc.'/'.$entry) && unlink($dumboSystemPathSrc.'/'.$entry);
-   		copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
+         echo 'copying '.$pathSrc.'/'.$entry.' to '.$dumboSystemPathSrc.'/'.$entry.PHP_EOL;
+         file_exists($dumboSystemPathSrc.'/'.$entry) && unlink($dumboSystemPathSrc.'/'.$entry);
+         copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
+
+file_exists($dumboSystemPathLib) ||	mkdir($dumboSystemPathLib, 0777, TRUE);
 
 $d = dir($pathLib);
 while (false !== ($entry = $d->read())) {
