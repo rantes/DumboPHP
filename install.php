@@ -54,7 +54,7 @@ while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..' && !is_dir($pathLib.'/'.$entry)){
          echo 'copying '.$pathLib.'/'.$entry.' to '.$dumboSystemPathLib.'/'.$entry.PHP_EOL;
          file_exists($dumboSystemPathLib.'/'.$entry) && unlink($dumboSystemPathLib.'/'.$entry);
-         copy($pathLib.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
+         copy($pathLib.'/'.$entry, $dumboSystemPathLib.'/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
