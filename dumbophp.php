@@ -1552,7 +1552,7 @@ abstract class Page extends Core_General_Class {
     protected $excepts_after_filter  = array();
     protected $excepts_after_render  = array();
     protected $excepts_before_render = array();
-    protected $_exposeContent            = true;
+    protected $_exposeContent        = true;
     protected $_data_                = array();
     private $_respondToAJAX          = '';
     private $_canrespondtoajax       = false;
@@ -1572,7 +1572,6 @@ abstract class Page extends Core_General_Class {
         $this->action = _ACTION;
         $this->controller = _CONTROLLER;
         if (property_exists($this, 'noTemplate') and in_array(_ACTION, $this->noTemplate)) $renderPage = FALSE;
-
         if ($this->canRespondToAJAX()) {
             if (!headers_sent()) {
                 header('Cache-Control: no-cache, must-revalidate');
@@ -1580,13 +1579,8 @@ abstract class Page extends Core_General_Class {
                 header('Content-type: application/json');
             }
 
-            ob_start();
-            if (!empty($this->params['callback'])) echo $this->params['callback'].'(';
-            
-            echo $this->respondToAJAX();
-            
-            if (!empty($this->params['callback'])) echo ');';
-            $this->_outputContent = ob_get_clean();
+            $this->_outputContent = $this->respondToAJAX();
+            if (!empty($this->params['callback'])) $this->_outputContent = "({$this->_outputContent}));";
 
             $renderPage   = false;
             $this->layout = '';
@@ -1631,12 +1625,11 @@ abstract class Page extends Core_General_Class {
             ob_start();
             include_once ($viewsFolder.$this->layout.".phtml");
             $this->_outputContent = ob_get_clean();
-        } else {
+        } elseif($renderPage) {
             $this->_outputContent = $this->yield;
         }
 
-        if ($this->_exposeContent) echo $this->_outputContent;
-
+        $this->_exposeContent && print $this->_outputContent;
     }
     public function LoadHelper($helper = NULL) {
         if (isset($helper) and is_array($helper)):
@@ -1651,10 +1644,10 @@ abstract class Page extends Core_General_Class {
     }
     public function respondToAJAX($val = null) {
         if ($val === null):
-        return $this->_respondToAJAX;
-         else :
-        $this->_respondToAJAX    = $val;
-        $this->_canrespondtoajax = true;
+            return $this->_respondToAJAX;
+        else :
+            $this->_respondToAJAX    = $val;
+            $this->_canrespondtoajax = true;
         endif;
     }
     public function canRespondToAJAX() {
