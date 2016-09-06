@@ -604,36 +604,45 @@ function javascript_include_tag($params, &$obj = NULL) {
 }
 class Connection extends PDO {
     private $_settings = null;
-    public $engine     = null;
-    function __construct($file = 'config/db__settings.ini') {
-        if (!$this->_settings = parse_ini_file($file, TRUE)) {throw new exception('Unable to open '.$file.'.');
-        }
+    public $engine = null;
 
-        $this->engine = $this->_settings['database']['driver'];
+    function __construct($file = 'config/db__settings.ini') {
+        empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
+
+        if (!$this->_settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
+
+        $this->_settings = $this->_settings[$GLOBALS['env']];
+        $this->engine = $this->_settings['driver'];
+
         switch ($this->engine) {
             case 'firebird':
-                $dsn = 'firebird:dbname='.$this->_settings['database']['host'].'/'.$this->_settings['database']['port'].':'.$this->_settings['database']['schema'];
-                break;
+                $dsn = 'firebird:dbname='.$this->_settings['host'].'/'.$this->_settings['port'].':'.$this->_settings['schema'];
+            break;
             case 'sqlite':
             case 'sqlite2':
-                if ($this->_settings['database']['schema'] === 'memory') {
+                if($this->_settings['schema'] === 'memory'){
                     $dsn = $this->engine.'::memory:';
                 } else {
-                    $dsn = $this->engine.':'.$this->_settings['database']['schema'];
+                    $dsn = $this->engine.':'.$this->_settings['schema'];
                 }
-                break;
+            break;
             default:
-                $dsn = $this->engine.
-                ((!empty($this->_settings['database']['host']))?(':host='.$this->_settings['database']['host']):'').
-                ((!empty($this->_settings['database']['port']))?(';port='.$this->_settings['database']['port']):'').
-                ';dbname='.$this->_settings['database']['schema'].
-                ((!empty($this->_settings['database']['dialect']))?(';dialect='.$this->_settings['database']['dialect']):'').
-                ((!empty($this->_settings['database']['charset']))?(';charset='.$this->_settings['database']['charset']):'');
-                break;
+                $host = ':host=' . $this->_settings['host'].
+                        ';port=' . $this->_settings['port'];
+
+                if (!empty($this->_settings['unix_socket'])) {
+                    $host = ':unix_socket=' . $this->_settings['unix_socket'];
+                }
+
+                $dsn = $this->engine . $host .
+                ';dbname=' . $this->_settings['schema'] .
+                ((!empty($this->_settings['dialect'])) ? (';dialect=' . $this->_settings['dialect']) : '') .
+                ((!empty($this->_settings['charset'])) ? (';charset=' . $this->_settings['charset']) : '');
+            break;
         }
-        empty($this->_settings['database']['username']) and $this->_settings['database']['username'] = null;
-        empty($this->_settings['database']['password']) and $this->_settings['database']['password'] = null;
-        parent::__construct($dsn, $this->_settings['database']['username'], $this->_settings['database']['password'], array(PDO::MYSQL_ATTR_LOCAL_INFILE => true, PDO::ATTR_PERSISTENT => true));
+        empty($this->_settings['username']) and $this->_settings['username'] = null;
+        empty($this->_settings['password']) and $this->_settings['password'] = null;
+        parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => true,PDO::ATTR_PERSISTENT => true));
         $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 }
@@ -1620,7 +1629,7 @@ abstract class Page extends Core_General_Class {
         if (isset($this->render['layout']) && $this->render['layout'] !== false) $this->layout = $this->render['layout'];
 
         if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
-        
+
         if (strlen($this->layout) > 0) {
             ob_start();
             include_once ($viewsFolder.$this->layout.".phtml");
@@ -1764,9 +1773,9 @@ class index {
             $request = explode("/", $_GET['url']);
             unset($_GET['url']);
         }
-        
+
         $path = INST_PATH.'app/controllers/';
-        
+
         empty($request[0]) && ($request[0] = DEF_CONTROLLER);
         empty($request[1]) && ($request[1] = DEF_ACTION);
 
