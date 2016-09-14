@@ -1616,10 +1616,7 @@ abstract class Page extends Core_General_Class {
         }
 
         $viewsFolder = INST_PATH.'app/views/';
-        if (is_dir(INST_PATH.'app/templates/')) {
-            trigger_error('Templates folder is not longer used. Change name to views', E_USER_DEPRECATED);
-            $viewsFolder = INST_PATH.'app/templates/';
-        }
+        
         if ($renderPage) {
             ob_start();
             include_once ($viewsFolder.$view);
