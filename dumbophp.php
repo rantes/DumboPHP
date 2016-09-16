@@ -1593,46 +1593,47 @@ abstract class Page extends Core_General_Class {
 
             $renderPage   = false;
             $this->layout = '';
-        }
+        } else {
 
-        if (isset($this->render) and is_array($this->render)) {
-            if (isset($this->render['action']) && $this->render['action'] === false) {
-                $this->yield = '';
-                $renderPage  = FALSE;
-            } elseif (!empty($this->render['file'])) {
-                $view = $this->render['file'];
-            } elseif (!empty($this->render['partial'])) {
-                $view = _CONTROLLER.'/_'.$this->render['partial'].'.phtml';
-            } elseif (!empty($this->render['text'])) {
-                $this->yield = $this->render['text'];
-                $renderPage  = FALSE;
-            } elseif (!empty($this->render['action'])) {
-                $view = _CONTROLLER.'/'.$this->render['action'].'.phtml';
+            if (isset($this->render) and is_array($this->render)) {
+                if (isset($this->render['action']) && $this->render['action'] === false) {
+                    $this->yield = '';
+                    $renderPage  = FALSE;
+                } elseif (!empty($this->render['file'])) {
+                    $view = $this->render['file'];
+                } elseif (!empty($this->render['partial'])) {
+                    $view = _CONTROLLER.'/_'.$this->render['partial'].'.phtml';
+                } elseif (!empty($this->render['text'])) {
+                    $this->yield = $this->render['text'];
+                    $renderPage  = FALSE;
+                } elseif (!empty($this->render['action'])) {
+                    $view = _CONTROLLER.'/'.$this->render['action'].'.phtml';
+                } else {
+                    $view = _CONTROLLER.'/'._ACTION.'.phtml';
+                }
             } else {
                 $view = _CONTROLLER.'/'._ACTION.'.phtml';
             }
-        } else {
-            $view = _CONTROLLER.'/'._ACTION.'.phtml';
-        }
-
-        $viewsFolder = INST_PATH.'app/views/';
-        
-        if ($renderPage) {
-            ob_start();
-            include_once ($viewsFolder.$view);
-            $this->yield = ob_get_clean();
-        }
-
-        if (isset($this->render['layout']) && $this->render['layout'] !== false) $this->layout = $this->render['layout'];
-
-        if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
-
-        $this->_outputContent = $this->yield;
-        
-        if (strlen($this->layout) > 0) {
-            ob_start();
-            include_once ($viewsFolder.$this->layout.".phtml");
-            $this->_outputContent = ob_get_clean();
+    
+            $viewsFolder = INST_PATH.'app/views/';
+            
+            if ($renderPage) {
+                ob_start();
+                include_once ($viewsFolder.$view);
+                $this->yield = ob_get_clean();
+            }
+    
+            if (isset($this->render['layout']) && $this->render['layout'] !== false) $this->layout = $this->render['layout'];
+    
+            if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
+    
+            $this->_outputContent = $this->yield;
+            
+            if (strlen($this->layout) > 0) {
+                ob_start();
+                include_once ($viewsFolder.$this->layout.".phtml");
+                $this->_outputContent = ob_get_clean();
+            }
         }
 
         $this->_exposeContent && print $this->_outputContent;
