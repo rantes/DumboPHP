@@ -1627,12 +1627,12 @@ abstract class Page extends Core_General_Class {
 
         if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
 
+        $this->_outputContent = $this->yield;
+        
         if (strlen($this->layout) > 0) {
             ob_start();
             include_once ($viewsFolder.$this->layout.".phtml");
             $this->_outputContent = ob_get_clean();
-        } elseif($renderPage) {
-            $this->_outputContent = $this->yield;
         }
 
         $this->_exposeContent && print $this->_outputContent;
