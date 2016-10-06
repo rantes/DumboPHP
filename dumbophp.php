@@ -730,9 +730,9 @@ abstract class Core_General_Class extends ArrayObject {
             $conditions = "`".$prefix."_id`='".$this->id."'";
             if (method_exists($obj1, 'Find')) {
                 if ($classFromCall == get_class($this) and in_array($ClassName, $this->has_many_and_belongs_to)) {
-                    $conditions = ($way == 'up')?"`id`='".$this->{ $foreign} ."'":$conditions;
+                    $conditions = ($way == 'up')?"`id`='".$this->{$foreign} ."'":$conditions;
                 } elseif (in_array($ClassName, $this->belongs_to)) {
-                    $conditions = "`id`='".$this->{ $foreign} ."'";
+                    $conditions = "`id`='".$this->{$foreign} ."'";
                 }
                 $params['conditions'] = empty($params['conditions'])?$conditions:' AND '.$conditions;
                 return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
@@ -799,8 +799,12 @@ abstract class ActiveRecord extends Core_General_Class {
             $this->_ObjTable = implode("_", $words);
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        $driver                  = $GLOBALS['Connection']->engine.'Driver';
-        $this->driver            = new $driver();
+        
+        if ($this->driver === null) {
+            $driver = $GLOBALS['Connection']->engine.'Driver';
+            $this->driver = new $driver();
+        }
+        
         $this->driver->tableName = $this->_ObjTable;
         $this->driver->pk        = $this->pk;
         $this->_error            = new Errors;
@@ -852,7 +856,7 @@ abstract class ActiveRecord extends Core_General_Class {
             for ($j = 0; $j < $count; $j++) {
                 foreach ($resultset[$j] as $property => $value) {
                     if (!is_numeric($property)) {
-                        $this[$j]->{ $property} = $this->_fields[$property]?0+$value:$value;
+                        $this[$j]->{$property} = $this->_fields[$property]?0+$value:$value;
                     }
                 }
             }
@@ -865,14 +869,14 @@ abstract class ActiveRecord extends Core_General_Class {
             $fields = $this->driver->getColumns();
             foreach ($fields as $row) {
                 $this->_fields[$row['Field']]                        = false;
-                $this->{ $row['Field']}                              = null;
+                $this->{$row['Field']}                              = null;
                 $this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
                 $this->_dataAttributes[$row['Field']]['cast']        = $this->_fields[$row['Field']];
             }
         } elseif ($this->_counter === 1) {
             foreach ($this->_fields as $field => $cast) {
-                if (isset($this[0]->{ $field})) {
-                    $this->{ $field} = $this[0]->{ $field};
+                if (isset($this[0]->{$field})) {
+                    $this->{$field} = $this[0]->{$field};
                 }
             }
         }
@@ -880,7 +884,7 @@ abstract class ActiveRecord extends Core_General_Class {
     public function Find($params = NULL) {
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
-                $this->{ $functiontoRun}();
+                $this->{$functiontoRun}();
             }
         }
         if (CAN_USE_MEMCACHED) {
@@ -894,7 +898,7 @@ abstract class ActiveRecord extends Core_General_Class {
         $this->getData($this->_sqlQuery);
         if (sizeof($this->after_find) > 0) {
             foreach ($this->after_find as $functiontoRun) {
-                $this->{ $functiontoRun}();
+                $this->{$functiontoRun}();
             }
         }
         CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this) && $this->_setMemcacheKey($key);
@@ -924,7 +928,7 @@ abstract class ActiveRecord extends Core_General_Class {
             foreach ($resultset[0] as $key => $value) {
                 if (!array_key_exists($key, $this->_fields)) {
                     $this->_fields[$key]                        = is_numeric($value);
-                    $this->{ $key}                              = '';
+                    $this->{$key}                              = '';
                     $this->_dataAttributes[$key]['native_type'] = is_numeric($value)?'NUMERIC':'STRING';
                     $this->_dataAttributes[$key]['cast']        = $this->_fields[$key];
                 }
@@ -936,6 +940,7 @@ abstract class ActiveRecord extends Core_General_Class {
             $this[$i] = null;
             $this->offsetUnset($i);
         }
+        $this->__construct();
         $fields = $this->driver->getColumns();
         foreach ($fields as $row) {
             $this->_fields[$row['Field']] = false;
@@ -957,12 +962,12 @@ abstract class ActiveRecord extends Core_General_Class {
             $this->offsetSet(0, new $this);
             foreach ($contents as $field => $content) {
                 if (array_key_exists($field, $this->_fields)) {
-                    $this[0]->{ $field} = $this->{ $field} = $this->_fields[$field]?0+$content:$content;
+                    $this[0]->{$field} = $this->{$field} = $this->_fields[$field]?0+$content:$content;
                 }
             }
         } else {
             foreach ($this->_fields as $field => $cast) {
-                $this->{ $field} = null;
+                $this->{$field} = null;
             }
         }
         return clone($this);
@@ -993,8 +998,8 @@ abstract class ActiveRecord extends Core_General_Class {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
         if (empty($params)) {
             foreach ($this->_fields as $field => $cast) {
-                if (isset($this->{ $field})) {
-                    $params[$field] = $this->{ $field};
+                if (isset($this->{$field})) {
+                    $params[$field] = $this->{$field};
                 }
             }
         }
@@ -1020,8 +1025,8 @@ abstract class ActiveRecord extends Core_General_Class {
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/", $this->{ $field}, $matches);
-                    isset($this->{ $field}) and empty($matches) and $this->_error->add(array('field' => $field, 'message' => $message));
+                    preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
+                    isset($this->{$field}) and empty($matches) and $this->_error->add(array('field' => $field, 'message' => $message));
                 }
             }
             if (!empty($this->validate['numeric'])) {
@@ -1034,7 +1039,7 @@ abstract class ActiveRecord extends Core_General_Class {
                         empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    isset($this->{ $field}) && (!is_numeric($this->{ $field})) && $this->_error->add(array('field' => $field, 'message' => $message));
+                    isset($this->{$field}) && (!is_numeric($this->{$field})) && $this->_error->add(array('field' => $field, 'message' => $message));
                 }
             }
             if (!empty($this->validate['unique'])) {
@@ -1047,9 +1052,9 @@ abstract class ActiveRecord extends Core_General_Class {
                         empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    if (!empty($this->{ $field})) {
+                    if (!empty($this->{$field})) {
                         $obj1      = new $this;
-                        $resultset = $obj1->Find(array('fields'                          => $field, 'conditions'                          => "`{$field}`='" .$this->{ $field} ."' AND `{$this->pk}`<>'" .$this->{ $this->pk} ."'"));
+                        $resultset = $obj1->Find(array('fields'                          => $field, 'conditions'                          => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
                         if ($resultset->counter() > 0) {$this->_error->add(array('field' => $field, 'message' => $message));
                         }
                     }
@@ -1066,7 +1071,7 @@ abstract class ActiveRecord extends Core_General_Class {
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    empty($this->{ $field}) and $this->_error->add(array('field' => $field, 'message' => $message));
+                    empty($this->{$field}) and $this->_error->add(array('field' => $field, 'message' => $message));
                 }
             }
         }
@@ -1075,44 +1080,48 @@ abstract class ActiveRecord extends Core_General_Class {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
         if (sizeof($this->before_save) > 0) {
             foreach ($this->before_save as $functiontoRun) {
-                $this->{ $functiontoRun}();
+                $this->{$functiontoRun}();
             }
         }
-        if ($this->_error->isActived()) {return FALSE;
+        if ($this->_error->isActived()) {
+            return FALSE;
         }
 
-        if (!empty($this->{ $this->pk})) {
+        if (!empty($this->{$this->pk})) {
             $this->_ValidateOnSave('update');
-            if ($this->_error->isActived()) {return false;
+            if ($this->_error->isActived()) {
+                return false;
             }
 
             $this->updated_at = time();
             $data             = array();
             foreach ($this->_fields as $field => $cast) {
-                if ($field !== $this->pk && isset($this->{ $field})) {
-                    $data[$field] = $this->{ $field};
+                if ($field !== $this->pk && isset($this->{$field})) {
+                    $data[$field] = $this->{$field};
                 }
             }
-            $prepared = $this->driver->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = " .$this->{ $this->pk}));
+            $prepared = $this->driver->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = " .$this->{$this->pk}));
         } else {
             if (!empty($this->before_insert)) {
                 foreach ($this->before_insert as $functiontoRun) {
-                    $this->{ $functiontoRun}();
+                    $this->{$functiontoRun}();
                 }
             }
-            if ($this->_error->isActived()) {return false;
+            if ($this->_error->isActived()) {
+                return false;
             }
 
             $this->_ValidateOnSave();
-            if ($this->_error->isActived()) {return false;
+            if ($this->_error->isActived()) {
+                return false;
             }
 
             $this->created_at = time();
             $this->updated_at = 0;
             $data             = array();
             foreach ($this->_fields as $field => $cast) {
-                if ($field != $this->pk && isset($this->{ $field})) {
-                    $data[$field] = $this->{ $field};
+                if ($field != $this->pk && isset($this->{$field})) {
+                    $data[$field] = $this->{$field};
                 }
             }
             $prepared = $this->driver->Insert($data);
@@ -1126,19 +1135,19 @@ abstract class ActiveRecord extends Core_General_Class {
             return FALSE;
         }
 
-        if (empty($this->{ $this->pk})) {
-            $this->{ $this->pk} = $GLOBALS['Connection']->lastInsertId()+0;
-            isset($this[0]) && ($this[0]->{ $this->pk} = $this->{ $this->pk});
+        if (empty($this->{$this->pk})) {
+            $this->{$this->pk} = $GLOBALS['Connection']->lastInsertId()+0;
+            isset($this[0]) && ($this[0]->{$this->pk} = $this->{$this->pk});
             if (sizeof($this->after_insert) > 0) {
                 foreach ($this->after_insert as $functiontoRun) {
-                    $this->{ $functiontoRun}();
+                    $this->{$functiontoRun}();
                 }
             }
         }
 
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
-                $this->{ $functiontoRun}();
+                $this->{$functiontoRun}();
             }
         }
         CAN_USE_MEMCACHED && $this->_refreshCache();
@@ -1149,20 +1158,20 @@ abstract class ActiveRecord extends Core_General_Class {
         if ($this->_counter > 1) {
             $conditions = array();
             foreach ($this as $ele) {
-                $conditions[] = $ele->{ $this->pk};
+                $conditions[] = $ele->{$this->pk};
             }
         }
-        if ($conditions === NULL and !empty($this->{ $this->pk})) {$conditions = $this->{ $this->pk};
+        if ($conditions === NULL and !empty($this->{$this->pk})) {$conditions = $this->{$this->pk};
         }
 
-        if ($conditions === NULL and empty($this->{ $this->pk})) {
+        if ($conditions === NULL and empty($this->{$this->pk})) {
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Must specify a register to delete"));
             return FALSE;
         }
         $this->_sqlQuery = $this->driver->Delete($conditions);
         if (sizeof($this->before_delete) > 0) {
             foreach ($this->before_delete as $functiontoRun) {
-                $this->{ $functiontoRun}();
+                $this->{$functiontoRun}();
             }
             if (!empty($this->_error) && $this->_error->isActived()) {
                 return false;
@@ -1176,7 +1185,7 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         if (sizeof($this->after_delete) > 0) {
             foreach ($this->after_delete as $functiontoRun) {
-                $this->{ $functiontoRun}();
+                $this->{$functiontoRun}();
             }
         }
         CAN_USE_MEMCACHED && $this->_refreshCache();
@@ -1200,7 +1209,7 @@ abstract class ActiveRecord extends Core_General_Class {
                                 }
                                 break;
                             case 'nullify':
-                                $child->{ $this->_ObjTable.'_id'    } = '';
+                                $child->{$this->_ObjTable.'_id'    } = '';
                                 if (!$child->Save()) {
                                     $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Cannot nullify dependents"));
                                     return FALSE;
@@ -1224,9 +1233,9 @@ abstract class ActiveRecord extends Core_General_Class {
         if ($this->_counter <= 1) {
             foreach ($this->_fields as $field => $cast) {
                 $buffer = 'NULL'.PHP_EOL;
-                if (isset($this->{ $field})) {
+                if (isset($this->{$field})) {
                     ob_start();
-                    var_dump($this->{ $field});
+                    var_dump($this->{$field});
                     $buffer = ob_get_clean();
                 }
                 for ($j = 0; $j < $i+1; $j++) {
@@ -1254,15 +1263,15 @@ abstract class ActiveRecord extends Core_General_Class {
         if ($this->_counter > 0) {
             for ($j = 0; $j < $this->_counter; $j++) {
                 foreach ($this->_fields as $field => $cast) {
-                    if (isset($this[$j]->{ $field})) {
-                        $arraux[$j][$field] = (is_object($this[$j]->{ $field}) && get_parent_class($this[$j]->{ $field}) == 'ActiveRecord')?$this[$j]->{ $field}->getArray():$this[$j]->{ $field};
+                    if (isset($this[$j]->{$field})) {
+                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
                     }
                 }
             }
         } else {
             foreach ($this->_fields as $field => $cast) {
-                if (isset($this->{ $field})) {
-                    $arraux[0][$field] = (is_object($this->{ $field}) && get_parent_class($this->{ $field}) == 'ActiveRecord')?$this->{ $field}->getArray():$this->{ $field};
+                if (isset($this->{$field})) {
+                    $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
                 }
             }
         }
@@ -1501,16 +1510,16 @@ abstract class ActiveRecord extends Core_General_Class {
             switch ($type) {
                 case 'text':
                 case 'hidden':
-                    $input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->{ $field } .'" />';
+                    $input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->{$field } .'" />';
                     break;
                 case 'textarea':
-                    $input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{ $field    } .'</textarea>';
+                    $input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field    } .'</textarea>';
                     break;
                 case 'select':
                     $cont = !empty($params['first'])?'<option value="">'.$params['first'].'</option>':'';
                     foreach ($params['list'] as $value => $option):
                     $default                                   = '';
-                    if ($this->{ $field } == $value) {$default = 'selected="selected"';
+                    if ($this->{$field } == $value) {$default = 'selected="selected"';
                     }
 
                     $cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
@@ -1572,8 +1581,8 @@ abstract class Page extends Core_General_Class {
             if (!class_exists($var)) {
                 require INST_PATH.'app/models/'.$model.'.php';
             }
-            $this->{ $var} = new $var();
-            return $this->{ $var};
+            $this->{$var} = new $var();
+            return $this->{$var};
         }
     }
     public function display() {
@@ -1873,7 +1882,7 @@ class index {
                 }
             }
             if (method_exists($page, $action."Action")) {
-                $page->{ $action."Action"}();
+                $page->{$action."Action"}();
                 //before render, executed after the action execution and before the data renderize
                 if (method_exists($page, "before_render")) {
                     $actionsToExclude = $controllersToExclude = array();

@@ -30,6 +30,7 @@ class FieldObject {
 	public function __construct($field) {
 		$args = explode(':', $field);
 		$argsSize = sizeof($args);
+		$matches = [];
 
 		($argsSize < 2) and die('Error on Building: Invalid field definition.'.PHP_EOL);
 		if(preg_match('/\{([0-9]+)\}/is', $args[1], $matches) === 1) {
