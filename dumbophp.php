@@ -230,62 +230,83 @@ final class IrregularNouns {
         $this->plural[]   = 'women';
     }
 }
+/**
+ * Turns a singular word into its plural
+ * @param array|string $params
+ * @param object $obj
+ * @return string
+ */
 function Plurals($params, &$obj = NULL) {
-    if ($obj === NULL) {$string = $params;
+    if ($obj === NULL) {
+        $string = $params;
     } else {
         $string = $params[0];
     }
 
     $IN = new IrregularNouns();
-    if (in_array($string, $IN->singular)):
-    $key     = array_search($string, $IN->singular);
-    $strconv = $IN->plural[$key];
-     elseif (in_array($string, $IN->plural)):
-    $strconv = $string;
-     else :
-    $vowels = array('a', 'e', 'i', 'o', 'u');
-    if (substr($string, -1, 1) == 'y'):
-    $prec = substr($string, -2, 1);
-    if (in_array($prec, $vowels)):
-    $strconv = $string.'s';
-     else :
-    $strconv = str_replace('y', 'ies', $string);
-    endif;
-     elseif (substr($string, -1, 1) == 'x' or substr($string, -1, 1) == 's' or substr($string, -2, 2) == 'ch' or substr($string, -2, 2) == 'sh' or substr($string, -2, 2) == 'ss'):
-    $strconv = $string.'es';
-     else :
-    $strconv = $string.'s';
-    endif;
-    endif;
+    if (in_array($string, $IN->singular)) {
+        $key     = array_search($string, $IN->singular);
+        $strconv = $IN->plural[$key];
+    } elseif (in_array($string, $IN->plural)) {
+        $strconv = $string;
+    } else {
+        $vowels = array('a', 'e', 'i', 'o', 'u');
+        if (substr($string, -1, 1) == 'y') {
+            $prec = substr($string, -2, 1);
+            if (in_array($prec, $vowels)) {
+                $strconv = $string.'s';
+            } else {
+                $strconv = str_replace('y', 'ies', $string);
+            }
+        } elseif (substr($string, -1, 1) == 'x' or substr($string, -1, 1) == 's' or substr($string, -2, 2) == 'ch' or substr($string, -2, 2) == 'sh' or substr($string, -2, 2) == 'ss') {
+            $strconv = $string.'es';
+        } else {
+            $strconv = $string.'s';
+        }
+    }
+
     return $strconv;
 }
+/**
+ * Turns a plural word into its singular
+ * @param array|string $params
+ * @param object $obj
+ * @return string
+ */
 function Singulars($params, &$obj = NULL) {
-    if ($obj == NULL) {$string = $params;
+    if ($obj == NULL) {
+        $string = $params;
     } else {
         $string = $params[0];
     }
 
     $IN      = new IrregularNouns();
     $strconv = '';
-    if (in_array($string, $IN->plural)):
-    $key     = array_search($string, $IN->plural);
-    $strconv = $IN->singular[$key];
-     elseif (substr($string, -3, 3) == 'ies'):
-    $strconv = str_replace('ies', 'y', $string);
-     elseif (substr($string, -2, 2) == 'es'):
-    $test = substr($string, 0, -2);
-    if (substr($test, -1, 1) == 'x' or substr($test, -1, 1) == 's' or substr($test, -2, 2) == 'ch' or substr($test, -2, 2) == 'sh' or substr($test, -2, 2) == 'ss'):
-    $strconv = substr($string, 0, -2);
-     else :
-    $strconv = substr($string, 0, -1);
-    endif;
-     elseif (substr($string, -1, 1) == 's'):
-    $strconv = substr($string, 0, -1);
-     else :
-    $strconv = $string;
-    endif;
+    if (in_array($string, $IN->plural)) {
+        $key     = array_search($string, $IN->plural);
+        $strconv = $IN->singular[$key];
+    } elseif (substr($string, -3, 3) == 'ies') {
+        $strconv = str_replace('ies', 'y', $string);
+    } elseif (substr($string, -2, 2) == 'es') {
+        $test = substr($string, 0, -2);
+        if (substr($test, -1, 1) == 'x' or substr($test, -1, 1) == 's' or substr($test, -2, 2) == 'ch' or substr($test, -2, 2) == 'sh' or substr($test, -2, 2) == 'ss') {
+            $strconv = substr($string, 0, -2);
+        } else {
+            $strconv = substr($string, 0, -1);
+        }
+    } elseif (substr($string, -1, 1) == 's') {
+        $strconv = substr($string, 0, -1);
+    } else {
+        $strconv = $string;
+    }
     return $strconv;
 }
+/**
+ * Turns an uncamelized_word into its CamelizedEquivalent
+ * @param array|string $params
+ * @param object $obj
+ * @return string
+ */
 function Camelize($params, &$obj = NULL) {
     if ($obj === NULL) {$string = $params;
     } else {
@@ -293,52 +314,63 @@ function Camelize($params, &$obj = NULL) {
     }
 
     $newName = "";
-    if (preg_match("[_]", $string)):
-    $names = preg_split("[_]", $string);
-    $i     = 1;
-    foreach ($names as $single) {
-        $newName .= ucfirst($single);
-        $i++;
-    } else :
-    $newName .= ucfirst($string);
-    endif;
+    if (preg_match("[_]", $string)) {
+        $names = preg_split("[_]", $string);
+        $i     = 1;
+        foreach ($names as $single) {
+            $newName .= ucfirst($single);
+            $i++;
+        }
+    } else {
+        $newName .= ucfirst($string);
+    }
     return $newName;
 }
+/**
+ * Turns an Active Record resulset object into a comma separated list
+ * @param array $arr
+ * @param object $obj
+ * @return string
+ */
 function ToList(&$arr, &$obj = NULL) {
-    $list = '';
-    if (isset($obj) and is_object($obj) and get_parent_class($obj) == 'ActiveRecord'):
-    $arr = $obj->getArray();
-    endif;
-    if (isset($arr) and sizeof($arr) > 0):
-    foreach ($arr as $value) {
-        if (is_array($value)):
-        $list .= ToList($value).',';
-         else :
-        $list .= $value.',';
-        endif;
+    if (isset($obj) and is_object($obj) and get_parent_class($obj) == 'ActiveRecord') {
+        $arr = $obj->getArray();
     }
-    $list = substr($list, 0, -1);
-    endif;
-    return $list;
+
+    return implode(',', $arr);
 }
+/**
+ * Set a CamelizedString back to uncamelized_string
+ * @param array|string $params
+ * @param object $obj
+ * @return string
+ */
 function unCamelize($params, &$obj = NULL) {
-    if ($obj === NULL) {$string = $params;
+    if ($obj === NULL) {
+        $string = $params;
     } else {
         $string = $params[0];
     }
 
     $newstring = '';
-    if (isset($string) and is_string($string)):
-    $string[0] = strtolower($string[0]);
-    for ($i = 0; $i < strlen($string); $i++) {
-        if (preg_match('`[A-Z]`', $string[$i])) {$newstring .= '_';
+    if (isset($string) and is_string($string)) {
+        $string[0] = strtolower($string[0]);
+        for ($i = 0; $i < strlen($string); $i++) {
+            if (preg_match('`[A-Z]`', $string[$i])) {
+                $newstring .= '_';
+            }
+            $newstring .= strtolower($string[$i]);
         }
-
-        $newstring .= strtolower($string[$i]);
     }
-    endif;
     return $newstring;
 }
+/**
+ * Changes accent chars to its ASCII approximate and changes any non alpha-numeric char into a dash
+ * @param array|string $params
+ * @param object $obj
+ * @return string
+ * @todo Checks sometimes does not match the unicode char to change
+ */
 function cleanToSEO($params, &$obj = NULL) {
     if ($obj === NULL) {$string = $params;
     } else {
@@ -357,6 +389,12 @@ function cleanToSEO($params, &$obj = NULL) {
     $string = preg_replace('/[^a-zA-Z0-9-]/', '', $string);
     return $string;
 }
+/**
+ * Equivalent to htmlentities
+ * @deprecated
+ * @param string $string
+ * @return string
+ */
 function cleanASCII($string) {
     $specialChars = array("/\xc0/", "/\xc1/", "/\xc2/", "/\xc3/", "/\xc4/", "/\xc5/", "/\xc6/", "/\xc7/", "/\xc8/", "/\xc9/", "/\xca/", "/\xcb/", "/\xcc/", "/\xcd/", "/\xce/", "/\xcf/", "/\xd0/", "/\xd1/",
         "/\xd2/", "/\xd3/", "/\xd4/", "/\xd5/", "/\xd6/", "/\xd7/", "/\xd8/", "/\xd9/", "/\xda/", "/\xdb/", "/\xdc/", "/\xdd/", "/\xde/", "/\xdf/", "/\xe0/", "/\xe1/", "/\xe2/", "/\xe3/", "/\xe4/", "/\xe5/", "/\xe6/",
@@ -366,6 +404,11 @@ function cleanASCII($string) {
         '&ograve;', '&oacute;', '&ocirc;', '&otilde;', '&ouml;', '&oslash;', 'u', 'u', 'u', 'u', 'y', 'b', 'y');
     return preg_replace($specialChars, $normalChars, $string);
 }
+/**
+ * Generates random alpha-numeric string
+ * @param array $params
+ * @return string
+ */
 function strGenerate($params = null) {
     $length         = 8;
     $case           = 'both';
@@ -407,16 +450,22 @@ function strGenerate($params = null) {
     } while (strlen($result) < $length);
     return $result;
 }
+/**
+ * Determines the type of input for the given field
+ * @param array|string $type
+ * @param ActiveRecord $obj
+ * @return string
+ */
 function GetInput($type, &$obj = NULL) {
-    if ($obj != NULL) {$type = $type[0];
+    if ($obj != NULL) {
+        $type = $type[0];
     }
 
     $type = strtolower($type);
-    if (strpos($type, 'int') !== FALSE or strpos($type, 'integer') !== FALSE or strpos($type, 'varchar') !== FALSE or strpos($type, 'float') !== FALSE):
+    if (strpos($type, 'text') !== FALSE) {
+        return 'textarea';
+    }
     return 'text';
-     elseif (strpos($type, 'text') !== FALSE):
-    return 'textarea';
-    endif;
 }
 function toOptions(&$arr, &$obj = NULL) {
     $arr1   = array();
@@ -753,6 +802,16 @@ if (CAN_USE_MEMCACHED) {
     defined('MEMCACHED_PORT') or define('MEMCACHED_PORT', '11211');
     $GLOBALS['memcached']->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
 }
+/**
+ * Class for Active Record design
+ * @version 2.0
+ * @license   http://opensource.org/licenses/gpl-license.php GNU Public License
+ * @author Javier Serrano <http://www.rantes.info/>
+ * @package Core
+ * @subpackage ActiveRecord
+ * @extends Core_General_Class
+ *
+ */
 abstract class ActiveRecord extends Core_General_Class {
     public $PaginatePageVarName = 'page';
     public $PaginateTotalItems  = 0;
@@ -799,12 +858,12 @@ abstract class ActiveRecord extends Core_General_Class {
             $this->_ObjTable = implode("_", $words);
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        
+
         if ($this->driver === null) {
             $driver = $GLOBALS['Connection']->engine.'Driver';
             $this->driver = new $driver();
         }
-        
+
         $this->driver->tableName = $this->_ObjTable;
         $this->driver->pk        = $this->pk;
         $this->_error            = new Errors;
@@ -840,8 +899,7 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         $j    = 0;
         $regs = $GLOBALS['Connection']->query($query);
-        if (!is_object($regs)) {die("Error in SQL Query. Please check the SQL Query: ".$query);
-        }
+        is_object($regs) or die("Error in SQL Query. Please check the SQL Query: ".$query);
 
         $regs->setFetchMode(PDO::FETCH_ASSOC);
         $resultset = $regs->fetchAll();
@@ -1258,9 +1316,13 @@ abstract class ActiveRecord extends Core_General_Class {
         $a = $this->ListProperties_ToString();
         return $a;
     }
+    /**
+     * Returns an array from ActiveRecord ArrayObject
+     * @return array
+     */
     public function getArray() {
         $arraux = array();
-        if ($this->_counter > 0) {
+        if ($this->_counter > 1) {
             for ($j = 0; $j < $this->_counter; $j++) {
                 foreach ($this->_fields as $field => $cast) {
                     if (isset($this[$j]->{$field})) {
@@ -1623,21 +1685,21 @@ abstract class Page extends Core_General_Class {
             } else {
                 $view = _CONTROLLER.'/'._ACTION.'.phtml';
             }
-    
+
             $viewsFolder = INST_PATH.'app/views/';
-            
+
             if ($renderPage) {
                 ob_start();
                 include_once ($viewsFolder.$view);
                 $this->yield = ob_get_clean();
             }
-    
+
             if (isset($this->render['layout']) && $this->render['layout'] !== false) $this->layout = $this->render['layout'];
-    
+
             if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
-    
+
             $this->_outputContent = $this->yield;
-            
+
             if (strlen($this->layout) > 0) {
                 ob_start();
                 include_once ($viewsFolder.$this->layout.".phtml");
