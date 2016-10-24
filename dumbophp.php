@@ -1791,11 +1791,15 @@ abstract class Page extends Core_General_Class {
         return $this->_canrespondtoajax;
     }
 }
-// class NewAr extends ActiveRecord{}
+/**
+ * Implements whole Migrations actions
+ * @author rantes
+ *
+ */
 abstract class Migrations extends Core_General_Class {
     private $driver = null;
     public function __construct() {
-        $driver       = $GLOBALS['Connection']->engine.'Driver';
+        $driver = $GLOBALS['Connection']->engine.'Driver';
         $this->driver = new $driver();
     }
     public function __destruct() {}
@@ -1816,14 +1820,20 @@ abstract class Migrations extends Core_General_Class {
         $this->up();
         $this->alter();
     }
+    /**
+     *
+     * @param array $table
+     */
     protected function Create_Table(array $table) {
         defined('AUTO_AUDITS') || define('AUTO_AUDITS', true);
+        if (!empty($table['Table'])) throw new Exception('Table field must be present.');
         $tablName = $table['Table'];
         $query    = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
         $query .= "`id` INT PRIMARY KEY ,";
         foreach ($table as $key => $Field) {
             if (strcmp($key, 'Table') != 0) {
-                if ($Field['type'] == 'VARCHAR' && empty($Field['limit'])) {$Field['limit'] = 250;
+                if ($Field['type'] == 'VARCHAR' && empty($Field['limit'])) {
+                    $Field['limit'] = 250;
                 }
 
                 $query .= (!empty($Field['field']) && !empty($Field['type']))?"`".$Field['field']."` ".$Field['type']:NULL;
@@ -1840,20 +1850,23 @@ abstract class Migrations extends Core_General_Class {
         }
         $query = substr($query, 0, -2);
         $query .= ");";
-        _IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {print_r($GLOBALS['Connection']->errorInfo());
+        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+        if ($GLOBALS['Connection']->exec($query) === false) {
+            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
         }
 
         $query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
-        _IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {print_r($GLOBALS['Connection']->errorInfo());
+        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+        if ($GLOBALS['Connection']->exec($query) === false) {
+            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
         }
     }
 
     protected function Drop_Table($table) {
         $query = "DROP TABLE IF EXISTS `".$table."`";
         _IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {print_r($GLOBALS['Connection']->errorInfo());
+        if ($GLOBALS['Connection']->exec($query) === false) {
+            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
         }
     }
 
@@ -1865,22 +1878,27 @@ abstract class Migrations extends Core_General_Class {
         $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
         $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
         $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
-        _IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {print_r($GLOBALS['Connection']->errorInfo());
+        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+        if ($GLOBALS['Connection']->exec($query) === false) {
+            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
         }
     }
 
     protected function Add_Index(array $params) {
-        if (empty($params['Table'])) {throw new Exception("Table param can not be empty", 1);
+        if (empty($params['Table'])) {
+            throw new Exception("Table param can not be empty", 1);
         }
 
-        if (empty($params['name'])) {throw new Exception("name param can not be empty", 1);
+        if (empty($params['name'])) {
+            throw new Exception("name param can not be empty", 1);
         }
 
-        if (empty($params['fields'])) {throw new Exception("fields param can not be empty", 1);
+        if (empty($params['fields'])) {
+            throw new Exception("fields param can not be empty", 1);
         }
 
-        if (!is_array($params['fields'])) {throw new Exception("fields param must be an array", 1);
+        if (!is_array($params['fields'])) {
+            throw new Exception("fields param must be an array", 1);
         }
 
         $fields = implode(',', $params['fields']);
@@ -1889,8 +1907,9 @@ abstract class Migrations extends Core_General_Class {
     }
     protected function Remove_Column($column = NULL) {
         $query = "ALTER TABLE `".$column[0]."` DROP `".$column[1]."`";
-        _IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {print_r($GLOBALS['Connection']->errorInfo());
+        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+        if ($GLOBALS['Connection']->exec($query) === false) {
+            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
         }
     }
 }
