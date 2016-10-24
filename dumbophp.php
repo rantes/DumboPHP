@@ -12,9 +12,17 @@ for ($i = 1; $i <= 5; $i++) {
         defined('HTTP_'.$code) || define('HTTP_'.$code, $code);
     }
 }
+/**
+ * Implements the functionalities for translating
+ * @author rantes
+ *
+ */
 final class IrregularNouns {
     public $singular = array();
     public $plural   = array();
+    /**
+     * Fills the singular and plural arrays with the irregular nouns
+     */
     public function __construct() {
         $this->singular[] = 'abyss';
         $this->singular[] = 'alumnus';
@@ -467,23 +475,37 @@ function GetInput($type, &$obj = NULL) {
     }
     return 'text';
 }
+/**
+ * Returns an array with the attributes of the current active record
+ * @deprecated
+ * @param unknown $arr
+ * @param unknown $obj
+ * @return string[]
+ */
 function toOptions(&$arr, &$obj = NULL) {
     $arr1   = array();
     $arraux = array();
-    if (isset($obj) and is_object($obj)):
-    $arr = $obj->getArray();
-    endif;
-    foreach ($arr as $mainkey => $element):
-    $arraux = array();
-    foreach ($element as $key => $value):
-    $arraux[] = (string) $value;
-    endforeach;
-    $arr1[$arraux[0]] = $arraux[1];
-    endforeach;
+    if (isset($obj) and is_object($obj)) {
+        $arr = $obj->getArray();
+    }
+    foreach ($arr as $element) {
+        $arraux = array();
+        foreach ($element as $value) {
+            $arraux[] = (string) $value;
+        }
+        $arr1[$arraux[0]] = $arraux[1];
+    }
     return $arr1;
 }
+/**
+ * @deprecated
+ * @param string $arr
+ * @param unknown $obj
+ * @return number
+ */
 function checkBoxToInt(&$arr, &$obj = NULL) {
-    if ($arr !== NULL and $arr == 'on') {return 1;
+    if ($arr !== NULL and $arr == 'on') {
+        return 1;
     }
 
     return 0;
@@ -882,15 +904,42 @@ abstract class ActiveRecord extends Core_General_Class {
             $GLOBALS['memcached']->delete($key);
         }
     }
+    /**
+     * Getter for the fields taken from the query or table
+     * @return array Fields of the current Active Record Object
+     */
     public function GetFields() {
         return $this->_fields;
     }
+    /**
+     * Getter of the current
+     */
+    public function getValues() {
+        $data = array();
+        foreach ($this->_fields as $field => $cast) {
+            $data[$field] = $this->{$field};
+        }
+        return $data;
+    }
+    /**
+     * Unset the params for the queries
+     */
     public function __destruct() {
         $this->_params = null;
     }
+    /**
+     *
+     * {@inheritDoc}
+     * @see ArrayObject::getIterator()
+     */
     public function getIterator() {
         return new ArrayIterator($this);
     }
+    /**
+     * Fetch the data with the providen query
+     * Sets the active record.
+     * @param string $query SQL query to fetch the data
+     */
     protected function getData($query) {
         $result = array();
         foreach ($this as $i => $val) {
@@ -939,6 +988,11 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
     }
+    /**
+     * Performs the select queries to the database according to the given params
+     * @param array|integer $params
+     * @return ActiveRecord
+     */
     public function Find($params = NULL) {
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
@@ -962,6 +1016,11 @@ abstract class ActiveRecord extends Core_General_Class {
         CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this) && $this->_setMemcacheKey($key);
         return clone($this);
     }
+    /**
+     * Performs a select query from a given string
+     * @param string $query
+     * @return unknown|ActiveRecord
+     */
     public function Find_by_SQL($query = NULL) {
         if (!$query) {
             trigger_error("The query can not be NULL", E_USER_ERROR);
