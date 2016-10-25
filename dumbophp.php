@@ -1826,7 +1826,7 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Create_Table(array $table) {
         defined('AUTO_AUDITS') || define('AUTO_AUDITS', true);
-        if (!empty($table['Table'])) throw new Exception('Table field must be present.');
+        if (empty($table['Table'])) throw new Exception('Table field must be present.');
         $tablName = $table['Table'];
         $query    = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
         $query .= "`id` INT PRIMARY KEY ,";
@@ -1864,7 +1864,7 @@ abstract class Migrations extends Core_General_Class {
 
     protected function Drop_Table($table) {
         $query = "DROP TABLE IF EXISTS `".$table."`";
-        _IN_SHELL_ && print('Running query: '.$query.PHP_EOL);
+        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
         if ($GLOBALS['Connection']->exec($query) === false) {
             syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
         }
