@@ -975,15 +975,15 @@ abstract class ActiveRecord extends Core_General_Class {
             unset($this[0]);
             $fields = $this->driver->getColumns();
             foreach ($fields as $row) {
-                $this->_fields[$row['Field']]                        = false;
-                $this->{$row['Field']}                              = null;
+                $this->_fields[$row['Field']] = false;
+                $this->{$row['Field']} = null;
                 $this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-                $this->_dataAttributes[$row['Field']]['cast']        = $this->_fields[$row['Field']];
+                $this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
             }
         } elseif ($this->_counter === 1) {
             foreach ($this->_fields as $field => $cast) {
                 if (isset($this[0]->{$field})) {
-                    $this->{$field} = $this[0]->{$field};
+                    $this->{$field} =& $this[0]->{$field};
                 }
             }
         }
@@ -1381,7 +1381,7 @@ abstract class ActiveRecord extends Core_General_Class {
      */
     public function getArray() {
         $arraux = array();
-        if ($this->_counter > 1) {
+//         if ($this->_counter > 1) {
             for ($j = 0; $j < $this->_counter; $j++) {
                 foreach ($this->_fields as $field => $cast) {
                     if (isset($this[$j]->{$field})) {
@@ -1389,13 +1389,13 @@ abstract class ActiveRecord extends Core_General_Class {
                     }
                 }
             }
-        } else {
-            foreach ($this->_fields as $field => $cast) {
-                if (isset($this->{$field})) {
-                    $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
-                }
-            }
-        }
+//         } else {
+//             foreach ($this->_fields as $field => $cast) {
+//                 if (isset($this->{$field})) {
+//                     $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
+//                 }
+//             }
+//         }
         return $arraux;
     }
     public function Dump() {
