@@ -674,7 +674,7 @@ function javascript_include_tag($params, &$obj = NULL) {
     endif;
 }
 class Connection extends PDO {
-    private $_settings = null;
+    public $_settings = null;
     public $engine = null;
 
     function __construct($file = 'config/db__settings.ini') {
@@ -1871,16 +1871,31 @@ abstract class Migrations extends Core_General_Class {
     }
 
     protected function Add_Column(array $params) {
-        $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+        $getinfo =<<<DUMBO
+SELECT COUNT(COLUMN_NAME) AS counter
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_name = '{$params['Table']}'
+    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
+    AND column_name = '{$params['field']}';
+DUMBO;
+        $res = $GLOBALS['Connection']->query($getinfo);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $result = 0 + $res->fetchAll()[0]['counter'];
 
-        $query = "ALTER TABLE `".$params['Table']."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
-        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {
-            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+        if ($result < 1) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+
+            $query = "ALTER TABLE `".$params['Table']."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+
+            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            $db = $GLOBALS['Connection']->prepare($query);
+            if ($db->execute() === false) {
+                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+            }
         }
     }
 
@@ -1905,11 +1920,52 @@ abstract class Migrations extends Core_General_Class {
         $query  = "ALTER TABLE `{$params['Table']}` ADD INDEX `{$params['name']}` ({$fields})";
         $GLOBALS['Connection']->exec($query) !== false || print_r($GLOBALS['Connection']->errorInfo());
     }
+    protected function Alter_Column(array $params) {
+        $getinfo =<<<DUMBO
+SELECT COUNT(COLUMN_NAME) AS counter
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_name = '{$params['Table']}'
+    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
+    AND column_name = '{$params['field']}';
+DUMBO;
+        $res = $GLOBALS['Connection']->query($getinfo);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $result = 0 + $res->fetchAll()[0]['counter'];
+
+        if ($result > 0) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+
+            $query = "ALTER TABLE `".$params['Table']."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+
+            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            $db = $GLOBALS['Connection']->prepare($query);
+            if ($db->execute() === false) {
+                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+            }
+        }
+    }
     protected function Remove_Column($column = NULL) {
-        $query = "ALTER TABLE `".$column[0]."` DROP `".$column[1]."`";
-        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {
-            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+        $getinfo =<<<DUMBO
+SELECT COUNT(COLUMN_NAME) AS counter
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_name = '{$params['Table']}'
+    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
+    AND column_name = '{$params['field']}';
+DUMBO;
+        $res = $GLOBALS['Connection']->query($getinfo);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $result = 0 + $res->fetchAll()[0]['counter'];
+
+        if ($result > 0) {
+            $query = "ALTER TABLE `".$column[0]."` DROP `".$column[1]."`";
+            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            if ($GLOBALS['Connection']->exec($query) === false) {
+                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+            }
         }
     }
 }
