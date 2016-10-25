@@ -1948,7 +1948,7 @@ DUMBO;
             }
         }
     }
-    protected function Remove_Column($column = NULL) {
+    protected function Remove_Column(array $params) {
         $getinfo =<<<DUMBO
 SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
@@ -1961,7 +1961,7 @@ DUMBO;
         $result = 0 + $res->fetchAll()[0]['counter'];
 
         if ($result > 0) {
-            $query = "ALTER TABLE `".$column[0]."` DROP `".$column[1]."`";
+            $query = "ALTER TABLE `".$params['Table']."` DROP `".$params['field']."`";
             syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
             if ($GLOBALS['Connection']->exec($query) === false) {
                 syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
