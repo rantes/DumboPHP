@@ -1512,15 +1512,24 @@ abstract class ActiveRecord extends Core_General_Class {
         return json_encode($this->getArray());
     }
     public function Paginate($params = NULL) {
-        $resultset                                                                     = array();
-        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {$params = $params[0];
+        $resultset = array();
+        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
+            $params = $params[0];
         }
+        
+        $url = explode('&', $_SERVER['REQUEST_URI']);
+        $url = explode('?', $url[0]);
 
         $params2                                                    = $params;
         $per_page                                                   = (isset($params['per_page']))?$params['per_page']:10;
-        $this->paginateURL                                          = empty($params['url'])?'/':$params['url'];
+        $this->paginateURL                                          = empty($params['url'])?$url[0]:$params['url'];
         empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
-        empty($params['page']) or $this->PaginatePageNumber         = $params['page'];
+        if (!empty($_GET[$this->PaginatePageVarName])) {
+            $this->PaginatePageNumber = $params[$this->PaginatePageVarName] = $_GET[$this->PaginatePageVarName];
+        }
+        if (!empty($params[$this->PaginatePageVarName])) {
+            $this->PaginatePageNumber = $params[$this->PaginatePageVarName];
+        }
         $start                                                      = ($this->PaginatePageNumber-1)*$per_page;
         $params['limit']                                            = $start.",".$per_page;
         $params2['fields']                                          = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
