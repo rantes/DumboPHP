@@ -718,9 +718,6 @@ class Connection extends PDO {
     }
 }
 
-$GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
-require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
-
 class Errors {
     private $actived  = FALSE;
     private $messages = array();
@@ -882,6 +879,11 @@ abstract class ActiveRecord extends Core_General_Class {
             $this->_ObjTable = implode("_", $words);
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
+
+        if (empty($GLOBALS['Connection'])) {
+            $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
+            require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
+        }
 
         if ($this->driver === null) {
             $driver = $GLOBALS['Connection']->engine.'Driver';
