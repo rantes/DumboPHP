@@ -870,7 +870,9 @@ abstract class ActiveRecord extends Core_General_Class {
     protected $escapeField             = array();
     private $engine                    = 'mysql';
     protected $_fields                 = array();
+    
     public function _init_() {}
+    
     final public function __construct() {
         if (empty($this->_ObjTable)) {
             $className       = unCamelize(get_class($this));
@@ -1421,27 +1423,29 @@ abstract class ActiveRecord extends Core_General_Class {
     public function LoadDump() {
         $doc  = new DOMDocument;
         $path = defined('DUMPS_PATH')?DUMPS_PATH:INST_PATH.'migrations/dumps/';
-        $doc->load($path.$this->_ObjTable.'.xml');
-        $items = $doc->getElementsByTagName($this->_ObjTable);
-        for ($i = 0; $i < $items->length; $i++) {
-            $xitem = $items->item($i);
-            $data  = array();
-            if (empty($this->_fields)) {
-                $fields = $this->driver->getColumns();
-                foreach ($fields as $row) {
-                    $this->_fields[$row['Field']] = false;
+        if (file_exists($path.$this->_ObjTable.'.xml')) {
+            $doc->load($path.$this->_ObjTable.'.xml');
+            $items = $doc->getElementsByTagName($this->_ObjTable);
+            for ($i = 0; $i < $items->length; $i++) {
+                $xitem = $items->item($i);
+                $data  = array();
+                if (empty($this->_fields)) {
+                    $fields = $this->driver->getColumns();
+                    foreach ($fields as $row) {
+                        $this->_fields[$row['Field']] = false;
+                    }
                 }
-            }
-            foreach ($this->_fields as $field => $cast) {
-                $item         = $xitem->getElementsByTagName($field);
-                $data[$field] = (is_object($item->item(0)))?$item->item(0)->nodeValue:'';
-            }
-            $prepared        = $this->driver->Insert($data);
-            $this->_sqlQuery = $prepared['query'];
-            $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-            if (!$sh->execute($prepared['prepared'])) {
-                $e = $GLOBALS['Connection']->errorInfo();
-                die($e[2]."{$this->_sqlQuery}");
+                foreach ($this->_fields as $field => $cast) {
+                    $item = $xitem->getElementsByTagName($field);
+                    $data[$field] = (is_object($item->item(0)))?$item->item(0)->nodeValue:'';
+                }
+                $prepared = $this->driver->Insert($data);
+                $this->_sqlQuery = $prepared['query'];
+                $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+                if (!$sh->execute($prepared['prepared'])) {
+                    $e = $GLOBALS['Connection']->errorInfo();
+                    die("{$e[2]} {$this->_sqlQuery}");
+                }
             }
         }
     }
@@ -1634,28 +1638,34 @@ abstract class ActiveRecord extends Core_General_Class {
                         break;
                 }
             }
-            if ($field === 'id') {$type = 'hidden';
+            if ($field === 'id') {
+                $type = 'hidden';
             }
 
             switch ($type) {
                 case 'text':
                 case 'hidden':
-                    $input = $stringi.' type="'.$type.'" name="'.$name.'"'.$html.' value="'.$this->{$field } .'" />';
+                    $input = "{$stringi} type=\"{$type}\" name=\"{$name}\"{$html} value=\"{$this->{$field}}\" />";
                     break;
+                case 'checkbox':
+                    $checked = $this->{$field} ? ' checked="checked"' : '';
+                    $input = "{$stringi} type=\"{$type}\" name=\"{$name}\"{$html} value=\"\"$checked />";
+                break;
                 case 'textarea':
-                    $input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field    } .'</textarea>';
+                    $input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field}.'</textarea>';
                     break;
                 case 'select':
                     $cont = !empty($params['first'])?'<option value="">'.$params['first'].'</option>':'';
-                    foreach ($params['list'] as $value => $option):
-                    $default                                   = '';
-                    if ($this->{$field } == $value) {$default = 'selected="selected"';
+                    foreach ($params['list'] as $value => $option) {
+                        $default = '';
+                        if ($this->{$field } == $value) {
+                            $default = 'selected="selected"';
+                        }
+    
+                        $cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
                     }
-
-                    $cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
-                    endforeach;
                     $input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
-                    break;
+                break;
             }
         } else {
             throw new Exception("Must to give the field to input.");
