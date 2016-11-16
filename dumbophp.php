@@ -1820,6 +1820,10 @@ abstract class Page extends Core_General_Class {
 abstract class Migrations extends Core_General_Class {
     private $driver = null;
     public function __construct() {
+        if (empty($GLOBALS['Connection'])) {
+            $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
+            require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
+        }
         $driver = $GLOBALS['Connection']->engine.'Driver';
         $this->driver = new $driver();
     }
