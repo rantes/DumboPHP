@@ -677,7 +677,7 @@ class Connection extends PDO {
     public $_settings = null;
     public $engine = null;
 
-    function __construct($file = 'config/db__settings.ini') {
+    function __construct($file = 'config/db_settings.ini') {
         empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
 
         if (!$this->_settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
@@ -867,9 +867,9 @@ abstract class ActiveRecord extends Core_General_Class {
     protected $escapeField             = array();
     private $engine                    = 'mysql';
     protected $_fields                 = array();
-    
+
     public function _init_() {}
-    
+
     final public function __construct() {
         if (empty($this->_ObjTable)) {
             $className       = unCamelize(get_class($this));
@@ -1522,7 +1522,7 @@ abstract class ActiveRecord extends Core_General_Class {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
         }
-        
+
         $url = explode('&', $_SERVER['REQUEST_URI']);
         $url = explode('?', $url[0]);
 
@@ -1663,7 +1663,7 @@ abstract class ActiveRecord extends Core_General_Class {
                         if ($this->{$field } == $value) {
                             $default = 'selected="selected"';
                         }
-    
+
                         $cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
                     }
                     $input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
