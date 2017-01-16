@@ -84,15 +84,18 @@ class dumboShell{
     }
 
     public function showError($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "red"), PHP_EOL;
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
+        //echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "red"), PHP_EOL;
     }
 
     public function showMessage($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "green"), PHP_EOL;
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
+        //echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "green"), PHP_EOL;
     }
 
     public function showNotice($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "blue", "yellow"), PHP_EOL;
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
+        //echo PHP_EOL, $this->colors->getColoredString($errorMessage, "blue", "yellow"), PHP_EOL;
     }
 
     public function validateApacheConf() {
@@ -177,7 +180,8 @@ Commands:
         executes a controller/action. index/index as default.
 
 DUMBO;
-        echo $text;
+        fwrite(STDOUT, $text . "\n");
+        //echo $text;
     }
 
     private function initAppScript() {
