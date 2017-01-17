@@ -84,22 +84,21 @@ class dumboShell{
     }
 
     public function showError($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "red"), PHP_EOL;
+        fwrite(STDERR, "\n". $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
     }
 
     public function showMessage($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "green"), PHP_EOL;
+        fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
     }
 
     public function showNotice($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "blue", "yellow"), PHP_EOL;
+        fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
     }
 
     public function validateApacheConf() {
         $modsRequired = array(
                             'mod_rewrite'
                         );
-        // print_r(apache_get_modules());
     }
 
     public function run($argv) {
@@ -177,7 +176,7 @@ Commands:
         executes a controller/action. index/index as default.
 
 DUMBO;
-        echo $text;
+        fwrite(STDOUT, $text . "\n");
     }
 
     private function initAppScript() {
@@ -311,8 +310,8 @@ DUMBO;
              * @todo script for remove scaffolding files
              */
             // case 'scaffold':
-            // 	$this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
-            // 	$generator->scaffold($this->params);
+            //     $this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
+            //     $generator->scaffold($this->params);
             // break;
             case 'model':
                 $model = INST_PATH.'app/models/'.singulars($this->arguments[1]).'.php';
@@ -328,14 +327,14 @@ DUMBO;
              * @todo script for remove controller and views
              */
             // case 'controller':
-            // 	$controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
-            // 	$migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
-            // 	$this->showNotice('Deleting model: "'.$model.'".');
-            // 	file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
-            // 	unlink($model);
-            // 	$this->showNotice('Deleting migration: "'.$migration.'".');
-            // 	file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
-            // 	unlink($migration);
+            //     $controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
+            //     $migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
+            //     $this->showNotice('Deleting model: "'.$model.'".');
+            //     file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
+            //     unlink($model);
+            //     $this->showNotice('Deleting migration: "'.$migration.'".');
+            //     file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
+            //     unlink($migration);
             // break;
             default:
                 $this->help();
@@ -444,7 +443,7 @@ DUMBO;
             $migrationsDir = dir($migrationsPath);
             while (($file = $migrationsDir->read()) != FALSE) {
                 if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
-                    echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+                    $this->showNotice('Running action '. $this->arguments[0]. ' for: '. $matches[1]);
                     require_once $migrationsPath.$matches[0];
                     $class = 'Create'.Camelize(Singulars($matches[1]));
                     $obj = new $class();
@@ -455,7 +454,7 @@ DUMBO;
             foreach ($this->params as $migration) {
                 $file = $migrationsPath.'create_'.$migration.'.php';
                 file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
-                echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+                $this->showNotice('Running action '. $this->arguments[0]. ' for: '. $migration);
                 require_once $file;
                 $class = 'Create'.Camelize(Singulars($migration));
                 $obj = new $class();
