@@ -67,7 +67,8 @@ class dumboShell{
                 'db',
                 'generate',
                 'destroy',
-                'migration'
+                'migration',
+                'test'
             );
     private $command = null;
     private $dumboSource = '/etc/dumbophp/src';
@@ -135,6 +136,8 @@ class dumboShell{
                 case 'run':
                     $this->runActionScript();
                 break;
+                case 'test':
+                    $this->runTestScript();
                 default:
                     $this->help();
                 break;
@@ -311,8 +314,8 @@ DUMBO;
              * @todo script for remove scaffolding files
              */
             // case 'scaffold':
-            // 	$this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
-            // 	$generator->scaffold($this->params);
+            //     $this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
+            //     $generator->scaffold($this->params);
             // break;
             case 'model':
                 $model = INST_PATH.'app/models/'.singulars($this->arguments[1]).'.php';
@@ -328,14 +331,14 @@ DUMBO;
              * @todo script for remove controller and views
              */
             // case 'controller':
-            // 	$controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
-            // 	$migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
-            // 	$this->showNotice('Deleting model: "'.$model.'".');
-            // 	file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
-            // 	unlink($model);
-            // 	$this->showNotice('Deleting migration: "'.$migration.'".');
-            // 	file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
-            // 	unlink($migration);
+            //     $controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
+            //     $migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
+            //     $this->showNotice('Deleting model: "'.$model.'".');
+            //     file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
+            //     unlink($model);
+            //     $this->showNotice('Deleting migration: "'.$migration.'".');
+            //     file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
+            //     unlink($migration);
             // break;
             default:
                 $this->help();
@@ -416,6 +419,9 @@ DUMBO;
 
         require_once('dumbophp.php');
         $index = new index();
+    }
+    
+    private function runTestScript() {
     }
 
     private function migrationScripts() {
