@@ -85,22 +85,21 @@ class dumboShell{
     }
 
     public function showError($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "red"), PHP_EOL;
+        fwrite(STDERR, "\n". $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
     }
 
     public function showMessage($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "green"), PHP_EOL;
+        fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
     }
 
     public function showNotice($errorMessage) {
-        echo PHP_EOL, $this->colors->getColoredString($errorMessage, "blue", "yellow"), PHP_EOL;
+        fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
     }
 
     public function validateApacheConf() {
         $modsRequired = array(
                             'mod_rewrite'
                         );
-        // print_r(apache_get_modules());
     }
 
     public function run($argv) {
@@ -180,7 +179,7 @@ Commands:
         executes a controller/action. index/index as default.
 
 DUMBO;
-        echo $text;
+        fwrite(STDOUT, $text . "\n");
     }
 
     private function initAppScript() {
@@ -450,7 +449,7 @@ DUMBO;
             $migrationsDir = dir($migrationsPath);
             while (($file = $migrationsDir->read()) != FALSE) {
                 if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
-                    echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+                    $this->showNotice('Running action '. $this->arguments[0]. ' for: '. $matches[1]);
                     require_once $migrationsPath.$matches[0];
                     $class = 'Create'.Camelize(Singulars($matches[1]));
                     $obj = new $class();
@@ -461,7 +460,7 @@ DUMBO;
             foreach ($this->params as $migration) {
                 $file = $migrationsPath.'create_'.$migration.'.php';
                 file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
-                echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+                $this->showNotice('Running action '. $this->arguments[0]. ' for: '. $migration);
                 require_once $file;
                 $class = 'Create'.Camelize(Singulars($migration));
                 $obj = new $class();
