@@ -1140,7 +1140,8 @@ abstract class ActiveRecord extends Core_General_Class {
                 foreach ($this->validate['email'] as $field) {
                     $message = 'The email provided is not a valid email address.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');
+                        if (empty($field['field'])) {
+                            throw new Exception('Field key must be defined in array.');
                         }
 
                         empty($field['message']) or ($message = $field['message']);
