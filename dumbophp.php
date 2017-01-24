@@ -1966,10 +1966,10 @@ DUMBO;
             $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
             $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
 
-            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            fwrite(STDOUT, 'Running query: '.$query . "\n");
             $db = $GLOBALS['Connection']->prepare($query);
             if ($db->execute() === false) {
-                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+                fwrite(STDOUT, $GLOBALS['Connection']->errorInfo() . "\n");
             }
         }
     }
