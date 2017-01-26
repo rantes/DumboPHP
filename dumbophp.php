@@ -1140,7 +1140,8 @@ abstract class ActiveRecord extends Core_General_Class {
                 foreach ($this->validate['email'] as $field) {
                     $message = 'The email provided is not a valid email address.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');
+                        if (empty($field['field'])) {
+                            throw new Exception('Field key must be defined in array.');
                         }
 
                         empty($field['message']) or ($message = $field['message']);
@@ -1497,15 +1498,13 @@ abstract class ActiveRecord extends Core_General_Class {
         return $this->_dataAttributes[$field]['native_type'];
     }
     public function slice($start = null, $length = null) {
-        if (empty($length)) {$length = $this->_counter;
-        }
+        empty($length) && ($length = $this->_counter);
 
-        if ($start === null) {$start = 0;
-        }
+        $start === null && ($start = 0);
 
-        $end                              = $start+$length;
-        if ($end > $this->_counter) {$end = $this->_counter;
-        }
+        $end = $start+$length;
+
+        $end > $this->_counter && ($end = $this->_counter);
 
         $name = get_class($this);
         $arr  = new $name();
@@ -1966,10 +1965,10 @@ DUMBO;
             $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
             $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
 
-            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            fwrite(STDOUT, 'Running query: '.$query . "\n");
             $db = $GLOBALS['Connection']->prepare($query);
             if ($db->execute() === false) {
-                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+                fwrite(STDOUT, $GLOBALS['Connection']->errorInfo() . "\n");
             }
         }
     }

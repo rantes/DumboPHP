@@ -28,9 +28,9 @@ file_exists($dumboSystemPath) || mkdir($dumboSystemPath, 0777, TRUE);
 $d = dir($path);
 while (false !== ($entry = $d->read())) {
    if($entry != '.' && $entry != '..' && $entry != 'install.php' && !is_dir($entry) && $entry != 'src' && $entry != 'lib' && $entry != '.git' && $entry != '.gitignore'){
-   		echo 'copying '.$path.'/'.$entry.' to '.$dumboSystemPath.'/'.$entry.PHP_EOL;
-   		file_exists($dumboSystemPath.'/'.$entry) && unlink($dumboSystemPath.'/'.$entry);
-   		copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry) or die('Could not copy file.');
+           echo 'copying '.$path.'/'.$entry.' to '.$dumboSystemPath.'/'.$entry.PHP_EOL;
+           file_exists($dumboSystemPath.'/'.$entry) && unlink($dumboSystemPath.'/'.$entry);
+           copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
@@ -47,7 +47,7 @@ while (false !== ($entry = $d->read())) {
 }
 $d->close();
 
-file_exists($dumboSystemPathLib) ||	mkdir($dumboSystemPathLib, 0777, TRUE);
+file_exists($dumboSystemPathLib) ||    mkdir($dumboSystemPathLib, 0777, TRUE);
 
 $d = dir($pathLib);
 while (false !== ($entry = $d->read())) {
@@ -68,6 +68,18 @@ while (false !== ($entry = $d->read())) {
          file_exists($dumboSystemPathLib.'/db_drivers/'.$entry) && unlink($dumboSystemPathLib.'/db_drivers/'.$entry);
          copy($pathLib.'/db_drivers/'.$entry, $dumboSystemPathLib.'/db_drivers/'.$entry) or die('Could not copy file.');
    }
+}
+$d->close();
+
+file_exists($dumboSystemPathLib.'/Timothy') || mkdir($dumboSystemPathLib.'/Timothy', 0777, TRUE);
+
+$d = dir($pathLib.'/Timothy');
+while (false !== ($entry = $d->read())) {
+    if($entry != '.' && $entry != '..' && !is_dir($entry)){
+        echo 'copying '.$pathLib.'/Timothy/'.$entry.' to '.$dumboSystemPathLib.'/Timothy/'.$entry.PHP_EOL;
+        file_exists($dumboSystemPathLib.'/Timothy/'.$entry) && unlink($dumboSystemPathLib.'/Timothy/'.$entry);
+        copy($pathLib.'/Timothy/'.$entry, $dumboSystemPathLib.'/Timothy/'.$entry) or die('Could not copy file.');
+    }
 }
 $d->close();
 
