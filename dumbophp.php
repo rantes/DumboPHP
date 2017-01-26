@@ -1498,15 +1498,13 @@ abstract class ActiveRecord extends Core_General_Class {
         return $this->_dataAttributes[$field]['native_type'];
     }
     public function slice($start = null, $length = null) {
-        if (empty($length)) {$length = $this->_counter;
-        }
+        empty($length) && ($length = $this->_counter);
 
-        if ($start === null) {$start = 0;
-        }
+        $start === null && ($start = 0);
 
-        $end                              = $start+$length;
-        if ($end > $this->_counter) {$end = $this->_counter;
-        }
+        $end = $start+$length;
+
+        $end > $this->_counter && ($end = $this->_counter);
 
         $name = get_class($this);
         $arr  = new $name();
