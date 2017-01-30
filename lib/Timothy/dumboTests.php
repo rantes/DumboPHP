@@ -13,7 +13,7 @@ class dumboTests extends Page{
 
     public function __construct() {
         $this->colors = new Colors();
-        file_exists('tests.log') and unlink('tests.log');
+        file_exists(INST_PATH.'tests.log') and unlink('tests.log');
         fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
     }
     /**
@@ -56,7 +56,7 @@ class dumboTests extends Page{
         $date = date('d-m-Y H:i:s');
         $message = "[{$date}]: $text \n";
 
-        file_put_contents('tests.log', $message, FILE_APPEND);
+        file_put_contents(INST_PATH.'tests.log', $message, FILE_APPEND);
     }
     /**
      * Handle error for a test
