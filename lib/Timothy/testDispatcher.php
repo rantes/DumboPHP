@@ -12,7 +12,8 @@ class testDispatcher {
         endforeach;
     }
 
-    function run(string $test) {
+    function run($test) {
+        $test = (string) $test;
         $actions = [];
         $methods = get_class_methods($this->{$test});
         foreach ($methods as $method):

@@ -20,21 +20,21 @@ class dumboTests extends Page{
      * Output for an error message
      * @param string $errorMessage
      */
-    private function _showError(string $errorMessage) {
+    private function _showError($errorMessage) {
         return fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
     }
     /**
      * Output for a standard message
      * @param string $errorMessage
      */
-    private function _showMessage(string $errorMessage) {
+    private function _showMessage($errorMessage) {
         return fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, 'white', 'green') . "\n");
     }
     /**
      * Displays the progress of each test: P - passed. F - failed.
      * @param boolean $passed
      */
-    private function _progress(bool $passed) {
+    private function _progress($passed) {
         $color = $passed ? 'green' : 'red';
         $text = $passed ? 'P' : 'F';
 
@@ -44,7 +44,7 @@ class dumboTests extends Page{
      * Sets a description to show when runs the unit test
      * @param string $message
      */
-    private function description(string $message) {
+    private function description($message) {
         empty($message) and $this->_described = true;
         $this->_showMessage($message);
     }
@@ -62,7 +62,7 @@ class dumboTests extends Page{
      * Handle error for a test
      * @param string $additional
      */
-    private function _triggerError(string $additional) {
+    private function _triggerError($additional) {
         $track = debug_backtrace();
         $this->_failed++;
 
