@@ -100,7 +100,7 @@ DUMBO;
         ($this->_failed and $this->_showError('Test failed.')) or $this->_showMessage('Test Passed.');
         fwrite(STDOUT, 'Tests Success: ' . $this->_passed . "\n");
         fwrite(STDOUT, 'Tests failed: ' . $this->_failed . "\n");
-        fwrite(STDOUT, file_get_contents('tests.log'));
+        fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
     }
 }
 ?>
