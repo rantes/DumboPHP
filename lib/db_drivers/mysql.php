@@ -8,6 +8,7 @@ class mysqlDriver {
     public $pk = null;
 
     public function getColumns() {
+        $numerics = ['INT', 'FLOAT', 'BIGINT'];
         $fields = array();
         $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$this->tableName}");
         $result1->setFetchMode(PDO::FETCH_ASSOC);
@@ -15,6 +16,7 @@ class mysqlDriver {
         foreach ($resultset1 as $res){
             $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
             $fields[] = array(
+                        'Cast'=>in_array($type, $numerics),
                         'Field'=>$res['Field'],
                         'Type'=>$type,
                         'Value' => null

@@ -1,5 +1,4 @@
 <?php
-require_once 'dumboTests.php';
 class testDispatcher {
     private $_testsPath = 'tests/';
     /**

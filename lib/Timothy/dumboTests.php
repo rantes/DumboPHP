@@ -1,5 +1,10 @@
 <?php
-class dumboTests {
+/**
+ *
+ * @author rantes <rantes.javier@gmail.com> http://rantes.info
+ *
+ */
+class dumboTests extends Page{
     private $_failed = 0;
     private $_passed = 0;
     private $_assertions = 0;
@@ -43,12 +48,20 @@ class dumboTests {
         empty($message) and $this->_described = true;
         $this->_showMessage($message);
     }
+    /**
+     * Logs the process of each test
+     * @param unknown $text
+     */
     private function _log($text) {
         $date = date('d-m-Y H:i:s');
         $message = "[{$date}]: $text \n";
 
         file_put_contents('tests.log', $message, FILE_APPEND);
     }
+    /**
+     * Handle error for a test
+     * @param string $additional
+     */
     private function _triggerError(string $additional) {
         $track = debug_backtrace();
         $this->_failed++;
@@ -66,13 +79,23 @@ DUMBO;
     public function assertEquals($param1, $param2) {
         $passed = $param1 === $param2;
         $this->_passed += $passed;
-        $this->_log('Assert if ' . gettype($param1) . ' is equals to ' . gettype($param2) . ': '.($passed ? 'Passed.' : 'Failed'));
+        $this->_log('Assert if <' . gettype($param1) . '> ' . $param1 . ' is equals to <' . gettype($param2) . '> ' . $param2 . ': '.($passed ? 'Passed.' : 'Failed'));
 
         $this->_progress($passed);
 
         $passed or $this->_triggerError('Asserts Equals');
     }
+    public function assertHasFields(ActiveRecord $model, array $fields) {
+        $passed = empty(array_diff($fields, $model->getRawFields()));
+        $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.($passed ? 'Passed.' : 'Failed'));
 
+        $this->_progress($passed);
+
+        $passed or $this->_triggerError('Asserts Has Fields');
+    }
+    /**
+     * What supposed to do whe the script ends.
+     */
     public function __destruct() {
         ($this->_failed and $this->_showError('Test failed.')) or $this->_showMessage('Test Passed.');
         fwrite(STDOUT, 'Tests Success: ' . $this->_passed . "\n");

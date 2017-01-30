@@ -893,7 +893,13 @@ abstract class ActiveRecord extends Core_General_Class {
         $this->driver->tableName = $this->_ObjTable;
         $this->driver->pk        = $this->pk;
         $this->_error            = new Errors;
+        $this->_setInitialCols($this->driver->getColumns());
         $this->_init_();
+    }
+    private function _setInitialCols($fields) {
+        foreach ($fields as $field) {
+            $this->_fields[$field['Field']] = $field['Cast'];
+        }
     }
     private function _setMemcacheKey($key) {
         $res = $GLOBALS['memcached']->get($this->_ObjTable);
@@ -909,10 +915,22 @@ abstract class ActiveRecord extends Core_General_Class {
         }
     }
     /**
+     * Gets an array with the field names of this model
+     * @return array
+     */
+    public function getRawFields() {
+        $raw = [];
+        foreach ($this->_fields as $field => $cast) {
+            $raw[] = $field;
+        }
+
+        return $raw;
+    }
+    /**
      * Getter for the fields taken from the query or table
      * @return array Fields of the current Active Record Object
      */
-    public function GetFields() {
+    public function getFields() {
         return $this->_fields;
     }
     /**
