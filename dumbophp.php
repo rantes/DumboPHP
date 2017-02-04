@@ -1127,7 +1127,7 @@ abstract class ActiveRecord extends Core_General_Class {
         $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
         if (!$sh->execute($prepared['prepared'])) {
             $e = $GLOBALS['Connection']->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n $query"));
+            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
             return false;
         }
         CAN_USE_MEMCACHED && $this->_refreshCache();
@@ -1147,7 +1147,7 @@ abstract class ActiveRecord extends Core_General_Class {
         $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
         if (!$sh->execute($prepared['prepared'])) {
             $e = $GLOBALS['Connection']->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n $query"));
+            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
             return false;
         }
         return true;
@@ -1165,7 +1165,7 @@ abstract class ActiveRecord extends Core_General_Class {
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
+                    preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
                     isset($this->{$field}) and empty($matches) and $this->_error->add(array('field' => $field, 'message' => $message));
                 }
             }
@@ -1194,8 +1194,9 @@ abstract class ActiveRecord extends Core_General_Class {
                     }
                     if (!empty($this->{$field})) {
                         $obj1      = new $this;
-                        $resultset = $obj1->Find(array('fields'                          => $field, 'conditions'                          => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
-                        if ($resultset->counter() > 0) {$this->_error->add(array('field' => $field, 'message' => $message));
+                        $resultset = $obj1->Find(array('fields' => $field, 'conditions' => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
+                        if ($resultset->counter() > 0) {
+                            $this->_error->add(array('field' => $field, 'message' => $message));
                         }
                     }
                 }
@@ -1205,7 +1206,8 @@ abstract class ActiveRecord extends Core_General_Class {
                 foreach ($this->validate['presence_of'] as $field) {
                     $message = 'This field can not be empty or null.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');
+                        if (empty($field['field'])) {
+                            throw new Exception('Field key must be defined in array.');
                         }
 
                         empty($field['message']) or ($message = $field['message']);
@@ -1986,7 +1988,7 @@ DUMBO;
             fwrite(STDOUT, 'Running query: '.$query . "\n");
             $db = $GLOBALS['Connection']->prepare($query);
             if ($db->execute() === false) {
-                fwrite(STDOUT, $GLOBALS['Connection']->errorInfo() . "\n");
+                fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . "\n");
             }
         }
     }
@@ -2004,9 +2006,9 @@ DUMBO;
 
         if ($result > 0) {
             $query = "ALTER TABLE `".$params['Table']."` DROP `".$params['field']."`";
-            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            fwrite(STDOUT, 'Running query: '.$query.PHP_EOL);
             if ($GLOBALS['Connection']->exec($query) === false) {
-                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+                fwrite(STDERR, $GLOBALS['Connection']->errorInfo()."\n");
             }
         }
     }
