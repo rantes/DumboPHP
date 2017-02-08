@@ -8,7 +8,6 @@ class dumboTests extends Page{
     private $_failed = 0;
     private $_passed = 0;
     private $_assertions = 0;
-    private $_described = false;
     private $_result = '';
 
     public function __construct() {
@@ -41,14 +40,6 @@ class dumboTests extends Page{
         fwrite(STDOUT, $this->colors->getColoredString($text, 'white', $color));
     }
     /**
-     * Sets a description to show when runs the unit test
-     * @param string $message
-     */
-    private function description($message) {
-        empty($message) and $this->_described = true;
-        $this->_showMessage($message);
-    }
-    /**
      * Logs the process of each test
      * @param unknown $text
      */
@@ -71,6 +62,7 @@ ERROR Failed to {$additional}, on {$track[1]['file']} at line {$track[1]['line']
 DUMBO;
         $this->_log($output);
     }
+
     /**
      * Compare two params and asserts if are equals
      * @param any $param1
@@ -85,6 +77,12 @@ DUMBO;
 
         $passed or $this->_triggerError('Asserts Equals');
     }
+
+    /**
+     * Asserts if the array with field names provides fits the fields on the model
+     * @param ActiveRecord $model
+     * @param array $fields
+     */
     public function assertHasFields(ActiveRecord $model, array $fields) {
         $passed = empty(array_diff($fields, $model->getRawFields()));
         $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.($passed ? 'Passed.' : 'Failed'));

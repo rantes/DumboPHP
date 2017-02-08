@@ -24,7 +24,6 @@ class testDispatcher {
         endforeach;
 
         foreach ($actions as $action):
-            fwrite(STDOUT, 'Executing: '. $action . "...\n");
             $this->{$test}->{$action}();
         endforeach;
 

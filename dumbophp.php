@@ -1218,6 +1218,11 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
     }
+
+    /**
+     * Performs a save action of an object into the database, it could be insert or update, depending on the id
+     * @return boolean
+     */
     public function Save() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
         if (sizeof($this->before_save) > 0) {
