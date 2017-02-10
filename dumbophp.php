@@ -1550,9 +1550,9 @@ abstract class ActiveRecord extends Core_General_Class {
         $url = explode('&', $_SERVER['REQUEST_URI']);
         $url = explode('?', $url[0]);
 
-        $params2                                                    = $params;
-        $per_page                                                   = (isset($params['per_page']))?$params['per_page']:10;
-        $this->paginateURL                                          = empty($params['url'])?$url[0]:$params['url'];
+        $params2 = $params;
+        $per_page = (isset($params['per_page']))?$params['per_page']:10;
+        $this->paginateURL = empty($params['url'])?$url[0]:$params['url'];
         empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
         if (!empty($_GET[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName] = $_GET[$this->PaginatePageVarName];
@@ -1560,12 +1560,12 @@ abstract class ActiveRecord extends Core_General_Class {
         if (!empty($params[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName];
         }
-        $start                                                      = ($this->PaginatePageNumber-1)*$per_page;
-        $params['limit']                                            = $start.",".$per_page;
-        $params2['fields']                                          = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
-        $queryCounter                                               = $this->driver->Select($params2);
+        $start = ($this->PaginatePageNumber-1)*$per_page;
+        $params['limit'] = $start.",".$per_page;
+        $params2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
+        $queryCounter = $this->driver->Select($params2);
         if (CAN_USE_MEMCACHED) {
-            $key       = md5($queryCounter);
+            $key = md5($queryCounter);
             $resultset = $GLOBALS['memcached']->get($key);
         }
         if (empty($resultset) || !is_array($resultset)) {
@@ -1583,37 +1583,47 @@ abstract class ActiveRecord extends Core_General_Class {
         return $this->Find($params);
     }
     public function WillPaginate($params = NULL) {
-        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {$params = $params[0];
+        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
+            $params = $params[0];
         }
 
         $str  = '';
         $tail = '';
         $i    = 1;
+        $connector = sizeof(explode('?', $this->paginateURL)) > 0 ? '&' : '?';
         if ($this->PaginatePageNumber > 1):
-        $str .= '<a class="paginate paginate-first-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
-        $str .= '<a class="paginate paginate-prev-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
+        $str .= '<a class="paginate paginate-first-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
+        $str .= '<a class="paginate paginate-prev-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
         endif;
         $top = $this->PaginateTotalPages;
-        if ($this->PaginateTotalPages > 10):
-        $top                                        = ($this->PaginatePageNumber-1)+10;
-        if ($top > $this->PaginateTotalPages) {$top = $this->PaginateTotalPages;
-        }
+        if ($this->PaginateTotalPages > 10) {
+            $top  = ($this->PaginatePageNumber-1)+10;
+            if ($top > $this->PaginateTotalPages) {
+                $top = $this->PaginateTotalPages;
+            }
 
-        $i              = $top-10;
-        if ($i < 1) {$i = 1;
+            $i = $top-10;
+            if ($i < 1) {
+                $i = 1;
+            }
         }
-
-        endif;
-        if ($this->PaginatePageNumber < $this->PaginateTotalPages):
-        $tail .= '<a class="paginate paginate-next-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
-        $tail .= '<a class="paginate paginate-last-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
-        endif;
+        if ($this->PaginatePageNumber < $this->PaginateTotalPages) {
+            $tail .= '<a class="paginate paginate-next-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
+            $tail .= '<a class="paginate paginate-last-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
+        }
         for (; $i <= $top; $i++) {
-            $str .= '<a class="paginate paginate-page'.($this->PaginatePageNumber == $i?" paginate-active-page":"").'" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
+            $str .= '<a class="paginate paginate-page'.($this->PaginatePageNumber == $i?" paginate-active-page":"").'" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
         }
         $str .= $tail;
         return $str;
     }
+
+    /**
+     * Creates an input depending on the type of field
+     * @param array $params
+     * @throws Exception
+     * @return NULL|string
+     */
     public function input_for($params) {
         $stringi = '<input';
         $stringt = '<textarea';
