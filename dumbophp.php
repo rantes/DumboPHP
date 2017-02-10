@@ -795,12 +795,14 @@ abstract class Core_General_Class extends ArrayObject {
                 require_once INST_PATH.'app/models/'.$field.'.php';
             }
             $obj1       = new $classFromCall();
-            $conditions = "`".$prefix."_id`='".$this->id."'";
+            $conditions = "1=1";
             if (method_exists($obj1, 'Find')) {
-                if ($classFromCall == get_class($this) and in_array($ClassName, $this->has_many_and_belongs_to)) {
+                if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)  && !empty($this->{$foreign})) {
                     $conditions = ($way == 'up')?"`id`='".$this->{$foreign} ."'":$conditions;
-                } elseif (in_array($ClassName, $this->belongs_to)) {
+                } elseif (in_array($ClassName, $this->belongs_to) && !empty($this->{$foreign})) {
                     $conditions = "`id`='".$this->{$foreign} ."'";
+                } elseif (in_array($ClassName, $this->has_many) ) {
+                    $conditions = "`{$prefix}_id`='{$this->id}'";
                 }
                 $params['conditions'] = empty($params['conditions'])?$conditions:' AND '.$conditions;
                 return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
@@ -963,12 +965,11 @@ abstract class ActiveRecord extends Core_General_Class {
      * @param string $query SQL query to fetch the data
      */
     protected function getData($query) {
-        $result = array();
         foreach ($this as $i => $val) {
             $this[$i] = null;
             $this->offsetUnset($i);
         }
-        $j    = 0;
+        $j = 0;
         $regs = $GLOBALS['Connection']->query($query);
         is_object($regs) or die("Error in SQL Query. Please check the SQL Query: ".$query);
 
@@ -1036,7 +1037,15 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
         CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this) && $this->_setMemcacheKey($key);
-        return clone($this);
+        $x = clone($this);
+        if ($this->_counter > 1) {
+            $j = 0;
+            foreach ($this as $obj) {
+                $x->offsetSet($j, clone $obj);
+                $j++;
+            }
+        }
+        return $x;
     }
     /**
      * Performs a select query from a given string
