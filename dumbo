@@ -376,8 +376,9 @@ DUMBO;
         file_exists('./config/host.php') or die($this->showError('Test actions must be executed at the top level of project path.'.PHP_EOL));
         require_once './config/host.php';
         set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendor', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp')));
-        require_once 'lib/Timothy/testDispatcher.php';
         require_once 'dumbophp.php';
+        require_once 'lib/Timothy/dumboTests.php';
+        require_once 'lib/Timothy/testDispatcher.php';
         $testLaunch = new testDispatcher($this->arguments);
         foreach ($this->arguments as $test) {
             $testLaunch->run($test);

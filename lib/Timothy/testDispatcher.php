@@ -1,5 +1,4 @@
 <?php
-require_once 'dumboTests.php';
 class testDispatcher {
     private $_testsPath = 'tests/';
     /**
@@ -13,7 +12,8 @@ class testDispatcher {
         endforeach;
     }
 
-    function run(string $test) {
+    function run($test) {
+        $test = (string) $test;
         $actions = [];
         $methods = get_class_methods($this->{$test});
         foreach ($methods as $method):
@@ -24,7 +24,6 @@ class testDispatcher {
         endforeach;
 
         foreach ($actions as $action):
-            fwrite(STDOUT, 'Executing: '. $action . "...\n");
             $this->{$test}->{$action}();
         endforeach;
 

@@ -795,12 +795,14 @@ abstract class Core_General_Class extends ArrayObject {
                 require_once INST_PATH.'app/models/'.$field.'.php';
             }
             $obj1       = new $classFromCall();
-            $conditions = "`".$prefix."_id`='".$this->id."'";
+            $conditions = "1=1";
             if (method_exists($obj1, 'Find')) {
-                if ($classFromCall == get_class($this) and in_array($ClassName, $this->has_many_and_belongs_to)) {
+                if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)  && !empty($this->{$foreign})) {
                     $conditions = ($way == 'up')?"`id`='".$this->{$foreign} ."'":$conditions;
-                } elseif (in_array($ClassName, $this->belongs_to)) {
+                } elseif (in_array($ClassName, $this->belongs_to) && !empty($this->{$foreign})) {
                     $conditions = "`id`='".$this->{$foreign} ."'";
+                } elseif (in_array($ClassName, $this->has_many) ) {
+                    $conditions = "`{$prefix}_id`='{$this->id}'";
                 }
                 $params['conditions'] = empty($params['conditions'])?$conditions:' AND '.$conditions;
                 return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
@@ -893,7 +895,13 @@ abstract class ActiveRecord extends Core_General_Class {
         $this->driver->tableName = $this->_ObjTable;
         $this->driver->pk        = $this->pk;
         $this->_error            = new Errors;
+        $this->_setInitialCols($this->driver->getColumns());
         $this->_init_();
+    }
+    private function _setInitialCols($fields) {
+        foreach ($fields as $field) {
+            $this->_fields[$field['Field']] = $field['Cast'];
+        }
     }
     private function _setMemcacheKey($key) {
         $res = $GLOBALS['memcached']->get($this->_ObjTable);
@@ -909,10 +917,22 @@ abstract class ActiveRecord extends Core_General_Class {
         }
     }
     /**
+     * Gets an array with the field names of this model
+     * @return array
+     */
+    public function getRawFields() {
+        $raw = [];
+        foreach ($this->_fields as $field => $cast) {
+            $raw[] = $field;
+        }
+
+        return $raw;
+    }
+    /**
      * Getter for the fields taken from the query or table
      * @return array Fields of the current Active Record Object
      */
-    public function GetFields() {
+    public function getFields() {
         return $this->_fields;
     }
     /**
@@ -945,12 +965,11 @@ abstract class ActiveRecord extends Core_General_Class {
      * @param string $query SQL query to fetch the data
      */
     protected function getData($query) {
-        $result = array();
         foreach ($this as $i => $val) {
             $this[$i] = null;
             $this->offsetUnset($i);
         }
-        $j    = 0;
+        $j = 0;
         $regs = $GLOBALS['Connection']->query($query);
         is_object($regs) or die("Error in SQL Query. Please check the SQL Query: ".$query);
 
@@ -1018,7 +1037,15 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
         CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this) && $this->_setMemcacheKey($key);
-        return clone($this);
+        $x = clone($this);
+        if ($this->_counter > 1) {
+            $j = 0;
+            foreach ($this as $obj) {
+                $x->offsetSet($j, clone $obj);
+                $j++;
+            }
+        }
+        return $x;
     }
     /**
      * Performs a select query from a given string
@@ -1109,7 +1136,7 @@ abstract class ActiveRecord extends Core_General_Class {
         $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
         if (!$sh->execute($prepared['prepared'])) {
             $e = $GLOBALS['Connection']->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n $query"));
+            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
             return false;
         }
         CAN_USE_MEMCACHED && $this->_refreshCache();
@@ -1129,7 +1156,7 @@ abstract class ActiveRecord extends Core_General_Class {
         $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
         if (!$sh->execute($prepared['prepared'])) {
             $e = $GLOBALS['Connection']->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n $query"));
+            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
             return false;
         }
         return true;
@@ -1147,7 +1174,7 @@ abstract class ActiveRecord extends Core_General_Class {
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
+                    preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
                     isset($this->{$field}) and empty($matches) and $this->_error->add(array('field' => $field, 'message' => $message));
                 }
             }
@@ -1176,8 +1203,9 @@ abstract class ActiveRecord extends Core_General_Class {
                     }
                     if (!empty($this->{$field})) {
                         $obj1      = new $this;
-                        $resultset = $obj1->Find(array('fields'                          => $field, 'conditions'                          => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
-                        if ($resultset->counter() > 0) {$this->_error->add(array('field' => $field, 'message' => $message));
+                        $resultset = $obj1->Find(array('fields' => $field, 'conditions' => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
+                        if ($resultset->counter() > 0) {
+                            $this->_error->add(array('field' => $field, 'message' => $message));
                         }
                     }
                 }
@@ -1187,7 +1215,8 @@ abstract class ActiveRecord extends Core_General_Class {
                 foreach ($this->validate['presence_of'] as $field) {
                     $message = 'This field can not be empty or null.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');
+                        if (empty($field['field'])) {
+                            throw new Exception('Field key must be defined in array.');
                         }
 
                         empty($field['message']) or ($message = $field['message']);
@@ -1198,6 +1227,11 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
     }
+
+    /**
+     * Performs a save action of an object into the database, it could be insert or update, depending on the id
+     * @return boolean
+     */
     public function Save() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
         if (sizeof($this->before_save) > 0) {
@@ -1525,9 +1559,9 @@ abstract class ActiveRecord extends Core_General_Class {
         $url = explode('&', $_SERVER['REQUEST_URI']);
         $url = explode('?', $url[0]);
 
-        $params2                                                    = $params;
-        $per_page                                                   = (isset($params['per_page']))?$params['per_page']:10;
-        $this->paginateURL                                          = empty($params['url'])?$url[0]:$params['url'];
+        $params2 = $params;
+        $per_page = (isset($params['per_page']))?$params['per_page']:10;
+        $this->paginateURL = empty($params['url'])?$url[0]:$params['url'];
         empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
         if (!empty($_GET[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName] = $_GET[$this->PaginatePageVarName];
@@ -1535,12 +1569,12 @@ abstract class ActiveRecord extends Core_General_Class {
         if (!empty($params[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName];
         }
-        $start                                                      = ($this->PaginatePageNumber-1)*$per_page;
-        $params['limit']                                            = $start.",".$per_page;
-        $params2['fields']                                          = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
-        $queryCounter                                               = $this->driver->Select($params2);
+        $start = ($this->PaginatePageNumber-1)*$per_page;
+        $params['limit'] = $start.",".$per_page;
+        $params2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
+        $queryCounter = $this->driver->Select($params2);
         if (CAN_USE_MEMCACHED) {
-            $key       = md5($queryCounter);
+            $key = md5($queryCounter);
             $resultset = $GLOBALS['memcached']->get($key);
         }
         if (empty($resultset) || !is_array($resultset)) {
@@ -1558,37 +1592,47 @@ abstract class ActiveRecord extends Core_General_Class {
         return $this->Find($params);
     }
     public function WillPaginate($params = NULL) {
-        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {$params = $params[0];
+        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
+            $params = $params[0];
         }
 
         $str  = '';
         $tail = '';
         $i    = 1;
+        $connector = sizeof(explode('?', $this->paginateURL)) > 0 ? '&' : '?';
         if ($this->PaginatePageNumber > 1):
-        $str .= '<a class="paginate paginate-first-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
-        $str .= '<a class="paginate paginate-prev-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
+        $str .= '<a class="paginate paginate-first-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
+        $str .= '<a class="paginate paginate-prev-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
         endif;
         $top = $this->PaginateTotalPages;
-        if ($this->PaginateTotalPages > 10):
-        $top                                        = ($this->PaginatePageNumber-1)+10;
-        if ($top > $this->PaginateTotalPages) {$top = $this->PaginateTotalPages;
-        }
+        if ($this->PaginateTotalPages > 10) {
+            $top  = ($this->PaginatePageNumber-1)+10;
+            if ($top > $this->PaginateTotalPages) {
+                $top = $this->PaginateTotalPages;
+            }
 
-        $i              = $top-10;
-        if ($i < 1) {$i = 1;
+            $i = $top-10;
+            if ($i < 1) {
+                $i = 1;
+            }
         }
-
-        endif;
-        if ($this->PaginatePageNumber < $this->PaginateTotalPages):
-        $tail .= '<a class="paginate paginate-next-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
-        $tail .= '<a class="paginate paginate-last-page" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.($this->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
-        endif;
+        if ($this->PaginatePageNumber < $this->PaginateTotalPages) {
+            $tail .= '<a class="paginate paginate-next-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
+            $tail .= '<a class="paginate paginate-last-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
+        }
         for (; $i <= $top; $i++) {
-            $str .= '<a class="paginate paginate-page'.($this->PaginatePageNumber == $i?" paginate-active-page":"").'" href="'.$this->paginateURL.'?'.$this->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
+            $str .= '<a class="paginate paginate-page'.($this->PaginatePageNumber == $i?" paginate-active-page":"").'" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
         }
         $str .= $tail;
         return $str;
     }
+
+    /**
+     * Creates an input depending on the type of field
+     * @param array $params
+     * @throws Exception
+     * @return NULL|string
+     */
     public function input_for($params) {
         $stringi = '<input';
         $stringt = '<textarea';
@@ -1968,7 +2012,7 @@ DUMBO;
             fwrite(STDOUT, 'Running query: '.$query . "\n");
             $db = $GLOBALS['Connection']->prepare($query);
             if ($db->execute() === false) {
-                fwrite(STDOUT, $GLOBALS['Connection']->errorInfo() . "\n");
+                fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . "\n");
             }
         }
     }
@@ -1986,9 +2030,9 @@ DUMBO;
 
         if ($result > 0) {
             $query = "ALTER TABLE `".$params['Table']."` DROP `".$params['field']."`";
-            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            fwrite(STDOUT, 'Running query: '.$query.PHP_EOL);
             if ($GLOBALS['Connection']->exec($query) === false) {
-                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+                fwrite(STDERR, $GLOBALS['Connection']->errorInfo()."\n");
             }
         }
     }
