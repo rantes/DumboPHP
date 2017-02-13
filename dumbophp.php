@@ -1006,7 +1006,7 @@ abstract class ActiveRecord extends Core_General_Class {
         } elseif ($this->_counter === 1) {
             foreach ($this->_fields as $field => $cast) {
                 if (isset($this[0]->{$field})) {
-                    $this->{$field} =& $this[0]->{$field};
+                    $this->{$field} = $this[0]->{$field};
                 }
             }
         }
@@ -1038,12 +1038,8 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this) && $this->_setMemcacheKey($key);
         $x = clone($this);
-        if ($this->_counter > 1) {
-            $j = 0;
-            foreach ($this as $obj) {
-                $x->offsetSet($j, clone $obj);
-                $j++;
-            }
+        for ($j = 0; $j < $this->_counter; $j++) {
+            $x->offsetSet($j, clone $this[$j]);
         }
         return $x;
     }
@@ -1309,7 +1305,11 @@ abstract class ActiveRecord extends Core_General_Class {
         CAN_USE_MEMCACHED && $this->_refreshCache();
         return true;
     }
-
+    /**
+     * Handles the delete register in database
+     * @param array|numeric $conditions can be an array of IDs or just a single ID
+     * @return boolean
+     */
     public function Delete($conditions = NULL) {
         if ($this->_counter > 1) {
             $conditions = array();
@@ -1317,7 +1317,8 @@ abstract class ActiveRecord extends Core_General_Class {
                 $conditions[] = $ele->{$this->pk};
             }
         }
-        if ($conditions === NULL and !empty($this->{$this->pk})) {$conditions = $this->{$this->pk};
+        if ($conditions === NULL and !empty($this->{$this->pk})) {
+            $conditions = $this->{$this->pk};
         }
 
         if ($conditions === NULL and empty($this->{$this->pk})) {
@@ -1333,7 +1334,7 @@ abstract class ActiveRecord extends Core_General_Class {
                 return false;
             }
         }
-        $this->_delete_or_nullify_dependents((integer) $conditions) or print($this->_error);
+        $this->_delete_or_nullify_dependents(0 + $conditions) or print($this->_error);
         if (!$GLOBALS['Connection']->exec($this->_sqlQuery)) {
             $e = $GLOBALS['Connection']->errorInfo();
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
@@ -1347,6 +1348,11 @@ abstract class ActiveRecord extends Core_General_Class {
         CAN_USE_MEMCACHED && $this->_refreshCache();
         return TRUE;
     }
+    /**
+     * Handles the dependants tasks, delete or set to null the relational data in other models
+     * @param numeric $id
+     * @return boolean
+     */
     protected function _delete_or_nullify_dependents($id) {
         if (!empty($this->dependents) && !empty($id)) {
             foreach ($this->has_many as $model) {
@@ -1363,14 +1369,14 @@ abstract class ActiveRecord extends Core_General_Class {
                                     $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Cannot delete dependents"));
                                     return FALSE;
                                 }
-                                break;
+                            break;
                             case 'nullify':
-                                $child->{$this->_ObjTable.'_id'    } = '';
+                                $child->{$this->_ObjTable.'_id'} = '';
                                 if (!$child->Save()) {
                                     $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Cannot nullify dependents"));
                                     return FALSE;
                                 }
-                                break;
+                            break;
                         }
                     }
                 }
