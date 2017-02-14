@@ -1325,7 +1325,6 @@ abstract class ActiveRecord extends Core_General_Class {
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Must specify a register to delete"));
             return FALSE;
         }
-        $this->_sqlQuery = $this->driver->Delete($conditions);
         if (sizeof($this->before_delete) > 0) {
             foreach ($this->before_delete as $functiontoRun) {
                 $this->{$functiontoRun}();
@@ -1334,7 +1333,10 @@ abstract class ActiveRecord extends Core_General_Class {
                 return false;
             }
         }
-        $this->_delete_or_nullify_dependents(0 + $conditions) or print($this->_error);
+        if (!$this->_delete_or_nullify_dependents(0 + $conditions)) {
+            return false;
+        }
+        $this->_sqlQuery = $this->driver->Delete($conditions);
         if (!$GLOBALS['Connection']->exec($this->_sqlQuery)) {
             $e = $GLOBALS['Connection']->errorInfo();
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
