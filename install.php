@@ -22,9 +22,7 @@ if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
     fwrite(STDOUT, 'Great!!! this is a server not using Windows!'.PHP_EOL);
     defined('IS_WIN') or define('IS_WIN', false);
 
-    if (!is_dir($binPath)) {
-        $binPath = dirname(exec('which php'));
-    }
+    is_dir($binPath) or mkdir($binPath);
 }
 
 file_exists($dumboSystemPath) || mkdir($dumboSystemPath, 0777, TRUE);
