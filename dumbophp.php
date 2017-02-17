@@ -1318,7 +1318,7 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
         if ($conditions === NULL and !empty($this->{$this->pk})) {
-            $conditions = $this->{$this->pk};
+            $conditions = 0 + $this->{$this->pk};
         }
 
         if ($conditions === NULL and empty($this->{$this->pk})) {
@@ -1333,7 +1333,7 @@ abstract class ActiveRecord extends Core_General_Class {
                 return false;
             }
         }
-        if (!$this->_delete_or_nullify_dependents(0 + $conditions)) {
+        if (!$this->_delete_or_nullify_dependents($conditions)) {
             return false;
         }
         $this->_sqlQuery = $this->driver->Delete($conditions);
@@ -1362,7 +1362,8 @@ abstract class ActiveRecord extends Core_General_Class {
                 $m = Camelize($s);
                 class_exists($m) or require_once INST_PATH.'app/models/'.strtolower($s).'.php';
                 $model1   = new $m();
-                $children = $model1->Find(array('conditions' => Singulars($this->_ObjTable)."_id='".$id."'"));
+                $condition = is_numeric($id)? " = '{$id}'" : " IN (".implode(',', $id).")";
+                $children = $model1->Find(array('conditions' => Singulars($this->_ObjTable)."_id{$condition}"));
                 if ($children->counter() > 0) {
                     foreach ($children as $child) {
                         switch ($this->dependents) {
