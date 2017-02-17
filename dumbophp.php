@@ -698,11 +698,13 @@ class Connection extends PDO {
                 }
             break;
             default:
-                $host = ':host=' . $this->_settings['host'].
-                        ';port=' . $this->_settings['port'];
 
                 if (!empty($this->_settings['unix_socket'])) {
                     $host = ':unix_socket=' . $this->_settings['unix_socket'];
+                }
+
+                if (!empty($this->_settings['port'])) {
+                    $host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port'];
                 }
 
                 $dsn = $this->engine . $host .
