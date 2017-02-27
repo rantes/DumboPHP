@@ -13,7 +13,7 @@ class mysqlDriver {
         $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$this->tableName}");
         $result1->setFetchMode(PDO::FETCH_ASSOC);
         $resultset1 = $result1->fetchAll();
-        foreach ($resultset1 as $res){
+        foreach ($resultset1 as $res) {
             $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
             $fields[] = array(
                         'Cast'=>in_array($type, $numerics),
@@ -36,7 +36,7 @@ class mysqlDriver {
         if(!empty($this->_params)){
             if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = 0 + $this->_params;
             $type = gettype($this->_params);
-            $strint = '';
+
             switch($type){
                 case 'integer':
                     $tail .= " WHERE ".$this->pk." in ($this->_params)";

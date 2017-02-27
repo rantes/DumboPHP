@@ -340,11 +340,11 @@ function Camelize($params, &$obj = NULL) {
  * @param object $obj
  * @return string
  */
-function ToList(&$arr, &$obj = NULL) {
+function ToList($arr, $obj = NULL) {
     if (isset($obj) and is_object($obj) and get_parent_class($obj) == 'ActiveRecord') {
         $arr = $obj->getArray();
     }
-
+var_dump($arr);
     return implode(',', $arr);
 }
 /**
@@ -845,9 +845,9 @@ abstract class ActiveRecord extends Core_General_Class {
     public $_error              = NULL;
     public $_sqlQuery           = '';
     public $candump             = true;
-    public $id                  = null;
-    public $created_at          = 0;
-    public $updated_at          = 0;
+//     public $id                  = null;
+//     public $created_at          = 0;
+//     public $updated_at          = 0;
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
@@ -894,11 +894,14 @@ abstract class ActiveRecord extends Core_General_Class {
             $this->driver = new $driver();
         }
 
-        $this->driver->tableName = $this->_ObjTable;
-        $this->driver->pk        = $this->pk;
-        $this->_error            = new Errors;
-        $this->_setInitialCols($this->driver->getColumns());
+        $this->_error = new Errors;
         $this->_init_();
+        $this->driver->tableName = $this->_ObjTable;
+        $this->driver->pk = $this->pk;
+        $this->_setInitialCols($this->driver->getColumns());
+    }
+    protected function _TableName($name) {
+        $this->_ObjTable = $name;
     }
     private function _setInitialCols($fields) {
         foreach ($fields as $field) {
@@ -1073,10 +1076,10 @@ abstract class ActiveRecord extends Core_General_Class {
         if (!empty($resultset)) {
             foreach ($resultset[0] as $key => $value) {
                 if (!array_key_exists($key, $this->_fields)) {
-                    $this->_fields[$key]                        = is_numeric($value);
-                    $this->{$key}                              = '';
+                    $this->_fields[$key] = is_numeric($value);
+                    $this->{$key} = '';
                     $this->_dataAttributes[$key]['native_type'] = is_numeric($value)?'NUMERIC':'STRING';
-                    $this->_dataAttributes[$key]['cast']        = $this->_fields[$key];
+                    $this->_dataAttributes[$key]['cast'] = $this->_fields[$key];
                 }
             }
         }
