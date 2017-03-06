@@ -1932,23 +1932,23 @@ abstract class Migrations extends Core_General_Class {
         }
         $query = substr($query, 0, -2);
         $query .= ");";
-        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
         if ($GLOBALS['Connection']->exec($query) === false) {
-            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+            fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
         }
 
         $query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
-        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
         if ($GLOBALS['Connection']->exec($query) === false) {
-            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+            fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
         }
     }
 
     protected function Drop_Table($table) {
         $query = "DROP TABLE IF EXISTS `".$table."`";
-        syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
         if ($GLOBALS['Connection']->exec($query) === false) {
-            syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+            fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
         }
     }
 
@@ -1973,10 +1973,10 @@ DUMBO;
             $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
             $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
 
-            syslog(LOG_DEBUG,'Running query: '.$query.PHP_EOL);
+            fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
             $db = $GLOBALS['Connection']->prepare($query);
             if ($db->execute() === false) {
-                syslog(LOG_ERR,$GLOBALS['Connection']->errorInfo());
+                fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
             }
         }
     }
@@ -2026,7 +2026,7 @@ DUMBO;
             fwrite(STDOUT, 'Running query: '.$query . "\n");
             $db = $GLOBALS['Connection']->prepare($query);
             if ($db->execute() === false) {
-                fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . "\n");
+                fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
             }
         }
     }
