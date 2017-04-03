@@ -162,6 +162,37 @@ class mysqlDriver {
 
         return $query;
     }
+
+    public function CreateTable($table, $fields) {
+        $query    = "CREATE TABLE IF NOT EXISTS `{$table}` (";
+//         $query .= "`id` INT AUTO_INCREMENT PRIMARY KEY ,";
+        foreach ($fields as $field) {
+            if ($field['type'] == 'VARCHAR' && empty($field['limit'])) {
+                $field['limit'] = 250;
+            }
+
+            $query .= (!empty($field['field']) && !empty($field['type']))?"`".$field['field']."` ".$field['type']:NULL;
+            $query .= (!empty($field['limit']))?" (".$field['limit'].")":NULL;
+            $query .= (empty($field['null']) || $field['null'] === 'false')?" NOT NULL":NULL;
+            $query .= (isset($field['default']))?" DEFAULT '".$field['default']."'":NULL;
+            $query .= (!empty($field['comments']))?" COMMENT '".$field['comment']."'":NULL;
+            $query .= " ,";
+        }
+
+//         if (AUTO_AUDITS) {
+//             $query .= "`created_at` INT NOT NULL ,";
+//             $query .= "`updated_at` INT NOT NULL ,";
+//         }
+
+        $query = substr($query, 0, -2);
+        $query .= ");";
+
+        return $query;
+    }
+
+    public function DropTable($table) {
+        return "DROP TABLE IF EXISTS `{$table}`";
+    }
 }
 
 ?>

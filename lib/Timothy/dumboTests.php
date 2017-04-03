@@ -83,8 +83,16 @@ DUMBO;
      * @param ActiveRecord $model
      * @param array $fields
      */
-    public function assertHasFields(ActiveRecord $model, array $fields) {
-        $passed = empty(array_diff($fields, $model->getRawFields()));
+    public function assertHasFields(ActiveRecord $model) {
+        $table = $model->_TableName();
+        require_once INST_PATH."migrations/create_{$table}.php";
+        $migrationName = 'Create'.Camelize(Singulars($table));
+        $migration = new $migrationName();
+        $fields = $migration->getFields();
+        $expected = $model->getRawFields();
+        $passed = !empty($fields) and !empty($expected) and empty(array_diff($fields, $expected));
+
+        $this->_passed += $passed;
         $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.($passed ? 'Passed.' : 'Failed'));
 
         $this->_progress($passed);

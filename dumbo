@@ -447,12 +447,13 @@ DUMBO;
                 } else {
                     foreach ($this->params as $migration) {
                         $file = $migrationsPath.'add_fields_to_'.Singulars($migration).'.php';
-                        file_exists($file) or die($this->showError(PHP_EOL. 'Migration file '.$migration.' does not exists.'. PHP_EOL));
-                        $this->showMessage(PHP_EOL. 'Running action '. $this->arguments[0]. ' for: '. $migration. PHP_EOL);
-                        require_once $file;
-                        $class = 'AddFieldsTo'.Camelize(Singulars($migration));
-                        $obj = new $class();
-                        $obj->{$this->arguments[0]}();
+                        if (file_exists($file)) {
+                            $this->showMessage(PHP_EOL. 'Running action '. $this->arguments[0]. ' for: '. $migration. PHP_EOL);
+                            require_once $file;
+                            $class = 'AddFieldsTo'.Camelize(Singulars($migration));
+                            $obj = new $class();
+                            $obj->{$this->arguments[0]}();
+                        }
                     }
                 }
 

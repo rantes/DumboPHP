@@ -845,9 +845,6 @@ abstract class ActiveRecord extends Core_General_Class {
     public $_error              = NULL;
     public $_sqlQuery           = '';
     public $candump             = true;
-//     public $id                  = null;
-//     public $created_at          = 0;
-//     public $updated_at          = 0;
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
@@ -874,7 +871,7 @@ abstract class ActiveRecord extends Core_General_Class {
 
     public function _init_() {}
 
-    final public function __construct() {
+    public final function __construct() {
         if (empty($this->_ObjTable)) {
             $className       = unCamelize(get_class($this));
             $words           = explode("_", $className);
@@ -900,8 +897,13 @@ abstract class ActiveRecord extends Core_General_Class {
         $this->driver->pk = $this->pk;
         $this->_setInitialCols($this->driver->getColumns());
     }
-    protected function _TableName($name) {
-        $this->_ObjTable = $name;
+    /**
+     * Sets the name for the linked table. If the param comes empty, turns into a getter.
+     * @param string $name
+     */
+    public function _TableName($name = '') {
+        empty($name) or ($this->_ObjTable = $name);
+        return $this->_ObjTable;
     }
     private function _setInitialCols($fields) {
         foreach ($fields as $field) {
@@ -926,12 +928,7 @@ abstract class ActiveRecord extends Core_General_Class {
      * @return array
      */
     public function getRawFields() {
-        $raw = [];
-        foreach ($this->_fields as $field => $cast) {
-            $raw[] = $field;
-        }
-
-        return $raw;
+        return array_keys($this->_fields);
     }
     /**
      * Getter for the fields taken from the query or table
@@ -945,9 +942,12 @@ abstract class ActiveRecord extends Core_General_Class {
      */
     public function getValues() {
         $data = array();
-        foreach ($this->_fields as $field => $cast) {
+        $fields = array_keys($this->_fields);
+
+        foreach ($fields as $field) {
             $data[$field] = $this->{$field};
         }
+
         return $data;
     }
     /**
@@ -1145,8 +1145,9 @@ abstract class ActiveRecord extends Core_General_Class {
     }
     public function load($params = null) {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
+        $fields = array_keys($this->_fields);
         if (empty($params)) {
-            foreach ($this->_fields as $field => $cast) {
+            foreach ($fields as $field) {
                 if (isset($this->{$field})) {
                     $params[$field] = $this->{$field};
                 }
@@ -1167,6 +1168,7 @@ abstract class ActiveRecord extends Core_General_Class {
             if (!empty($this->validate['email'])) {
                 foreach ($this->validate['email'] as $field) {
                     $message = 'The email provided is not a valid email address.';
+                    $matches = array();
                     if (is_array($field)) {
                         if (empty($field['field'])) {
                             throw new Exception('Field key must be defined in array.');
@@ -1235,6 +1237,7 @@ abstract class ActiveRecord extends Core_General_Class {
      */
     public function Save() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
+        $fields = array_keys($this->_fields);
         if (sizeof($this->before_save) > 0) {
             foreach ($this->before_save as $functiontoRun) {
                 $this->{$functiontoRun}();
@@ -1251,8 +1254,9 @@ abstract class ActiveRecord extends Core_General_Class {
             }
 
             $this->updated_at = time();
-            $data             = array();
-            foreach ($this->_fields as $field => $cast) {
+            $data = array();
+
+            foreach ($fields as $field) {
                 if ($field !== $this->pk && isset($this->{$field})) {
                     $data[$field] = $this->{$field};
                 }
@@ -1275,8 +1279,9 @@ abstract class ActiveRecord extends Core_General_Class {
 
             $this->created_at = time();
             $this->updated_at = 0;
-            $data             = array();
-            foreach ($this->_fields as $field => $cast) {
+            $data = array();
+
+            foreach ($fields as $field) {
                 if ($field != $this->pk && isset($this->{$field})) {
                     $data[$field] = $this->{$field};
                 }
@@ -1400,8 +1405,10 @@ abstract class ActiveRecord extends Core_General_Class {
     }
     protected function ListProperties_ToString($i = 0) {
         $listProperties = "{\n";
+        $fields = array_keys($this->_fields);
+
         if ($this->_counter <= 1) {
-            foreach ($this->_fields as $field => $cast) {
+            foreach ($fields as $field) {
                 $buffer = 'NULL'.PHP_EOL;
                 if (isset($this->{$field})) {
                     ob_start();
@@ -1418,9 +1425,11 @@ abstract class ActiveRecord extends Core_General_Class {
                 $this[$j]->inspect($i+1);
             }
         }
+
         for ($j = 0; $j < $i; $j++) {
             $listProperties .= "\t";
         }
+
         $listProperties .= "}\n";
         return $listProperties;
     }
@@ -1434,23 +1443,21 @@ abstract class ActiveRecord extends Core_General_Class {
      */
     public function getArray() {
         $arraux = array();
-//         if ($this->_counter > 1) {
-            for ($j = 0; $j < $this->_counter; $j++) {
-                foreach ($this->_fields as $field => $cast) {
-                    if (isset($this[$j]->{$field})) {
-                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
-                    }
+        $fields = array_keys($this->_fields);
+
+        for ($j = 0; $j < $this->_counter; $j++) {
+            foreach ($fields as $field) {
+                if (isset($this[$j]->{$field})) {
+                    $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
                 }
             }
-//         } else {
-//             foreach ($this->_fields as $field => $cast) {
-//                 if (isset($this->{$field})) {
-//                     $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
-//                 }
-//             }
-//         }
+        }
+
         return $arraux;
     }
+    /**
+     * Dumps the table data into a xml file
+     */
     public function Dump() {
         $model    = $this->_ObjTable;
         $dom      = new DOMDocument('1.0', 'utf-8');
@@ -1471,6 +1478,9 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         file_put_contents($path.$model.'.xml', $dom->saveXML());
     }
+    /**
+     * Loads a dumo file (xml) into the database
+     */
     public function LoadDump() {
         $doc  = new DOMDocument;
         $path = defined('DUMPS_PATH')?DUMPS_PATH:INST_PATH.'migrations/dumps/';
@@ -1875,77 +1885,85 @@ abstract class Page extends Core_General_Class {
  *
  */
 abstract class Migrations extends Core_General_Class {
-    private $driver = null;
-    public function __construct() {
+    private $_driver = null;
+    private $_table = '';
+    protected $_fields;
+
+    private final function connect() {
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
-        $driver = $GLOBALS['Connection']->engine.'Driver';
-        $this->driver = new $driver();
+
+        if (empty($this->_driver)) {
+            $driver = $GLOBALS['Connection']->engine.'Driver';
+            $this->_driver = new $driver();
+        }
     }
+
+    public final function __construct() {
+        $this->_table = Plurals(unCamelize(substr(get_class($this), 6)));
+
+        $this->_init_();
+    }
+
     public function __destruct() {}
+
+    public function _init_() {}
+
     public function up() {
         echo 'Nothing to do.';
     }
+
     public function down() {
         echo 'Nothing to do.';
     }
+
     public function alter() {
         echo 'Nothing to do.';
     }
+
     public function Reset() {
         $this->down();
         $this->up();
     }
+
     public function Run() {
         $this->up();
         $this->alter();
+    }
+
+    public function getDefinitions() {
+        return $this->_fields;
+    }
+
+    public function getFields() {
+        $fields = array();
+
+        for ($i = 0; $i < sizeof($this->_fields); $i++) {
+            $fields[] = $this->_fields[$i]['field'];
+        }
+
+        return $fields;
     }
     /**
      *
      * @param array $table
      */
-    protected function Create_Table(array $table) {
-        defined('AUTO_AUDITS') || define('AUTO_AUDITS', true);
-        if (empty($table['Table'])) throw new Exception('Table field must be present.');
-        $tablName = $table['Table'];
-        $query    = "CREATE TABLE IF NOT EXISTS `".$tablName."` (";
-        $query .= "`id` INT PRIMARY KEY ,";
-        foreach ($table as $key => $Field) {
-            if (strcmp($key, 'Table') != 0) {
-                if ($Field['type'] == 'VARCHAR' && empty($Field['limit'])) {
-                    $Field['limit'] = 250;
-                }
+    protected function Create_Table() {
+        $this->connect();
+        $query = $this->_driver->CreateTable($this->_table, $this->_fields);
 
-                $query .= (!empty($Field['field']) && !empty($Field['type']))?"`".$Field['field']."` ".$Field['type']:NULL;
-                $query .= (!empty($Field['limit']))?" (".$Field['limit'].")":NULL;
-                $query .= (empty($Field['null']) || $Field['null'] === 'false')?" NOT NULL":NULL;
-                $query .= (isset($Field['default']))?" DEFAULT '".$Field['default']."'":NULL;
-                $query .= (!empty($Field['comments']))?" COMMENT '".$Field['comment']."'":NULL;
-                $query .= " ,";
-            }
-        }
-        if (AUTO_AUDITS) {
-            $query .= "`created_at` INT NOT NULL ,";
-            $query .= "`updated_at` INT NOT NULL ,";
-        }
-        $query = substr($query, 0, -2);
-        $query .= ");";
-        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {
-            fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
-        }
-
-        $query = "ALTER TABLE `$tablName` MODIFY COLUMN `id` INT AUTO_INCREMENT";
         fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
         if ($GLOBALS['Connection']->exec($query) === false) {
             fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
         }
     }
 
-    protected function Drop_Table($table) {
-        $query = "DROP TABLE IF EXISTS `".$table."`";
+    protected function Drop_Table() {
+        $this->connect();
+        $query = $this->_driver->DropTable($this->_table);
+
         fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
         if ($GLOBALS['Connection']->exec($query) === false) {
             fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
@@ -1953,6 +1971,7 @@ abstract class Migrations extends Core_General_Class {
     }
 
     protected function Add_Column(array $params) {
+        $this->connect();
         $getinfo =<<<DUMBO
 SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
@@ -1982,6 +2001,7 @@ DUMBO;
     }
 
     protected function Add_Index(array $params) {
+        $this->connect();
         if (empty($params['Table'])) {
             throw new Exception("Table param can not be empty", 1);
         }
@@ -2003,6 +2023,7 @@ DUMBO;
         $GLOBALS['Connection']->exec($query) !== false || print_r($GLOBALS['Connection']->errorInfo());
     }
     protected function Alter_Column(array $params) {
+        $this->connect();
         $getinfo =<<<DUMBO
 SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
@@ -2019,8 +2040,8 @@ DUMBO;
 
             $query = "ALTER TABLE `".$params['Table']."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
             $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+            $query .= empty($params['null'])?" NOT NULL":NULL;
+            $query .= isset($params['default'])?" DEFAULT '".$params['default']."'":NULL;
             $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
 
             fwrite(STDOUT, 'Running query: '.$query . "\n");
@@ -2031,6 +2052,7 @@ DUMBO;
         }
     }
     protected function Remove_Column(array $params) {
+        $this->connect();
         $getinfo =<<<DUMBO
 SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
