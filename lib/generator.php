@@ -319,7 +319,7 @@ DUMBOPHP;
 <?php
   class Create{$this->camelized} extends Migrations {
     function _init_() {
-          \$this->fields = array(
+          \$this->_fields = array(
               {{fields}}
           );
     }

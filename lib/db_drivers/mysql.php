@@ -164,8 +164,7 @@ class mysqlDriver {
     }
 
     public function CreateTable($table, $fields) {
-        $query    = "CREATE TABLE IF NOT EXISTS `{$table}` (";
-//         $query .= "`id` INT AUTO_INCREMENT PRIMARY KEY ,";
+        $query = "CREATE TABLE IF NOT EXISTS `{$table}` (";
         foreach ($fields as $field) {
             if ($field['type'] == 'VARCHAR' && empty($field['limit'])) {
                 $field['limit'] = 250;
@@ -178,11 +177,6 @@ class mysqlDriver {
             $query .= (!empty($field['comments']))?" COMMENT '".$field['comment']."'":NULL;
             $query .= " ,";
         }
-
-//         if (AUTO_AUDITS) {
-//             $query .= "`created_at` INT NOT NULL ,";
-//             $query .= "`updated_at` INT NOT NULL ,";
-//         }
 
         $query = substr($query, 0, -2);
         $query .= ");";
