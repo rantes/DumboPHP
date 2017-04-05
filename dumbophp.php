@@ -1901,6 +1901,13 @@ abstract class Migrations extends Core_General_Class {
         }
     }
 
+    private final function _runQuery($query) {
+        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
+        if ($GLOBALS['Connection']->exec($query) === false) {
+            fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
+        }
+    }
+
     public final function __construct() {
         $this->_table = Plurals(unCamelize(substr(get_class($this), 6)));
 
@@ -1954,50 +1961,21 @@ abstract class Migrations extends Core_General_Class {
         $this->connect();
         $query = $this->_driver->CreateTable($this->_table, $this->_fields);
 
-        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {
-            fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
-        }
+        $this->_runQuery($query);
     }
 
     protected function Drop_Table() {
         $this->connect();
         $query = $this->_driver->DropTable($this->_table);
 
-        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
-        if ($GLOBALS['Connection']->exec($query) === false) {
-            fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
-        }
+        $this->_runQuery($query);
     }
 
     protected function Add_Column(array $params) {
         $this->connect();
-        $getinfo =<<<DUMBO
-SELECT COUNT(COLUMN_NAME) AS counter
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE table_name = '{$params['Table']}'
-    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
-    AND column_name = '{$params['field']}';
-DUMBO;
-        $res = $GLOBALS['Connection']->query($getinfo);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
-        $result = 0 + $res->fetchAll()[0]['counter'];
+        $query = $this->_driver->AddColumn($this->_table, $params);
 
-        if ($result < 1) {
-            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
-
-            $query = "ALTER TABLE `".$params['Table']."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
-
-            fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
-            $db = $GLOBALS['Connection']->prepare($query);
-            if ($db->execute() === false) {
-                fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
-            }
-        }
+        $this->_runQuery($query);
     }
 
     protected function Add_Index(array $params) {
@@ -2022,55 +2000,22 @@ DUMBO;
         $query  = "ALTER TABLE `{$params['Table']}` ADD INDEX `{$params['name']}` ({$fields})";
         $GLOBALS['Connection']->exec($query) !== false || print_r($GLOBALS['Connection']->errorInfo());
     }
+
     protected function Alter_Column(array $params) {
         $this->connect();
-        $getinfo =<<<DUMBO
-SELECT COUNT(COLUMN_NAME) AS counter
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE table_name = '{$params['Table']}'
-    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
-    AND column_name = '{$params['field']}';
-DUMBO;
-        $res = $GLOBALS['Connection']->query($getinfo);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
-        $result = 0 + $res->fetchAll()[0]['counter'];
+        $query = $this->_driver->AlterColumn($this->_table, $params);
 
-        if ($result > 0) {
-            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
-
-            $query = "ALTER TABLE `".$params['Table']."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-            $query .= empty($params['null'])?" NOT NULL":NULL;
-            $query .= isset($params['default'])?" DEFAULT '".$params['default']."'":NULL;
-            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
-
-            fwrite(STDOUT, 'Running query: '.$query . "\n");
-            $db = $GLOBALS['Connection']->prepare($query);
-            if ($db->execute() === false) {
-                fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
-            }
-        }
+        $this->_runQuery($query);
     }
-    protected function Remove_Column(array $params) {
-        $this->connect();
-        $getinfo =<<<DUMBO
-SELECT COUNT(COLUMN_NAME) AS counter
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE table_name = '{$params['Table']}'
-    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
-    AND column_name = '{$params['field']}';
-DUMBO;
-        $res = $GLOBALS['Connection']->query($getinfo);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
-        $result = 0 + $res->fetchAll()[0]['counter'];
-
-        if ($result > 0) {
-            $query = "ALTER TABLE `".$params['Table']."` DROP `".$params['field']."`";
-            fwrite(STDOUT, 'Running query: '.$query.PHP_EOL);
-            if ($GLOBALS['Connection']->exec($query) === false) {
-                fwrite(STDERR, $GLOBALS['Connection']->errorInfo()."\n");
-            }
+    protected function Remove_Column($field) {
+        if (!is_string($field)) {
+            throw new Exception("fields param must be an array", 1);
         }
+
+        $this->connect();
+        $query = $this->_driver->RemoveColumn($this->_table, $field);
+
+        $this->_runQuery($query);
     }
 }
 

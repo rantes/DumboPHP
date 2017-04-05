@@ -187,6 +187,58 @@ class mysqlDriver {
     public function DropTable($table) {
         return "DROP TABLE IF EXISTS `{$table}`";
     }
+
+    public function validateField($table, $field) {
+        $getinfo =<<<DUMBO
+SELECT COUNT(COLUMN_NAME) AS counter
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_name = '{$table}'
+    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
+    AND column_name = '{$params['field']}';
+DUMBO;
+        $res = $GLOBALS['Connection']->query($getinfo);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        return 0 + $res->fetchAll()[0]['counter'];
+    }
+
+    public function AddColumn($table, $params) {
+        $query = '';
+        if ($this->validateField($table, $params['field']) < 1) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+
+            $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+        }
+
+        return $query;
+    }
+
+    public function AlterColumn($table, $params) {
+        $query = '';
+        if ($this->validateField($table, $params['field']) < 1) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+
+            $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+        }
+
+        return $query;
+    }
+
+    public function RemoveColumn($table, $field) {
+        $query = '';
+        if ($this->validateField($table, $field) < 1) {
+            $query = "ALTER TABLE `".$table."` DROP `".$field."`";
+        }
+
+        return $query;
+    }
 }
 
 ?>
