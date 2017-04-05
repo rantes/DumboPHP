@@ -14,9 +14,10 @@ class dumboShell{
                 'test'
             );
     private $command = null;
-    private $dumboSource = '/etc/dumbophp/src';
-    private $dumboSystemPath = '/etc/dumbophp';
-    private $dumboLibs = '/etc/dumbophp/lib';
+    private $systemFolder = '/etc/';
+    private $dumboSource = 'dumbophp/src';
+    private $dumboSystemPath = 'dumbophp';
+    private $dumboLibs = 'dumbophp/lib';
     private $binPath = '/usr/bin';
     private $fullPathTarget = '';
     private $arguments = array();
@@ -25,28 +26,31 @@ class dumboShell{
 
     public function __construct() {
         $this->colors = new Colors();
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $this->systemFolder = 'C:/Windows/';
+        }
+
+        $this->dumboSource = $this->systemFolder . 'dumbophp/src';
+        $this->dumboSystemPath = $this->systemFolder . 'dumbophp';
+        $this->dumboLibs = $this->systemFolder . 'dumbophp/lib';
     }
 
     public function showError($errorMessage) {
         fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
-        //echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "red"), PHP_EOL;
     }
 
     public function showMessage($errorMessage) {
         fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
-        //echo PHP_EOL, $this->colors->getColoredString($errorMessage, "white", "green"), PHP_EOL;
     }
 
     public function showNotice($errorMessage) {
         fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
-        //echo PHP_EOL, $this->colors->getColoredString($errorMessage, "blue", "yellow"), PHP_EOL;
     }
 
     public function validateApacheConf() {
         $modsRequired = array(
                             'mod_rewrite'
                         );
-        // print_r(apache_get_modules());
     }
 
     public function run($argv) {
@@ -371,7 +375,7 @@ DUMBO;
         require_once('dumbophp.php');
         $index = new index();
     }
-    
+
     private function runTestScript() {
         file_exists('./config/host.php') or die($this->showError('Test actions must be executed at the top level of project path.'.PHP_EOL));
         require_once './config/host.php';
