@@ -101,6 +101,17 @@ class dumboShell{
 
     private function help() {
         $text = <<<DUMBO
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                          ``                                        
+                              ```````                     ``                                        
+                             ```   `` ``  ``  `````````  ``````  `````                              
+                             ``   ``` ``  ``  `` ``` ``  ``  `` ``  ```                             
+                            ````````  `` ``` ``  ``  `` ``` ``` `` ```                              
+                   ``````   `````     `````  ``  ``  `  `````    ```       ``````                   
+
 DumboPHP 2.0 by Rantes
 DumboPHP shell.
 Ussage:

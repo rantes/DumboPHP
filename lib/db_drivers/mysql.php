@@ -194,7 +194,7 @@ SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE table_name = '{$table}'
     AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
-    AND column_name = '{$params['field']}';
+    AND column_name = '{$field}';
 DUMBO;
         $res = $GLOBALS['Connection']->query($getinfo);
         $res->setFetchMode(PDO::FETCH_ASSOC);
@@ -218,7 +218,7 @@ DUMBO;
 
     public function AlterColumn($table, $params) {
         $query = '';
-        if ($this->validateField($table, $params['field']) < 1) {
+        if ($this->validateField($table, $params['field']) > 0) {
             $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
             $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
@@ -233,7 +233,7 @@ DUMBO;
 
     public function RemoveColumn($table, $field) {
         $query = '';
-        if ($this->validateField($table, $field) < 1) {
+        if ($this->validateField($table, $field) > 0) {
             $query = "ALTER TABLE `".$table."` DROP `".$field."`";
         }
 

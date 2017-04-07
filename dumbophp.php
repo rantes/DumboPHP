@@ -1961,21 +1961,21 @@ abstract class Migrations extends Core_General_Class {
         $this->connect();
         $query = $this->_driver->CreateTable($this->_table, $this->_fields);
 
-        $this->_runQuery($query);
+        empty($query) || $this->_runQuery($query);
     }
 
     protected function Drop_Table() {
         $this->connect();
         $query = $this->_driver->DropTable($this->_table);
 
-        $this->_runQuery($query);
+        empty($query) || $this->_runQuery($query);
     }
 
     protected function Add_Column(array $params) {
         $this->connect();
         $query = $this->_driver->AddColumn($this->_table, $params);
 
-        $this->_runQuery($query);
+        empty($query) || $this->_runQuery($query);
     }
 
     protected function Add_Index(array $params) {
@@ -2005,17 +2005,17 @@ abstract class Migrations extends Core_General_Class {
         $this->connect();
         $query = $this->_driver->AlterColumn($this->_table, $params);
 
-        $this->_runQuery($query);
+        empty($query) || $this->_runQuery($query);
     }
     protected function Remove_Column($field) {
         if (!is_string($field)) {
-            throw new Exception("fields param must be an array", 1);
+            throw new Exception("fields param must be a string", 1);
         }
 
         $this->connect();
         $query = $this->_driver->RemoveColumn($this->_table, $field);
 
-        $this->_runQuery($query);
+        empty($query) || $this->_runQuery($query);
     }
 }
 
