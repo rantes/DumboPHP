@@ -344,7 +344,7 @@ function ToList($arr, $obj = NULL) {
     if (isset($obj) and is_object($obj) and get_parent_class($obj) == 'ActiveRecord') {
         $arr = $obj->getArray();
     }
-var_dump($arr);
+
     return implode(',', $arr);
 }
 /**
@@ -866,8 +866,12 @@ abstract class ActiveRecord extends Core_General_Class {
     protected $_params                 = array('fields' => '*', 'conditions' => '');
     protected $pk                      = 'id';
     protected $escapeField             = array();
-    private $engine                    = 'mysql';
     protected $_fields                 = array();
+    private $engine                    = 'mysql';
+    private $_paginatePrevChar  = '&lt;';
+    private $_paginateNextChar  = '&gt;';
+    private $_paginateFirstChar  = '|&lt;&lt;';
+    private $_paginateLastChar  = '&gt;&gt;|';
 
     public function _init_() {}
 
@@ -1535,7 +1539,7 @@ abstract class ActiveRecord extends Core_General_Class {
         }
     }
     public function getError() {
-        return $Errors;
+        return $this->_error;
     }
     public function counter() {
         return (integer) $this->_counter;
@@ -1580,12 +1584,18 @@ abstract class ActiveRecord extends Core_General_Class {
             $params = $params[0];
         }
 
-        $url = explode('&', $_SERVER['REQUEST_URI']);
-        $url = explode('?', $url[0]);
-
         $params2 = $params;
-        $per_page = (isset($params['per_page']))?$params['per_page']:10;
-        $this->paginateURL = empty($params['url'])?$url[0]:$params['url'];
+
+        $request = parse_url(_FULL_URL);
+
+        $per_page = (isset($params['per_page']))? $params['per_page'] : 10;
+        isset($params['prevChar']) && ($this->_paginatePrevChar = $params['prevChar']);
+        isset($params['nextChar']) && ($this->_paginateNextChar = $params['nextChar']);
+        isset($params['forwardChar']) && ($this->_paginateLastChar = $params['forwardChar']);
+        isset($params['backwardChar']) && ($this->_paginateFirstChar = $params['backwardChar']);
+
+        $this->paginateURL = empty($params['url'])? "{$request['scheme']}://{$request['host']}{$request['path']}" : $params['url'];
+
         empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
         if (!empty($_GET[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName] = $_GET[$this->PaginatePageVarName];
@@ -1620,14 +1630,20 @@ abstract class ActiveRecord extends Core_General_Class {
             $params = $params[0];
         }
 
+        $vars = [];
+        $request = parse_url(_FULL_URL);
+        empty($request['query']) || parse_str($request['query'], $vars);
+
         $str  = '';
         $tail = '';
         $i    = 1;
         $connector = sizeof(explode('?', $this->paginateURL)) > 0 ? '&' : '?';
-        if ($this->PaginatePageNumber > 1):
-        $str .= '<a class="paginate paginate-first-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'=1">|&lt;&lt;</a>&nbsp;';
-        $str .= '<a class="paginate paginate-prev-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginatePageNumber-1).'">&lt;</a>&nbsp;';
-        endif;
+        if ($this->PaginatePageNumber > 1) {
+            $vars[$this->PaginatePageVarName] = 1;
+            $str .= "<a class=\"paginate paginate-first-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateFirstChar}</a>";
+            $vars[$this->PaginatePageVarName] = $this->PaginatePageNumber - 1;
+            $str .= "<a class=\"paginate paginate-prev-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginatePrevChar}</a>";
+        }
         $top = $this->PaginateTotalPages;
         if ($this->PaginateTotalPages > 10) {
             $top  = ($this->PaginatePageNumber-1)+10;
@@ -1641,11 +1657,14 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
         if ($this->PaginatePageNumber < $this->PaginateTotalPages) {
-            $tail .= '<a class="paginate paginate-next-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginatePageNumber+1).'">&gt;</a>&nbsp;';
-            $tail .= '<a class="paginate paginate-last-page" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.($this->PaginateTotalPages).'">&gt;&gt;|</a>&nbsp;';
+            $vars[$this->PaginatePageVarName] = $this->PaginatePageNumber + 1;
+            $tail .= "<a class=\"paginate paginate-next-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateNextChar}</a>";
+            $vars[$this->PaginatePageVarName] = $this->PaginateTotalPages;
+            $tail .= "<a class=\"paginate paginate-last-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateLastChar}</a>";
         }
         for (; $i <= $top; $i++) {
-            $str .= '<a class="paginate paginate-page'.($this->PaginatePageNumber == $i?" paginate-active-page":"").'" href="'.$this->paginateURL.$connector.$this->PaginatePageVarName.'='.$i.'">'.$i.'</a>&nbsp;';
+            $vars[$this->PaginatePageVarName] = $i;
+            $str .= "<a class=\"paginate paginate-page".($this->PaginatePageNumber == $i?" paginate-active-page":"")."\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$i}</a>";
         }
         $str .= $tail;
         return $str;
@@ -1865,7 +1884,8 @@ abstract class Page extends Core_General_Class {
         endif;
     }
     public function params($params = NULL) {
-        $this->params = $params;
+        $params !== null && ($this->params = $params);
+        return $this->params;
     }
     public function respondToAJAX($val = null) {
         if ($val === null):
