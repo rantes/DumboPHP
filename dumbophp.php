@@ -726,23 +726,21 @@ class Errors {
     private $counter  = 0;
     public function add($params = NULL) {
         if ($params === NULL or !is_array($params)):
-        throw new Exception("Must to give an array with the params to add.");
-         else :
-        if (isset($params['field']) and isset($params['message'])):
-        $this->messages[$params['field']][] = array('message' => $params['message'], 'code' => isset($params['code'])?$params['code']:'');
-        $this->counter++;
-        $this->actived = TRUE;
-         else :
-        throw new Exception("Must to give an array with the params to add.");
-        endif;
+            throw new Exception("Must to give an array with the params to add.");
+        else :
+            if (isset($params['field']) and isset($params['message'])):
+                $this->messages[$params['field']][] = array('message' => $params['message'], 'code' => isset($params['code'])?$params['code']:'');
+                $this->counter++;
+                $this->actived = TRUE;
+            else :
+                throw new Exception("Must to give an array with the params to add.");
+            endif;
         endif;
     }
     public function __toString() {
         $strmes = '';
         foreach ($this->messages as $field => $messages) {
-            foreach ($messages as $message) {
-                $strmes .= "\t".$message['message']."\n";
-            }
+            $strmes = implode(PHP_EOL,$messages);
         }
         return $strmes;
     }
@@ -872,6 +870,7 @@ abstract class ActiveRecord extends Core_General_Class {
     private $_paginateNextChar  = '&gt;';
     private $_paginateFirstChar  = '|&lt;&lt;';
     private $_paginateLastChar  = '&gt;&gt;|';
+    private $_validate = true;
 
     public function _init_() {}
 
@@ -1167,8 +1166,25 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         return true;
     }
+    /**
+     * Deactivate validations
+     */
+    public function validationsOff() {
+        $this->_validate = false;
+    }
+    /**
+     * Turn on validations
+     */
+    public function validationsOn() {
+        $this->_validate = true;
+    }
+    /**
+     * Performs validations regarding array definitions
+     * @param string $action [insert/save]
+     * @throws Exception
+     */
     private function _ValidateOnSave($action = 'insert') {
-        if (!empty($this->validate)) {
+        if ($this->_validate && !empty($this->validate)) {
             if (!empty($this->validate['email'])) {
                 foreach ($this->validate['email'] as $field) {
                     $message = 'The email provided is not a valid email address.';
@@ -1202,8 +1218,7 @@ abstract class ActiveRecord extends Core_General_Class {
                 foreach ($this->validate['unique'] as $field) {
                     $message = 'This field can not be duplicated.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');
-                        }
+                        if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');}
 
                         empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
