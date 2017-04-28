@@ -978,7 +978,12 @@ abstract class ActiveRecord extends Core_General_Class {
             $this->offsetUnset($i);
         }
         $j = 0;
+        try {
         $regs = $GLOBALS['Connection']->query($query);
+        } catch (PDOException $e) {
+            die('Failed to run '.$query.' due to: '.$e->errorInfo);
+        }
+
         is_object($regs) or die("Error in SQL Query. Please check the SQL Query: ".$query);
 
         $regs->setFetchMode(PDO::FETCH_ASSOC);
