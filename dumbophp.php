@@ -1634,7 +1634,13 @@ abstract class ActiveRecord extends Core_General_Class {
             $resultset = $GLOBALS['memcached']->get($key);
         }
         if (empty($resultset) || !is_array($resultset)) {
-            $regs = $GLOBALS['Connection']->query($queryCounter);
+            try {
+                $regs = $GLOBALS['Connection']->query($queryCounter);
+            } catch (PDOException $e) {
+                echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
+            } catch (Exception $e) {
+                echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
+            }
             $regs->setFetchMode(PDO::FETCH_ASSOC);
             $resultset = $regs->fetchAll();
             if (CAN_USE_MEMCACHED) {
