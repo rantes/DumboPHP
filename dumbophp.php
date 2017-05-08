@@ -15,6 +15,7 @@ for ($i = 1; $i <= 5; $i++) {
 /**
  * Implements the functionalities for translating
  * @author rantes
+ * @package Core
  *
  */
 final class IrregularNouns {
@@ -478,8 +479,8 @@ function GetInput($type, &$obj = NULL) {
 /**
  * Returns an array with the attributes of the current active record
  * @deprecated
- * @param unknown $arr
- * @param unknown $obj
+ * @param array $arr
+ * @param ActiveRecord $obj
  * @return string[]
  */
 function toOptions(&$arr, &$obj = NULL) {
@@ -500,7 +501,7 @@ function toOptions(&$arr, &$obj = NULL) {
 /**
  * @deprecated
  * @param string $arr
- * @param unknown $obj
+ * @param ActiveRecord $obj
  * @return number
  */
 function checkBoxToInt(&$arr, &$obj = NULL) {
@@ -510,9 +511,21 @@ function checkBoxToInt(&$arr, &$obj = NULL) {
 
     return 0;
 }
+/**
+ * Outputs ending form tag
+ * @deprecated
+ * @return string
+ */
 function end_form_for() {
     return '</form>';
 }
+/**
+ * Outputs a html img tag
+ * @deprecated
+ * @param array $params
+ * @param ActiveRecord $obj
+ * @return string
+ */
 function image_tag($params, &$obj = NULL) {
     $rute   = 'images/';
     $params = ($obj === NULL)?$params:$params[0];
@@ -547,6 +560,14 @@ function image_tag($params, &$obj = NULL) {
     return '<img src="'.INST_URI.'images/'.$image.'" />';
     endif;
 }
+/**
+ * Outputs html tag for css inluding
+ * @deprecated
+ * @param array $params
+ * @param ActiveRecord $obj
+ * @throws Exception
+ * @return string
+ */
 function stylesheet_link_tag($params, &$obj = NULL) {
     $css                                                         = NULL;
     if (!is_array($params) and is_string($params)) {$css         = $params;
@@ -577,6 +598,13 @@ function stylesheet_link_tag($params, &$obj = NULL) {
     return "<link href=\"".INST_URI."css/$css\" type=\"$type\" rel=\"$rel\" media=\"$media\"  />";
     endif;
 }
+/**
+ * Outputs a html <a> tag
+ * @deprecated
+ * @param array $params
+ * @param unknown $obj
+ * @return string
+ */
 function link_to($params = array(), &$obj = NULL) {
     $params       = ($obj === NULL)?$params:$params[0];
     $link         = '';
@@ -640,6 +668,14 @@ function link_to($params = array(), &$obj = NULL) {
     return "<a ".$link." $html_options>$content</a>";
     endif;
 }
+/**
+ * Outputs html javascript including tag
+ * @deprecated
+ * @param array $params
+ * @param ActiveRecord $obj
+ * @throws Exception
+ * @return string|NULL
+ */
 function javascript_include_tag($params, &$obj = NULL) {
     $js     = '';
     $params = ($obj === NULL)?$params:$params[0];
@@ -673,6 +709,12 @@ function javascript_include_tag($params, &$obj = NULL) {
     return NULL;
     endif;
 }
+/**
+ * Handles the database connet
+ * @author rantes
+ * @package Core
+ *
+ */
 class Connection extends PDO {
     public $_settings = null;
     public $engine = null;
@@ -719,7 +761,11 @@ class Connection extends PDO {
         $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 }
-
+/**
+ * Handles the ActiveRecord errors
+ * @author rantes
+ * @package Core
+ */
 class Errors {
     private $actived  = FALSE;
     private $messages = array();
@@ -973,10 +1019,11 @@ abstract class ActiveRecord extends Core_General_Class {
      * @param string $query SQL query to fetch the data
      */
     protected function getData($query) {
-        foreach ($this as $i => $val) {
-            $this[$i] = null;
-            $this->offsetUnset($i);
-        }
+        $obj = new $this;
+//         foreach ($this as $i => $val) {
+//             $this[$i] = null;
+//             $this->offsetUnset($i);
+//         }
         $j = 0;
         try {
             $regs = $GLOBALS['Connection']->query($query);
@@ -991,40 +1038,42 @@ abstract class ActiveRecord extends Core_General_Class {
         $regs->setFetchMode(PDO::FETCH_ASSOC);
         $resultset = $regs->fetchAll();
         $count     = sizeof($resultset);
-        $this->_set_attributes($resultset);
+        $obj->_set_attributes($resultset);
         if ($count > 0) {
             for ($j = 0; $j < $count; $j++) {
-                $this->offsetSet($j, new $this);
-                $this[$j]->_counter = 1;
-                $this[$j]->_fields  = $this->_fields;
+                $obj->offsetSet($j, new $obj);
+                $obj[$j]->_counter = 1;
+                $obj[$j]->_fields  = $obj->_fields;
             }
             for ($j = 0; $j < $count; $j++) {
                 foreach ($resultset[$j] as $property => $value) {
                     if (!is_numeric($property)) {
-                        $this[$j]->{$property} = $this->_fields[$property]?0+$value:$value;
+                        $obj[$j]->{$property} = $obj->_fields[$property]?0+$value:$value;
                     }
                 }
             }
         }
-        $this->_counter = $j;
-        if ($this->_counter === 0) {
-            $this->offsetSet(0, NULL);
-            $this[0] = NULL;
-            unset($this[0]);
+        $obj->_counter = $j;
+        if ($obj->_counter === 0) {
+            $obj->offsetSet(0, NULL);
+            $obj[0] = NULL;
+            unset($obj[0]);
             $fields = $this->driver->getColumns();
             foreach ($fields as $row) {
-                $this->_fields[$row['Field']] = false;
-                $this->{$row['Field']} = null;
-                $this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-                $this->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
+                $obj->_fields[$row['Field']] = false;
+                $obj->{$row['Field']} = null;
+                $obj->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
+                $obj->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
             }
-        } elseif ($this->_counter === 1) {
-            foreach ($this->_fields as $field => $cast) {
-                if (isset($this[0]->{$field})) {
-                    $this->{$field} = $this[0]->{$field};
+        } elseif ($obj->_counter === 1) {
+            foreach ($obj->_fields as $field => $cast) {
+                if (isset($obj[0]->{$field})) {
+                    $obj->{$field} = $obj[0]->{$field};
                 }
             }
         }
+
+        return $obj;
     }
     /**
      * Performs the select queries to the database according to the given params
@@ -1045,17 +1094,13 @@ abstract class ActiveRecord extends Core_General_Class {
             }
         }
         $this->_sqlQuery = $this->driver->Select($params);
-        $this->getData($this->_sqlQuery);
+        $x = $this->getData($this->_sqlQuery);
         if (sizeof($this->after_find) > 0) {
             foreach ($this->after_find as $functiontoRun) {
-                $this->{$functiontoRun}();
+                $x->{$functiontoRun}();
             }
         }
         CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this) && $this->_setMemcacheKey($key);
-        $x = clone($this);
-        for ($j = 0; $j < $this->_counter; $j++) {
-            $x->offsetSet($j, clone $this[$j]);
-        }
         return $x;
     }
     /**
@@ -1316,10 +1361,15 @@ abstract class ActiveRecord extends Core_General_Class {
         }
 
         $this->_sqlQuery = $prepared['query'];
-        $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-        if (!$sh->execute($prepared['prepared'])) {
-            $e = $GLOBALS['Connection']->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
+        $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+        try {
+            if (!$sh->execute($prepared['prepared'])) {
+                $e = $GLOBALS['Connection']->errorInfo();
+                $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
+                return FALSE;
+            }
+        } catch (PDOException $e) {
+            echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
             return FALSE;
         }
 
@@ -2018,14 +2068,24 @@ abstract class Migrations extends Core_General_Class {
 
         empty($query) || $this->_runQuery($query);
     }
-
+    /**
+     * Adds a column to the table
+     * @param array $params Array with the field and attributes
+     * @example
+     * $this->AddColumn(['field' => 'additional', 'type'=>'INT', 'null'=>'false']);
+     */
     protected function Add_Column(array $params) {
         $this->connect();
         $query = $this->_driver->AddColumn($this->_table, $params);
 
         empty($query) || $this->_runQuery($query);
     }
-
+/**
+ * Add index to the table
+ * @param array $params Array with the index attributes
+ * @throws Exception Each attribute is mandatory
+ * @todo Change to new driver structure
+ */
     protected function Add_Index(array $params) {
         $this->connect();
         if (empty($params['Table'])) {
@@ -2048,13 +2108,21 @@ abstract class Migrations extends Core_General_Class {
         $query  = "ALTER TABLE `{$params['Table']}` ADD INDEX `{$params['name']}` ({$fields})";
         $GLOBALS['Connection']->exec($query) !== false || print_r($GLOBALS['Connection']->errorInfo());
     }
-
+    /**
+     * Change column definitions
+     * @param array $params Array with the column attributes
+     */
     protected function Alter_Column(array $params) {
         $this->connect();
         $query = $this->_driver->AlterColumn($this->_table, $params);
 
         empty($query) || $this->_runQuery($query);
     }
+    /**
+     * Deletes a column in the table
+     * @param string $field
+     * @throws Exception If the param is not a string
+     */
     protected function Remove_Column($field) {
         if (!is_string($field)) {
             throw new Exception("fields param must be a string", 1);
