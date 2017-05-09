@@ -1122,9 +1122,9 @@ abstract class ActiveRecord extends Core_General_Class {
                     return $res;
                 }
             }
-            $this->getData($query);
+            $x = $this->getData($query);
             CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this);
-            return clone($this);
+            return $x;
         }
     }
     private function _set_attributes($resultset) {
