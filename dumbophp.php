@@ -48,6 +48,7 @@ final class IrregularNouns {
         $this->singular[] = 'city';
         $this->singular[] = 'cod';
         $this->singular[] = 'copy';
+        $this->singular[] = 'course';
         $this->singular[] = 'crisis';
         $this->singular[] = 'curriculum';
         $this->singular[] = 'datum';
@@ -154,6 +155,7 @@ final class IrregularNouns {
         $this->plural[]   = 'cities';
         $this->plural[]   = 'cod';
         $this->plural[]   = 'copies';
+        $this->plural[]   = 'courses';
         $this->plural[]   = 'crises';
         $this->plural[]   = 'curricula';
         $this->plural[]   = 'data';
@@ -299,7 +301,7 @@ function Singulars($params, &$obj = NULL) {
     } elseif (substr($string, -2, 2) == 'es') {
         $test = substr($string, 0, -2);
         if (substr($test, -1, 1) == 'x' or substr($test, -1, 1) == 's' or substr($test, -2, 2) == 'ch' or substr($test, -2, 2) == 'sh' or substr($test, -2, 2) == 'ss') {
-            $strconv = substr($string, 0, -2);
+            $strconv = $test;
         } else {
             $strconv = substr($string, 0, -1);
         }

@@ -12,7 +12,7 @@ class dumboTests extends Page{
 
     public function __construct() {
         $this->colors = new Colors();
-        file_exists(INST_PATH.'tests.log') and unlink('tests.log');
+        file_exists(INST_PATH.'tests.log') and unlink('tests.log') and file_put_contents(INST_PATH.'tests.log', '');
         fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
     }
     /**
