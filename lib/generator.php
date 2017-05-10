@@ -12,6 +12,7 @@ class FieldObject {
   public $type = '';
   public $isNull = 'false';
   public $types = array(
+            'primary',
             'integer',
             'biginteger',
             'string',
@@ -20,6 +21,7 @@ class FieldObject {
             'decimal'
           );
   private $dbTypes = array(
+              'primary' => array('INT AUTO_INCREMENT PRIMARY KEY','',''),
               'integer' => array('INT','',''),
               'biginteger' => array('BIGINT','',''),
               'string' => array('VARCHAR','255',''),
