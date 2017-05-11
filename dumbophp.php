@@ -1125,7 +1125,7 @@ abstract class ActiveRecord extends Core_General_Class {
                 }
             }
             $x = $this->getData($query);
-            CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this);
+            CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $x);
             return $x;
         }
     }
@@ -1541,6 +1541,7 @@ abstract class ActiveRecord extends Core_General_Class {
         $dom      = new DOMDocument('1.0', 'utf-8');
         $dataDump = $this->getArray();
         $path     = defined('DUMPS_PATH')?DUMPS_PATH:INST_PATH.'migrations/dumps/';
+        file_exists($path) || mkdir($path);
         $sroot    = $dom->appendChild(new DOMElement('table_'.$model));
         foreach ($dataDump as $reg) {
             $root = $sroot->appendChild(new DOMElement($model));
@@ -1576,14 +1577,17 @@ abstract class ActiveRecord extends Core_General_Class {
                 }
                 foreach ($this->_fields as $field => $cast) {
                     $item = $xitem->getElementsByTagName($field);
-                    $data[$field] = (is_object($item->item(0)))?$item->item(0)->nodeValue:'';
+                    $data[$field] = (is_object($item->item(0)))?$item->item(0)->nodeValue:null;
                 }
                 $prepared = $this->driver->Insert($data);
                 $this->_sqlQuery = $prepared['query'];
-                $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-                if (!$sh->execute($prepared['prepared'])) {
-                    $e = $GLOBALS['Connection']->errorInfo();
-                    die("{$e[2]} {$this->_sqlQuery}");
+                try {
+                    $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+                    $sh->execute($prepared['prepared']);
+                } catch (PDOException $e) {
+                    echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
+                } catch (Exception $e) {
+                    echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
                 }
             }
         }
