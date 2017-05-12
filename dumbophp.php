@@ -1021,11 +1021,7 @@ abstract class ActiveRecord extends Core_General_Class {
      * @param string $query SQL query to fetch the data
      */
     protected function getData($query) {
-        $obj = new $this;
-//         foreach ($this as $i => $val) {
-//             $this[$i] = null;
-//             $this->offsetUnset($i);
-//         }
+        $obj = clone $this;
         $j = 0;
         try {
             $regs = $GLOBALS['Connection']->query($query);
@@ -1097,12 +1093,12 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         $this->_sqlQuery = $this->driver->Select($params);
         $x = $this->getData($this->_sqlQuery);
-        if (sizeof($this->after_find) > 0) {
-            foreach ($this->after_find as $functiontoRun) {
+        if (sizeof($x->after_find) > 0) {
+            foreach ($x->after_find as $functiontoRun) {
                 $x->{$functiontoRun}();
             }
         }
-        CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $this) && $this->_setMemcacheKey($key);
+        CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $x) && $this->_setMemcacheKey($key);
         return $x;
     }
     /**
@@ -1707,16 +1703,7 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         $this->PaginateTotalItems = 0+$resultset[0]['PaginateTotalRegs'];
         $this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
-        return $this->_setPaginationVars($this->Find($params));
-    }
-    private function _setPaginationVars(ActiveRecord $obj) {
-        $obj->PaginatePageNumber = $this->PaginatePageNumber;
-        $obj->PaginatePageVarName = $this->PaginatePageVarName;
-        $obj->PaginateTotalItems = $this->PaginateTotalItems;
-        $obj->PaginateTotalPages = $this->PaginateTotalPages;
-        $obj->paginateURL = $this->paginateURL;
-
-        return $obj;
+        return $this->Find($params);
     }
     public function WillPaginate($params = NULL) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
