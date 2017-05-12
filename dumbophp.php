@@ -1707,7 +1707,16 @@ abstract class ActiveRecord extends Core_General_Class {
         }
         $this->PaginateTotalItems = 0+$resultset[0]['PaginateTotalRegs'];
         $this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
-        return $this->Find($params);
+        return $this->_setPaginationVars($this->Find($params));
+    }
+    private function _setPaginationVars(ActiveRecord $obj) {
+        $obj->PaginatePageNumber = $this->PaginatePageNumber;
+        $obj->PaginatePageVarName = $this->PaginatePageVarName;
+        $obj->PaginateTotalItems = $this->PaginateTotalItems;
+        $obj->PaginateTotalPages = $this->PaginateTotalPages;
+        $obj->paginateURL = $this->paginateURL;
+
+        return $obj;
     }
     public function WillPaginate($params = NULL) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
