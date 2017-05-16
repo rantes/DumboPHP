@@ -15,15 +15,15 @@ class mysqlDriver {
         $resultset1 = $result1->fetchAll();
         foreach ($resultset1 as $res) {
             $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
-            $fields[] = array(
-                        'Cast'=>in_array($type, $numerics),
-                        'Field'=>$res['Field'],
-                        'Type'=>$type,
-                        'Value' => null
-                        );
+
+            yield [
+                'Cast'=>in_array($type, $numerics),
+                'Field'=>$res['Field'],
+                'Type'=>$type,
+                'Value' => null
+            ];
         }
 
-        return $fields;
     }
 
     public function Select($params = null) {

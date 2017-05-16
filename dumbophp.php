@@ -946,7 +946,7 @@ abstract class ActiveRecord extends Core_General_Class {
         $this->_init_();
         $this->driver->tableName = $this->_ObjTable;
         $this->driver->pk = $this->pk;
-        $this->_setInitialCols($this->driver->getColumns());
+        $this->_setInitialCols();
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
@@ -956,8 +956,8 @@ abstract class ActiveRecord extends Core_General_Class {
         empty($name) or ($this->_ObjTable = $name);
         return $this->_ObjTable;
     }
-    private function _setInitialCols($fields) {
-        foreach ($fields as $field) {
+    private function _setInitialCols() {
+        foreach ($this->driver->getColumns() as $field) {
             $this->_fields[$field['Field']] = $field['Cast'];
         }
     }
@@ -993,9 +993,8 @@ abstract class ActiveRecord extends Core_General_Class {
      */
     public function getValues() {
         $data = array();
-        $fields = array_keys($this->_fields);
 
-        foreach ($fields as $field) {
+        foreach (array_keys($this->_fields) as $field) {
             $data[$field] = $this->{$field};
         }
 

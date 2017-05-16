@@ -90,10 +90,12 @@ DUMBO;
         $migration = new $migrationName();
         $fields = $migration->getFields();
         $expected = $model->getRawFields();
-        $passed = !empty($fields) and !empty($expected) and empty(array_diff($fields, $expected));
+        $passed = !empty($fields) & !empty($expected) & empty(array_diff($fields, $expected));
 
         $this->_passed += $passed;
         $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.($passed ? 'Passed.' : 'Failed'));
+
+        !$passed && $this->_log('Missing fields: '.implode(',', array_diff($fields, $expected)));
 
         $this->_progress($passed);
 
