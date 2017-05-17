@@ -1598,15 +1598,14 @@ abstract class ActiveRecord extends Core_General_Class {
             try {
                 $sh = $GLOBALS['Connection']->exec($this->_sqlQuery);
             } catch (PDOException $e) {
-                echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
-                $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e->getMessage()."\n {$this->_sqlQuery}"));
+                fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
                 return false;
             } catch (Exception $e) {
-                echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
+                fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
                 return false;
             }
             $GLOBALS['Connection']->commit();
-            echo "Inserted {$sh} Regs.";
+            fwrite(STDOUT, "Inserted {$sh} Regs.". PHP_EOL);
         }
 
         return true;
