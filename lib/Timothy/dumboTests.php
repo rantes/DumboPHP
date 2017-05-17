@@ -20,7 +20,7 @@ class dumboTests extends Page{
      * @param string $errorMessage
      */
     private function _showError($errorMessage) {
-        return fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
+        return fwrite(STDERR, "\n". $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
     }
     /**
      * Output for a standard message
@@ -105,10 +105,10 @@ DUMBO;
      * What supposed to do whe the script ends.
      */
     public function __destruct() {
-        ($this->_failed and $this->_showError('Test failed.')) or $this->_showMessage('Test Passed.');
+        fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
         fwrite(STDOUT, 'Tests Success: ' . $this->_passed . "\n");
         fwrite(STDOUT, 'Tests failed: ' . $this->_failed . "\n");
-        fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
+        ($this->_failed and $this->_showError('Test failed.')) or $this->_showMessage('Test Passed.');
     }
 }
 ?>
