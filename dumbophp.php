@@ -786,11 +786,14 @@ class Errors {
         endif;
     }
     public function __toString() {
-        $strmes = '';
+        $msgs = [];
+
         foreach ($this->messages as $field => $messages) {
-            $strmes = implode(PHP_EOL,$messages);
+            foreach ($messages as $message) {
+                $msgs[] = $message['message'];
+            }
         }
-        return $strmes;
+        return implode(',', $msgs);
     }
     public function isActived() {
         return $this->actived;
@@ -1275,9 +1278,7 @@ abstract class ActiveRecord extends Core_General_Class {
                     if (!empty($this->{$field})) {
                         $obj1      = new $this;
                         $resultset = $obj1->Find(array('fields' => $field, 'conditions' => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
-                        if ($resultset->counter() > 0) {
-                            $this->_error->add(array('field' => $field, 'message' => $message));
-                        }
+                        $resultset->counter() > 0 && $this->_error->add(array('field' => $field, 'message' => $message));
                     }
                 }
             }
