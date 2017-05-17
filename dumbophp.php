@@ -1567,11 +1567,14 @@ abstract class ActiveRecord extends Core_General_Class {
 
             foreach (array_keys($this->_fields) as $field) {
                 $item = $xitem->getElementsByTagName($field);
+                $regenerate && ($this->_insertionFields[] = "`{$field}`");
                 if (is_object($item->item(0))) {
-                    $regenerate && ($this->_insertionFields[] = "`{$field}`");
                     $row[$field] = "'{$item->item(0)->nodeValue}'";
+                } else {
+                    $row[$field] = "''";
                 }
             }
+
             $regenerate = false;
 
             yield $row;
