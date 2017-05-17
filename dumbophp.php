@@ -1553,7 +1553,31 @@ abstract class ActiveRecord extends Core_General_Class {
         file_put_contents($path.$model.'.xml', $dom->saveXML());
     }
     /**
-     * Loads a dumo file (xml) into the database
+     * Prepares the field to build the query before a mass insert from an xml dump data
+     * @param DOMDocument $items
+     * @return Generator
+     */
+    private function _prepareFromXML($items) {
+        $row = [];
+        $regenerate = false;
+        empty($this->_insertionFields) && ($regenerate = true) && ($this->_insertionFields = []);
+        for ($i = 0; $i < $items->length; $i++) {
+            $xitem = $items->item($i);
+
+            foreach (array_keys($this->_fields) as $field) {
+                $item = $xitem->getElementsByTagName($field);
+                if (is_object($item->item(0))) {
+                    $regenerate && ($this->_insertionFields[] = "`{$field}`");
+                    $row[$field] = "'{$item->item(0)->nodeValue}'";
+                }
+            }
+            $regenerate = false;
+
+            yield $row;
+        }
+    }
+    /**
+     * Loads a dump file (xml) into the database
      */
     public function LoadDump() {
         $doc  = new DOMDocument;
@@ -1561,31 +1585,31 @@ abstract class ActiveRecord extends Core_General_Class {
         if (file_exists($path.$this->_ObjTable.'.xml')) {
             $doc->load($path.$this->_ObjTable.'.xml');
             $items = $doc->getElementsByTagName($this->_ObjTable);
-            for ($i = 0; $i < $items->length; $i++) {
-                $xitem = $items->item($i);
-                $data  = array();
-                if (empty($this->_fields)) {
-                    $fields = $this->driver->getColumns();
-                    foreach ($fields as $row) {
-                        $this->_fields[$row['Field']] = false;
-                    }
-                }
-                foreach ($this->_fields as $field => $cast) {
-                    $item = $xitem->getElementsByTagName($field);
-                    $data[$field] = (is_object($item->item(0)))?$item->item(0)->nodeValue:null;
-                }
-                $prepared = $this->driver->Insert($data);
-                $this->_sqlQuery = $prepared['query'];
-                try {
-                    $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-                    $sh->execute($prepared['prepared']);
-                } catch (PDOException $e) {
-                    echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
-                } catch (Exception $e) {
-                    echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
-                }
+            $query = '';
+            empty($this->_fields) && $this->_setInitialCols();
+            foreach ($this->_prepareFromXML($items) as $row) {
+                $query .= "(".implode(',', $row)."),";
             }
+            $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
+            $query = substr($query, 0, -1);
+            $this->_sqlQuery .= $query;
+            $GLOBALS['Connection']->beginTransaction();
+
+            try {
+                $sh = $GLOBALS['Connection']->exec($this->_sqlQuery);
+            } catch (PDOException $e) {
+                echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
+                $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e->getMessage()."\n {$this->_sqlQuery}"));
+                return false;
+            } catch (Exception $e) {
+                echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
+                return false;
+            }
+            $GLOBALS['Connection']->commit();
+            echo "Inserted {$sh} Regs.";
         }
+
+        return true;
     }
     public function WriteSchema($tableName) {
         $createFile  = FALSE;
