@@ -922,10 +922,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     private $_paginateFirstChar  = '|&lt;&lt;';
     private $_paginateLastChar  = '&gt;&gt;|';
     private $_validate = true;
+    private $_data_ = array();
 
     public function _init_() {}
 
-    public final function __construct() {
+    public final function __construct(array $data = []) {
         if (empty($this->_ObjTable)) {
             $className       = unCamelize(get_class($this));
             $words           = explode("_", $className);
@@ -946,10 +947,24 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
 
         $this->_error = new Errors;
-        $this->_init_();
         $this->driver->tableName = $this->_ObjTable;
         $this->driver->pk = $this->pk;
-        $this->_setInitialCols();
+        $this->_setInitialCols($data);
+        $this->_setValues($data);
+        $this->_init_();
+    }
+    private function _setValues(array $values) {
+        if (empty($values)) {
+            foreach ($this->_fields as $field => $cast){
+                $values[$field] = $cast? 0 : null;
+            }
+        }
+
+        foreach ($values as $field => $value) {
+            if (array_key_exists($field, $this->_fields)) {
+                $this->{$field} = $value;
+            }
+        }
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
@@ -959,7 +974,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         empty($name) or ($this->_ObjTable = $name);
         return $this->_ObjTable;
     }
-    private function _setInitialCols() {
+    private function _setInitialCols($data) {
         foreach ($this->driver->getColumns() as $field) {
             $this->_fields[$field['Field']] = $field['Cast'];
         }
@@ -1047,8 +1062,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $obj->offsetSet($j, new $obj);
                 $obj[$j]->_counter = 1;
                 $obj[$j]->_fields  = $obj->_fields;
-            }
-            for ($j = 0; $j < $count; $j++) {
                 foreach ($resultset[$j] as $property => $value) {
                     if (!is_numeric($property)) {
                         $obj[$j]->{$property} = $obj->_fields[$property]?0+$value:$value;
@@ -1142,42 +1155,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         }
     }
-    public function Niu($contents = NULL) {
-        foreach ($this as $i => $val) {
-            $this[$i] = null;
-            $this->offsetUnset($i);
-        }
-        $this->__construct();
-        $fields = $this->driver->getColumns();
-        foreach ($fields as $row) {
-            $this->_fields[$row['Field']] = false;
-            switch ($row['Type']) {
-                case 'NUMERIC':
-                case 'INTEGER':
-                case 'INT':
-                case 'FLOAT':
-                case 'DOUBLE':
-                    $this->_fields[$row['Field']] = true;
-                    break;
-            }
-            $this->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-            $this->_dataAttributes[$row['Field']]['cast']        = $this->_fields[$row['Field']];
-        }
-        $this->_counter = 0;
-        if (!empty($contents)) {
-            $this->_counter = 1;
-            $this->offsetSet(0, new $this);
-            foreach ($contents as $field => $content) {
-                if (array_key_exists($field, $this->_fields)) {
-                    $this[0]->{$field} = $this->{$field} = $this->_fields[$field]?0+$content:$content;
-                }
-            }
-        } else {
-            foreach ($this->_fields as $field => $cast) {
-                $this->{$field} = null;
-            }
-        }
-        return clone($this);
+    /**
+     * Creates a new Active Record instance
+     * @param array $contents
+     * @return ActiveRecord
+     * @deprecated
+     */
+    public function Niu(array $contents = []) {
+        $c = get_class($this);
+        return new $c($contents);
     }
     public function Update($params) {
         if (!is_array($params)) {
