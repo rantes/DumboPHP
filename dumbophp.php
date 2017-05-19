@@ -884,7 +884,7 @@ if (CAN_USE_MEMCACHED) {
  * @extends Core_General_Class
  *
  */
-abstract class ActiveRecord extends Core_General_Class {
+abstract class ActiveRecord extends Core_General_Class implements JsonSerializable {
     public $PaginatePageVarName = 'page';
     public $PaginateTotalItems  = 0;
     public $PaginateTotalPages  = 0;
@@ -976,6 +976,9 @@ abstract class ActiveRecord extends Core_General_Class {
         foreach ($res as $key) {
             $GLOBALS['memcached']->delete($key);
         }
+    }
+    public function jsonSerialize() {
+        return $this->getArray();
     }
     /**
      * Gets an array with the field names of this model
