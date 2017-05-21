@@ -342,6 +342,7 @@ function Camelize($params, &$obj = NULL) {
  * @param array $arr
  * @param object $obj
  * @return string
+ * @deprecated
  */
 function ToList($arr, $obj = NULL) {
     if (isset($obj) and is_object($obj) and get_parent_class($obj) == 'ActiveRecord') {
@@ -922,7 +923,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     private $_paginateFirstChar  = '|&lt;&lt;';
     private $_paginateLastChar  = '&gt;&gt;|';
     private $_validate = true;
-    private $_data_ = array();
 
     public function _init_() {}
 
@@ -1011,18 +1011,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return $this->_fields;
     }
     /**
-     * Getter of the current
-     */
-    public function getValues() {
-        $data = array();
-
-        foreach (array_keys($this->_fields) as $field) {
-            $data[$field] = $this->{$field};
-        }
-
-        return $data;
-    }
-    /**
      * Unset the params for the queries
      */
     public function __destruct() {
@@ -1061,7 +1049,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if ($count > 0) {
             for ($j = 0; $j < $count; $j++) {
                 $obj->offsetSet($j, new $obj);
-                $obj[$j]->_counter = 1;
                 $obj[$j]->_fields  = $obj->_fields;
                 foreach ($resultset[$j] as $property => $value) {
                     if (!is_numeric($property)) {
@@ -1125,9 +1112,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param string $query
      * @return unknown|ActiveRecord
      */
-    public function Find_by_SQL($query = NULL) {
-        if (!$query) {
-            trigger_error("The query can not be NULL", E_USER_ERROR);
+    public function Find_by_SQL($query) {
+        if (!is_string($query)) {
+            throw new Exception('The query must be an string');
             exit;
         } else {
             $this->_sqlQuery = $query;
@@ -1171,10 +1158,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         return clone $this;
     }
-    public function Update($params) {
-        if (!is_array($params)) {
-            throw new Exception('The params for the Update() method must be an array');
-        }
+    /**
+     * Performs an update data into the table
+     * @param array $params
+     * @throws Exception
+     * @return boolean
+     */
+    public function Update(array $params) {
         if (empty($params['conditions']) || !is_string($params['conditions'])) {
             throw new Exception('The param conditions should not be empty and must be string.');
         }
@@ -1191,26 +1181,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             return false;
         }
         CAN_USE_MEMCACHED && $this->_refreshCache();
-        return true;
-    }
-    public function load($params = null) {
-        defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        $fields = array_keys($this->_fields);
-        if (empty($params)) {
-            foreach ($fields as $field) {
-                if (isset($this->{$field})) {
-                    $params[$field] = $this->{$field};
-                }
-            }
-        }
-        $prepared        = $this->driver->Insert($params);
-        $this->_sqlQuery = $prepared['query'];
-        $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-        if (!$sh->execute($prepared['prepared'])) {
-            $e = $GLOBALS['Connection']->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
-            return false;
-        }
         return true;
     }
     /**
@@ -1469,6 +1439,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public function __debugInfo() {
         $this->inspect();
     }
+    /**
+     * Dumps out the data contained in the model.
+     */
     public function inspect($tabs = 0) {
         echo get_class($this), " ActiveRecord ({$this->_counter}): ", $this->ListProperties_ToString($tabs);
     }
@@ -1514,10 +1487,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $arraux = array();
         $fields = array_keys($this->_fields);
 
-        for ($j = 0; $j < $this->_counter; $j++) {
+        if ($this->_counter > 0) {
+            for ($j = 0; $j < $this->_counter; $j++) {
+                foreach ($fields as $field) {
+                    if (isset($this[$j]->{$field})) {
+                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
+                    }
+                }
+            }
+        } else {
             foreach ($fields as $field) {
-                if (isset($this[$j]->{$field})) {
-                    $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
+                if (isset($this->{$field})) {
+                    $arraux[$field] = $this->{$field};
                 }
             }
         }
@@ -1530,11 +1511,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public function Dump() {
         $model    = $this->_ObjTable;
         $dom      = new DOMDocument('1.0', 'utf-8');
-        $dataDump = $this->getArray();
         $path     = defined('DUMPS_PATH')?DUMPS_PATH:INST_PATH.'migrations/dumps/';
         file_exists($path) || mkdir($path);
         $sroot    = $dom->appendChild(new DOMElement('table_'.$model));
-        foreach ($dataDump as $reg) {
+        foreach ($this as $reg) {
             $root = $sroot->appendChild(new DOMElement($model));
             foreach ($reg as $element => $value) {
                 if (preg_match("(&|<|>)", $value)) {
@@ -1670,6 +1650,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         return $arr;
     }
+    /**
+     * @deprecated
+     * @return string
+     */
     public function toJSON() {
         return json_encode($this->getArray());
     }
