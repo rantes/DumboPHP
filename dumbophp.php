@@ -949,9 +949,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $this->_error = new Errors;
         $this->driver->tableName = $this->_ObjTable;
         $this->driver->pk = $this->pk;
-        $this->_setInitialCols($data);
-        $this->_setValues($data);
         $this->_init_();
+        $this->_setInitialCols();
+        $this->_counter = 0;
+        $this->_setValues($data);
     }
     private function _setValues(array $values) {
         if (empty($values)) {
@@ -974,7 +975,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         empty($name) or ($this->_ObjTable = $name);
         return $this->_ObjTable;
     }
-    private function _setInitialCols($data) {
+    private function _setInitialCols() {
         foreach ($this->driver->getColumns() as $field) {
             $this->_fields[$field['Field']] = $field['Cast'];
         }
@@ -1159,10 +1160,16 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * Creates a new Active Record instance
      * @param array $contents
      * @return ActiveRecord
-     * @deprecated
      */
     public function Niu(array $contents = []) {
-        return new $this($contents);
+        for ($i = 0; $i < $this->_counter; $i++) {
+            $this[$i] = null;
+            $this->offsetUnset($i);
+        }
+
+        $this->__construct($contents);
+
+        return clone $this;
     }
     public function Update($params) {
         if (!is_array($params)) {
