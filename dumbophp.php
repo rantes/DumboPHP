@@ -1162,8 +1162,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @deprecated
      */
     public function Niu(array $contents = []) {
-        $c = get_class($this);
-        return new $c($contents);
+        return new $this($contents);
     }
     public function Update($params) {
         if (!is_array($params)) {
