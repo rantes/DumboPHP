@@ -1516,13 +1516,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $sroot    = $dom->appendChild(new DOMElement('table_'.$model));
         foreach ($this as $reg) {
             $root = $sroot->appendChild(new DOMElement($model));
-            foreach ($reg as $element => $value) {
-                if (preg_match("(&|<|>)", $value)) {
-                    $value   = $dom->createCDATASection($value);
-                    $element = $root->appendChild(new DOMElement($element, ""));
+            foreach (array_keys($this->_fields) as $field) {
+                if (preg_match("(&|<|>)", $reg->{$field})) {
+                    $value   = $dom->createCDATASection($reg->{$field});
+                    $element = $root->appendChild(new DOMElement($field, ""));
                     $element->appendChild($value);
                 } else {
-                    $element = $root->appendChild(new DOMElement($element, $value));
+                    $element = $root->appendChild(new DOMElement($field, $reg->{$field}));
                 }
             }
         }
