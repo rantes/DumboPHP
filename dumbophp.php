@@ -2021,9 +2021,9 @@ abstract class Migrations extends Core_General_Class {
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
 
-        if (empty($this->_driver)) {
+        if (empty($GLOBALS['driver'])) {
             $driver = $GLOBALS['Connection']->engine.'Driver';
-            $this->_driver = new $driver();
+            $GLOBALS['driver']= new $driver();
         }
     }
 
@@ -2085,14 +2085,14 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Create_Table() {
         $this->connect();
-        $query = $this->_driver->CreateTable($this->_table, $this->_fields);
+        $query = $GLOBALS['driver']->CreateTable($this->_table, $this->_fields);
 
         empty($query) || $this->_runQuery($query);
     }
 
     protected function Drop_Table() {
         $this->connect();
-        $query = $this->_driver->DropTable($this->_table);
+        $query = $GLOBALS['driver']->DropTable($this->_table);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2104,7 +2104,7 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Add_Column(array $params) {
         $this->connect();
-        $query = $this->_driver->AddColumn($this->_table, $params);
+        $query = $GLOBALS['driver']->AddColumn($this->_table, $params);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2142,7 +2142,7 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Alter_Column(array $params) {
         $this->connect();
-        $query = $this->_driver->AlterColumn($this->_table, $params);
+        $query = $GLOBALS['driver']->AlterColumn($this->_table, $params);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2157,7 +2157,7 @@ abstract class Migrations extends Core_General_Class {
         }
 
         $this->connect();
-        $query = $this->_driver->RemoveColumn($this->_table, $field);
+        $query = $GLOBALS['driver']->RemoveColumn($this->_table, $field);
 
         empty($query) || $this->_runQuery($query);
     }
