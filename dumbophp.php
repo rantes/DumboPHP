@@ -241,6 +241,19 @@ final class IrregularNouns {
         $this->plural[]   = 'women';
     }
 }
+$GLOBALS['IN'] = new IrregularNouns();
+$GLOBALS['PDOCASTS'] = array(
+    'VAR_STRING' => false,
+    'STRING' => false,
+    'BLOB' => false,
+    'LONGLONG' => true,
+    'LONG' => true,
+    'SHORT' => true,
+    'DATETIME' => false,
+    'DATE' => false,
+    'DOUBLE' => true,
+    'TIMESTAMP' => true
+);
 /**
  * Turns a singular word into its plural
  * @param array|string $params
@@ -254,11 +267,10 @@ function Plurals($params, &$obj = NULL) {
         $string = $params[0];
     }
 
-    $IN = new IrregularNouns();
-    if (in_array($string, $IN->singular)) {
-        $key     = array_search($string, $IN->singular);
-        $strconv = $IN->plural[$key];
-    } elseif (in_array($string, $IN->plural)) {
+    if (in_array($string, $GLOBALS['IN']->singular)) {
+        $key     = array_search($string, $GLOBALS['IN']->singular);
+        $strconv = $GLOBALS['IN']->plural[$key];
+    } elseif (in_array($string, $GLOBALS['IN']->plural)) {
         $strconv = $string;
     } else {
         $vowels = array('a', 'e', 'i', 'o', 'u');
@@ -291,11 +303,10 @@ function Singulars($params, &$obj = NULL) {
         $string = $params[0];
     }
 
-    $IN      = new IrregularNouns();
     $strconv = '';
-    if (in_array($string, $IN->plural)) {
-        $key     = array_search($string, $IN->plural);
-        $strconv = $IN->singular[$key];
+    if (in_array($string, $GLOBALS['IN']->plural)) {
+        $key     = array_search($string, $GLOBALS['IN']->plural);
+        $strconv = $GLOBALS['IN']->singular[$key];
     } elseif (substr($string, -3, 3) == 'ies') {
         $strconv = str_replace('ies', 'y', $string);
     } elseif (substr($string, -2, 2) == 'es') {
@@ -875,6 +886,7 @@ if (CAN_USE_MEMCACHED) {
     defined('MEMCACHED_PORT') or define('MEMCACHED_PORT', '11211');
     $GLOBALS['memcached']->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
 }
+$GLOBALS['models'] = array();
 /**
  * Class for Active Record design
  * @version 2.0
@@ -927,12 +939,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public function _init_() {}
 
     public final function __construct(array $data = []) {
-        if (empty($this->_ObjTable)) {
-            $className       = unCamelize(get_class($this));
+        $name = get_class($this);
+
+        if (empty($GLOBALS['models'][$name])) {
+            $className       = unCamelize($name);
             $words           = explode("_", $className);
             $i               = sizeof($words)-1;
             $words[$i]       = Plurals($words[$i]);
-            $this->_ObjTable = implode("_", $words);
+            $GLOBALS['models'][$name]['tableName'] = implode("_", $words);
+        }
+
+        if (empty($this->_ObjTable)) {
+            $this->_ObjTable = $GLOBALS['models'][$name]['tableName'];
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 
@@ -941,18 +959,16 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
 
-        if ($this->driver === null) {
+        if (empty($GLOBALS['driver'])) {
             $driver = $GLOBALS['Connection']->engine.'Driver';
-            $this->driver = new $driver();
+            $GLOBALS['driver'] = new $driver();
         }
 
         $this->_error = new Errors;
-        $this->driver->tableName = $this->_ObjTable;
-        $this->driver->pk = $this->pk;
+//         empty($GLOBALS['driver']->tableName) && ($GLOBALS['driver']->tableName = $this->_ObjTable);
+//         empty($GLOBALS['driver']->pk) && ($GLOBALS['driver']->pk = $this->pk);
         $this->_init_();
-        $this->_setInitialCols();
         $this->_counter = 0;
-        $this->_setValues($data);
     }
     private function _setValues(array $values) {
         if (empty($values)) {
@@ -976,7 +992,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return $this->_ObjTable;
     }
     private function _setInitialCols() {
-        foreach ($this->driver->getColumns() as $field) {
+        foreach ($GLOBALS['driver']->getColumns($this->_ObjTable) as $field) {
             $this->_fields[$field['Field']] = $field['Cast'];
         }
     }
@@ -1031,7 +1047,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     protected function getData($query) {
         $obj = clone $this;
-        $j = 0;
+        $obj->_fields = array();
+        $obj->_dataAttributes = array();
         try {
             $regs = $GLOBALS['Connection']->query($query);
         } catch (PDOException $e) {
@@ -1042,32 +1059,25 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         is_object($regs) or die("Error in SQL Query. Please check the SQL Query: ".$query);
 
-        $regs->setFetchMode(PDO::FETCH_ASSOC);
-        $resultset = $regs->fetchAll();
-        $count     = sizeof($resultset);
-        $obj->_set_attributes($resultset);
-        if ($count > 0) {
-            for ($j = 0; $j < $count; $j++) {
-                $obj->offsetSet($j, new $obj);
-                $obj[$j]->_fields  = $obj->_fields;
-                foreach ($resultset[$j] as $property => $value) {
-                    if (!is_numeric($property)) {
-                        $obj[$j]->{$property} = $obj->_fields[$property]?0+$value:$value;
-                    }
-                }
-            }
+        $cols = $regs->columnCount();
+        for ($i = 0; $i < $cols; $i++) {
+            $meta = $regs->getColumnMeta($i);
+            $obj->_set_columns($meta);
         }
-        $obj->_counter = $j;
+        $obj->_counter = $regs->rowCount();
+        $regs->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
+        $resultset = $regs->fetchAll();
+        $obj->exchangeArray($resultset);
         if ($obj->_counter === 0) {
             $obj->offsetSet(0, NULL);
             $obj[0] = NULL;
             unset($obj[0]);
-            $fields = $this->driver->getColumns();
+            $fields = $GLOBALS['driver']->getColumns($this->_ObjTable);
             foreach ($fields as $row) {
                 $obj->_fields[$row['Field']] = false;
                 $obj->{$row['Field']} = null;
                 $obj->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-                $obj->_dataAttributes[$row['Field']]['cast'] = $this->_fields[$row['Field']];
+                $obj->_dataAttributes[$row['Field']]['cast'] = $obj->_fields[$row['Field']];
             }
         } elseif ($obj->_counter === 1) {
             foreach ($obj->_fields as $field => $cast) {
@@ -1097,7 +1107,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 return $res;
             }
         }
-        $this->_sqlQuery = $this->driver->Select($params);
+        $this->_sqlQuery = $GLOBALS['driver']->Select($params, $this->_ObjTable);
         $x = $this->getData($this->_sqlQuery);
         if (sizeof($x->after_find) > 0) {
             foreach ($x->after_find as $functiontoRun) {
@@ -1143,6 +1153,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         }
     }
+    private function _set_columns($meta) {
+        $this->_fields[$meta['name']] = $GLOBALS['PDOCASTS'][$meta['native_type']];
+        $this->{$meta['name']} = '';
+        $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
+        $this->_dataAttributes[$meta['name']]['cast'] = $this->_fields[$meta['name']];
+    }
     /**
      * Creates a new Active Record instance
      * @param array $contents
@@ -1154,7 +1170,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $this->offsetUnset($i);
         }
 
-        $this->__construct($contents);
+        $this->__construct();
+        $this->_setInitialCols();
+        $this->_setValues($contents);
 
         return clone $this;
     }
@@ -1172,7 +1190,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             throw new Exception('The param data should not be empty and must be array.');
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        $prepared        = $this->driver->Update($params);
+        $prepared        = $GLOBALS['driver']->Update($params, $this->_ObjTable);
         $this->_sqlQuery = $prepared['query'];
         $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
         if (!$sh->execute($prepared['prepared'])) {
@@ -1295,7 +1313,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $data[$field] = $this->{$field};
                 }
             }
-            $prepared = $this->driver->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = " .$this->{$this->pk}));
+            $prepared = $GLOBALS['driver']->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = " .$this->{$this->pk}), $this->_ObjTable);
         } else {
             if (!empty($this->before_insert)) {
                 foreach ($this->before_insert as $functiontoRun) {
@@ -1320,7 +1338,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $data[$field] = $this->{$field};
                 }
             }
-            $prepared = $this->driver->Insert($data);
+            $prepared = $GLOBALS['driver']->Insert($data, $this->_ObjTable);
         }
 
         $this->_sqlQuery = $prepared['query'];
@@ -1338,12 +1356,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         if (empty($this->{$this->pk})) {
             $this->{$this->pk} = $GLOBALS['Connection']->lastInsertId()+0;
-            isset($this[0]) && ($this[0]->{$this->pk} = $this->{$this->pk});
             if (sizeof($this->after_insert) > 0) {
                 foreach ($this->after_insert as $functiontoRun) {
                     $this->{$functiontoRun}();
                 }
             }
+        }
+        if ($this->_counter === 0) {
+            $this->_counter = 1;
+            $this->offsetSet(0, $this);
         }
 
         if (sizeof($this->after_save) > 0) {
@@ -1385,7 +1406,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (!$this->_delete_or_nullify_dependents($conditions)) {
             return false;
         }
-        $this->_sqlQuery = $this->driver->Delete($conditions);
+        $this->_sqlQuery = $GLOBALS['driver']->Delete($conditions, $this->_ObjTable);
         if (!$GLOBALS['Connection']->exec($this->_sqlQuery)) {
             $e = $GLOBALS['Connection']->errorInfo();
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
@@ -1685,7 +1706,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $start = ($this->PaginatePageNumber-1)*$per_page;
         $params['limit'] = $start.",".$per_page;
         $params2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
-        $queryCounter = $this->driver->Select($params2);
+        $queryCounter = $GLOBALS['driver']->Select($params2, $this->_ObjTable);
         if (CAN_USE_MEMCACHED) {
             $key = md5($queryCounter);
             $resultset = $GLOBALS['memcached']->get($key);
@@ -2297,6 +2318,14 @@ class index {
                 echo "Missing Action";
             }
         }
+    }
+}
+
+class ActiveRow extends Core_General_Class {
+    public $_parent = null;
+    public function __construct($obj, $a) {
+        $this->offsetSet($a, null);
+        $this->_parent = &$obj;
     }
 }
 ?>

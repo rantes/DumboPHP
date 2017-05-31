@@ -5,12 +5,12 @@
 class mysqlDriver {
     private $_params = null;
     public $tableName = null;
-    public $pk = null;
+    public $pk = 'id';
 
-    public function getColumns() {
+    public function getColumns($table) {
         $numerics = ['INT', 'FLOAT', 'BIGINT'];
         $fields = array();
-        $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$this->tableName}");
+        $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$table}");
         $result1->setFetchMode(PDO::FETCH_ASSOC);
         $resultset1 = $result1->fetchAll();
         foreach ($resultset1 as $res) {
@@ -26,12 +26,12 @@ class mysqlDriver {
 
     }
 
-    public function Select($params = null) {
+    public function Select($params = null, $table, $pk = 'id') {
         $this->_params = $params;
 
         $tail = '';
         $head = 'SELECT ';
-        $body = " FROM {$this->tableName} ";
+        $body = " FROM {$table} ";
 
         if(!empty($this->_params)){
             if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = 0 + $this->_params;
@@ -39,11 +39,11 @@ class mysqlDriver {
 
             switch($type){
                 case 'integer':
-                    $tail .= " WHERE ".$this->pk." in ($this->_params)";
+                    $tail .= " WHERE {$pk} in ($this->_params)";
                 break;
                 case 'string':
                     if(strpos($this->_params,',')!== FALSE){
-                        $tail .= " WHERE ".$this->pk." in ({$this->_params})";
+                        $tail .= " WHERE {$pk} in ({$this->_params})";
                     }
                 break;
                 case 'array':
@@ -54,7 +54,7 @@ class mysqlDriver {
                                 $NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
                             }
                             if(!$NotOnlyInt){
-                                $tail .= $this->pk." in (".implode(',',$this->_params['conditions']).")";
+                                $tail .= $pk." in (".implode(',',$this->_params['conditions']).")";
                             }else{
                                 foreach($this->_params['conditions'] as $field => $value){
                                     if(is_numeric($field)) $tail .= " AND ".$value;
@@ -103,11 +103,11 @@ class mysqlDriver {
         return $sql;
     }
 
-    public function Update($params = null) {
+    public function Update($params = null, $table, $pk = 'id') {
         $prepared = array();
-        $query = 'UPDATE `'.$this->tableName.'` SET ';
+        $query = 'UPDATE `'.$table.'` SET ';
         foreach ($params['data'] as $field => $value) {
-            if($field != $this->pk &&  $value !== null){
+            if($field != $pk &&  $value !== null){
                 $query .= "`$field`=:$field,";
                 $prepared[':'.$field] = $value;
             }
@@ -121,16 +121,12 @@ class mysqlDriver {
         return array('query'=>$query, 'prepared'=>$prepared);
     }
 
-    public function Insert($params = null) {
-        if(empty($params)){
-            throw new Exception("Empty params for insertion.", 1);
-        }
-
+    public function Insert($params, $table) {
         $prepared = array();
         $fields = '';
         $values = '';
 
-        $query = "INSERT INTO `{$this->tableName}` ";
+        $query = "INSERT INTO `{$table}` ";
         foreach($params as $field => $value){
             if(is_string($value) || is_numeric($value)){
                 $fields .= "`$field`,";
@@ -147,13 +143,13 @@ class mysqlDriver {
         return array('query' => $query, 'prepared' => $prepared);
     }
 
-    public function Delete($conditions) {
-        $query = "DELETE FROM `{$this->tableName}` ";
+    public function Delete($conditions, $table, $pk ='id') {
+        $query = "DELETE FROM `{$table}` ";
         if(is_numeric($conditions)){
-            $this->{$this->pk} = $conditions;
-            $query .= "WHERE ".$this->pk."='$conditions'";
+            $this->{$pk} = $conditions;
+            $query .= "WHERE ".$pk."='$conditions'";
         }elseif(is_array($conditions) && empty($conditions['conditions'])){
-            $query .= 'WHERE `'.$this->pk.'` IN ('.implode(',', $conditions).')';
+            $query .= 'WHERE `'.$pk.'` IN ('.implode(',', $conditions).')';
         }elseif(!empty($conditions['conditions']) && is_string($conditions['conditions'])){
             $query .= 'WHERE '.$conditions['conditions'];
         } else {
