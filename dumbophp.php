@@ -995,6 +995,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         foreach ($GLOBALS['driver']->getColumns($this->_ObjTable) as $field) {
             $this->_fields[$field['Field']] = $field['Cast'];
         }
+        return true;
     }
     private function _setMemcacheKey($key) {
         $res = $GLOBALS['memcached']->get($this->_ObjTable);
@@ -1017,6 +1018,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return array
      */
     public function getRawFields() {
+        empty($this->_fields) && $this->_setInitialCols();
         return array_keys($this->_fields);
     }
     /**
@@ -1024,6 +1026,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return array Fields of the current Active Record Object
      */
     public function getFields() {
+        empty($this->_fields) && $this->_setInitialCols();
         return $this->_fields;
     }
     /**
@@ -2153,7 +2156,7 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Remove_Column($field) {
         if (!is_string($field)) {
-            throw new Exception("fields param must be a string", 1);
+            throw new Exception('fields param must be a string', 1);
         }
 
         $this->connect();
