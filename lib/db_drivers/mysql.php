@@ -170,7 +170,7 @@ class mysqlDriver {
             $query .= (!empty($field['limit']))?" (".$field['limit'].")":NULL;
             $query .= (empty($field['null']) || $field['null'] === 'false')?" NOT NULL":NULL;
             $query .= (isset($field['default']))?" DEFAULT '".$field['default']."'":NULL;
-            $query .= (!empty($field['comments']))?" COMMENT '".$field['comment']."'":NULL;
+            $query .= (!empty($field['comment']))?" COMMENT '".$field['comment']."'":NULL;
             $query .= " ,";
         }
 
