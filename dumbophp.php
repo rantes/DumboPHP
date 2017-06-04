@@ -250,6 +250,7 @@ $GLOBALS['PDOCASTS'] = array(
     'FLOAT' => true,
     'LONGLONG' => true,
     'LONG' => true,
+    'NEWDECIMAL' => false,
     'SHORT' => true,
     'STRING' => false,
     'TIMESTAMP' => true,
@@ -739,7 +740,6 @@ class Connection extends PDO {
         empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
 
         if (!$this->_settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
-
         $this->_settings = $this->_settings[$GLOBALS['env']];
         $this->engine = $this->_settings['driver'];
 
