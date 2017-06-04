@@ -8,7 +8,7 @@ class mysqlDriver {
     public $pk = 'id';
 
     public function getColumns($table) {
-        $numerics = ['INT', 'FLOAT', 'BIGINT'];
+        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG'];
         $fields = array();
         $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$table}");
         $result1->setFetchMode(PDO::FETCH_ASSOC);

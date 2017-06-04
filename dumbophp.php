@@ -243,16 +243,18 @@ final class IrregularNouns {
 }
 $GLOBALS['IN'] = new IrregularNouns();
 $GLOBALS['PDOCASTS'] = array(
-    'VAR_STRING' => false,
-    'STRING' => false,
     'BLOB' => false,
-    'LONGLONG' => true,
-    'LONG' => true,
-    'SHORT' => true,
     'DATETIME' => false,
     'DATE' => false,
     'DOUBLE' => true,
-    'TIMESTAMP' => true
+    'FLOAT' => true,
+    'LONGLONG' => true,
+    'LONG' => true,
+    'SHORT' => true,
+    'STRING' => false,
+    'TIMESTAMP' => true,
+    'TINY' => true,
+    'VAR_STRING' => false,
 );
 /**
  * Turns a singular word into its plural
@@ -1146,6 +1148,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $this->{$meta['name']} = '';
         $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
         $this->_dataAttributes[$meta['name']]['cast'] = $this->_fields[$meta['name']];
+    }
+    private function _setValues(array $values) {
+        if (empty($values)) {
+            foreach ($this->_fields as $field => $cast){
+                $values[$field] = $cast? 0 : null;
+            }
+        }
+        foreach ($values as $field => $value) {
+            if (array_key_exists($field, $this->_fields)) {
+                $this->{$field} = $value;
+            }
+        }
     }
     /**
      * Creates a new Active Record instance
