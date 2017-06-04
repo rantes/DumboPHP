@@ -910,11 +910,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
-    protected $has_many                = array();
-    protected $has_one                 = array();
-    protected $belongs_to              = array();
-    protected $has_many_and_belongs_to = array();
-    protected $validate                = array();
+    public $has_many                = array();
+    public $has_one                 = array();
+    public $belongs_to              = array();
+    public $has_many_and_belongs_to = array();
+    public $validate                = array();
     protected $before_insert           = array();
     protected $after_insert            = array();
     protected $after_find              = array();
@@ -938,7 +938,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     public function _init_() {}
 
-    public final function __construct(array $data = []) {
+    public final function __construct() {
         $name = get_class($this);
 
         if (empty($GLOBALS['models'][$name])) {
@@ -965,23 +965,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
 
         $this->_error = new Errors;
-//         empty($GLOBALS['driver']->tableName) && ($GLOBALS['driver']->tableName = $this->_ObjTable);
-//         empty($GLOBALS['driver']->pk) && ($GLOBALS['driver']->pk = $this->pk);
         $this->_init_();
         $this->_counter = 0;
-    }
-    private function _setValues(array $values) {
-        if (empty($values)) {
-            foreach ($this->_fields as $field => $cast){
-                $values[$field] = $cast? 0 : null;
-            }
-        }
-
-        foreach ($values as $field => $value) {
-            if (array_key_exists($field, $this->_fields)) {
-                $this->{$field} = $value;
-            }
-        }
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
@@ -2321,14 +2306,6 @@ class index {
                 echo "Missing Action";
             }
         }
-    }
-}
-
-class ActiveRow extends Core_General_Class {
-    public $_parent = null;
-    public function __construct($obj, $a) {
-        $this->offsetSet($a, null);
-        $this->_parent = &$obj;
     }
 }
 ?>

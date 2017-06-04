@@ -12,7 +12,8 @@ class dumboTests extends Page{
 
     public function __construct() {
         $this->colors = new Colors();
-        file_exists(INST_PATH.'tests.log') and unlink('tests.log') and file_put_contents(INST_PATH.'tests.log', '');
+//         file_exists(INST_PATH.'tests.log') and unlink('tests.log') and
+        file_put_contents(INST_PATH.'tests.log', '');
         fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
     }
     /**
@@ -26,8 +27,8 @@ class dumboTests extends Page{
      * Output for a standard message
      * @param string $errorMessage
      */
-    private function _showMessage($errorMessage) {
-        return fwrite(STDOUT, "\n". $this->colors->getColoredString($errorMessage, 'white', 'green') . "\n");
+    private function _showMessage($message) {
+        return fwrite(STDOUT, "\n". $this->colors->getColoredString($message, 'white', 'green') . "\n");
     }
     /**
      * Displays the progress of each test: P - passed. F - failed.
@@ -68,14 +69,24 @@ DUMBO;
      * @param any $param1
      * @param any $param2
      */
-    public function assertEquals($param1, $param2) {
+    public function assertEquals($param1, $param2, $message = false) {
+        $message || ($message = 'Assert if <' . gettype($param1) . '> ' . $param1 . ' is equals to <' . gettype($param2) . '> ' . $param2);
         $passed = $param1 === $param2;
         $this->_passed += $passed;
-        $this->_log('Assert if <' . gettype($param1) . '> ' . $param1 . ' is equals to <' . gettype($param2) . '> ' . $param2 . ': '.($passed ? 'Passed.' : 'Failed'));
+        $this->_log($message. ': '.($passed ? 'Passed.' : 'Failed'));
 
         $this->_progress($passed);
 
         $passed or $this->_triggerError('Asserts Equals');
+    }
+    
+    public function assertTrue($param, $message = false) {
+        $message || ($message = 'Assert if <' . gettype($param) . '> ' . $param . ' is true ');
+        $passed = $param === true;
+        $this->_passed += $passed;
+        $this->_log($message. ': '.($passed ? 'Passed.' : 'Failed'));
+        $this->_progress($passed);
+        !$passed && $this->_log('Expectig `true` but found <' . gettype($param) . '> ' . $param) && $this->_triggerError('Asserts True');
     }
 
     /**
@@ -83,7 +94,7 @@ DUMBO;
      * @param ActiveRecord $model
      * @param array $fields
      */
-    public function assertHasFields(ActiveRecord $model) {
+    public function assertHasFields(ActiveRecord $model, $message = '') {
         $table = $model->_TableName();
         require_once INST_PATH."migrations/create_{$table}.php";
         $migrationName = 'Create'.Camelize(Singulars($table));
@@ -100,6 +111,45 @@ DUMBO;
         $this->_progress($passed);
 
         $passed or $this->_triggerError('Asserts Has Fields');
+    }
+    /**
+     * Asserts if the array with field names provides fits the fields on the model
+     * @param ActiveRecord $model
+     * @param array $fields
+     */
+    public function assertHasFieldTypes(ActiveRecord $model, $message = '') {
+        $table = $model->_TableName();
+        require_once INST_PATH."migrations/create_{$table}.php";
+        $migrationName = 'Create'.Camelize(Singulars($table));
+        $migration = new $migrationName();
+        $fields = $migration->getDefinitions();
+        $expected = $GLOBALS['driver']->getColumns($table);
+        foreach ($GLOBALS['driver']->getColumns($table) as $i => $field) {
+            if (strcmp($field['Field'], $fields[$i]['field']) === 0) {
+                $migrationType = explode(' ', $fields[$i]['type']);
+                $migrationType = $migrationType[0];
+                $passed = strcmp($migrationType, $field['Type']) === 0;
+                $this->_passed += $passed;
+                $this->_log('Assert if `' . $field['Field'] . '` is the same as defined at migration: ' . $migrationType. ': '.($passed ? 'Passed.' : 'Failed'));
+                !$passed && $this->_log("Field `{$fields[$i]['field']}` is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
+                $this->_progress($passed);
+                $passed or $this->_triggerError('Asserts Has FieldTypes');
+            } else {
+                $passed = false;
+                $this->_passed += $passed;
+                $this->_log('Assert if `' . $field['Field'] . '` is in the same order as defined at migration: Failed');
+                !$passed && $this->_log("Field `{$fields[$i]['field']}` is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
+                $this->_progress($passed);
+                $passed or $this->_triggerError('Asserts Has FieldTypes');
+            }
+        }
+    }
+    public function describe($message) {
+        if (!is_string($message)) {
+            throw new Exception('The message for the description must be string.');
+        }
+
+        $this->_log($message);
     }
     /**
      * What supposed to do whe the script ends.

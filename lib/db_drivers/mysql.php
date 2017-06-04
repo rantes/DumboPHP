@@ -23,7 +23,6 @@ class mysqlDriver {
                 'Value' => null
             ];
         }
-
     }
 
     public function Select($params = null, $table, $pk = 'id') {
