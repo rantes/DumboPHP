@@ -105,12 +105,12 @@ class dumboShell{
                                                                                                     
                                                                                                     
                                                                                                     
-                                                          ``                                        
-                              ```````                     ``                                        
-                             ```   `` ``  ``  `````````  ``````  `````                              
-                             ``   ``` ``  ``  `` ``` ``  ``  `` ``  ```                             
-                            ````````  `` ``` ``  ``  `` ``` ``` `` ```                              
-                   ``````   `````     `````  ``  ``  `  `````    ```       ``````                   
+                                                          ``
+                              ```````                     ``
+                             ```   `` ``  ``  `````````  ``````  `````
+                             ``   ``` ``  ``  `` ``` ``  ``  `` ``  ```
+                            ````````  `` ``` ``  ``  `` ``` ``` `` ```
+                   ``````   `````     `````  ``  ``  `  `````    ```       ``````
 
 DumboPHP 2.0 by Rantes
 DumboPHP shell.
@@ -200,7 +200,7 @@ DUMBO;
             'Creating file system: Main .htaccess' => array($this->dumboSource.'/main.htaccess', $this->fullPathTarget.'/.htaccess'),
             'Creating file system: Webroot .htaccess' => array($this->dumboSource.'/webroot.htaccess', $this->fullPathTarget.'/app/webroot/.htaccess'),
             'Creating file system: favicon' => array($this->dumboSource.'/favicon.ico', $this->fullPathTarget.'/app/webroot/favicon.ico'),
-            'Creating file system: config/db' => array($this->dumboSource.'/db_settings.ini', $this->fullPathTarget.'/config/db_settings.ini'),
+            'Creating file system: config/db' => array($this->dumboSource.'/db_settings.php', $this->fullPathTarget.'/config/db_settings.php'),
             'Creating file system: config/host' => array($this->dumboSource.'/host.php', $this->fullPathTarget.'/config/host.php'),
             'Creating file system: config/index' => array($this->dumboSource.'/index.php', $this->fullPathTarget.'/app/webroot/index.php'),
             'Creating file system: layout' => array($this->dumboSource.'/layout.phtml', $this->fullPathTarget.'/app/views/layout.phtml')

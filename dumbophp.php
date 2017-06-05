@@ -736,45 +736,53 @@ class Connection extends PDO {
     public $_settings = null;
     public $engine = null;
 
-    function __construct($file = 'config/db_settings.ini') {
+    function __construct() {
         empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
+        $databases = array();
 
-        if (!$this->_settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
-        $this->_settings = $this->_settings[$GLOBALS['env']];
-        $this->engine = $this->_settings['driver'];
+        try {
 
-        switch ($this->engine) {
-            case 'firebird':
-                $dsn = 'firebird:dbname='.$this->_settings['host'].'/'.$this->_settings['port'].':'.$this->_settings['schema'];
-            break;
-            case 'sqlite':
-            case 'sqlite2':
-                if($this->_settings['schema'] === 'memory'){
-                    $dsn = $this->engine.'::memory:';
-                } else {
-                    $dsn = $this->engine.':'.$this->_settings['schema'];
-                }
-            break;
-            default:
-
-                if (!empty($this->_settings['unix_socket'])) {
-                    $host = ':unix_socket=' . $this->_settings['unix_socket'];
-                }
-
-                if (!empty($this->_settings['port'])) {
-                    $host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port'];
-                }
-
-                $dsn = $this->engine . $host .
-                ';dbname=' . $this->_settings['schema'] .
-                ((!empty($this->_settings['dialect'])) ? (';dialect=' . $this->_settings['dialect']) : '') .
-                ((!empty($this->_settings['charset'])) ? (';charset=' . $this->_settings['charset']) : '');
-            break;
+            require_once 'config/db_settings.php';
+            $this->_settings = $databases[$GLOBALS['env']];
+            $this->engine = $this->_settings['driver'];
+    
+            switch ($this->engine) {
+                case 'firebird':
+                    $dsn = 'firebird:dbname='.$this->_settings['host'].'/'.$this->_settings['port'].':'.$this->_settings['schema'];
+                break;
+                case 'sqlite':
+                case 'sqlite2':
+                    if($this->_settings['schema'] === 'memory'){
+                        $dsn = $this->engine.'::memory:';
+                    } else {
+                        $dsn = $this->engine.':'.$this->_settings['schema'];
+                    }
+                break;
+                default:
+    
+                    if (!empty($this->_settings['unix_socket'])) {
+                        $host = ':unix_socket=' . $this->_settings['unix_socket'];
+                    }
+    
+                    if (!empty($this->_settings['port'])) {
+                        $host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port'];
+                    }
+    
+                    $dsn = $this->engine . $host .
+                    ';dbname=' . $this->_settings['schema'] .
+                    ((!empty($this->_settings['dialect'])) ? (';dialect=' . $this->_settings['dialect']) : '') .
+                    ((!empty($this->_settings['charset'])) ? (';charset=' . $this->_settings['charset']) : '');
+                break;
+            }
+            empty($this->_settings['username']) and $this->_settings['username'] = null;
+            empty($this->_settings['password']) and $this->_settings['password'] = null;
+            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => true,PDO::ATTR_PERSISTENT => true));
+            $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            die('Error to connect to database due to: '.$e->getMessage());
+        } catch (Exception $e) {
+            die('Internal error: '.$e->getMessage());
         }
-        empty($this->_settings['username']) and $this->_settings['username'] = null;
-        empty($this->_settings['password']) and $this->_settings['password'] = null;
-        parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => true,PDO::ATTR_PERSISTENT => true));
-        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 }
 /**
@@ -957,7 +965,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 
         if (empty($GLOBALS['Connection'])) {
-            $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
+            $GLOBALS['Connection'] = new Connection();
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
 
@@ -1565,11 +1573,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
             foreach (array_keys($this->_fields) as $field) {
                 $item = $xitem->getElementsByTagName($field);
-                $regenerate && ($this->_insertionFields[] = "`{$field}`");
                 if (is_object($item->item(0))) {
+                    $regenerate && ($this->_insertionFields[] = "`{$field}`");
                     $row[$field] = "'{$item->item(0)->nodeValue}'";
-                } else {
-                    $row[$field] = "''";
                 }
             }
 
@@ -1592,22 +1598,30 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             foreach ($this->_prepareFromXML($items) as $row) {
                 $query .= "(".implode(',', $row)."),";
             }
-            $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
-            $query = substr($query, 0, -1);
-            $this->_sqlQuery .= $query;
-            $GLOBALS['Connection']->beginTransaction();
-
-            try {
-                $sh = $GLOBALS['Connection']->exec($this->_sqlQuery);
-            } catch (PDOException $e) {
-                fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
-                return false;
-            } catch (Exception $e) {
-                fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
-                return false;
+            if (strlen($query) > 1) {
+                $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
+                $query = substr($query, 0, -1);
+                $this->_sqlQuery .= $query;
+    
+                try {
+                    $GLOBALS['Connection']->setAttribute(PDO::ATTR_AUTOCOMMIT, 0);
+                    $GLOBALS['Connection']->beginTransaction();
+                    $sh = $GLOBALS['Connection']->exec($this->_sqlQuery);
+                    $GLOBALS['Connection']->commit();
+                    $GLOBALS['Connection']->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);
+                } catch (PDOException $e) {
+                    fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
+                    $GLOBALS['Connection']->rollback();
+                    return false;
+                } catch (Exception $e) {
+                    fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
+                    $GLOBALS['Connection']->rollback();
+                    return false;
+                }
+                fwrite(STDOUT, "Inserted {$sh} Regs.". PHP_EOL);
+            } else {
+                fwrite(STDOUT, "Inserted 0 Regs. Empty dump.". PHP_EOL);
             }
-            $GLOBALS['Connection']->commit();
-            fwrite(STDOUT, "Inserted {$sh} Regs.". PHP_EOL);
         }
 
         return true;
@@ -2019,7 +2033,7 @@ abstract class Migrations extends Core_General_Class {
 
     private final function connect() {
         if (empty($GLOBALS['Connection'])) {
-            $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
+            $GLOBALS['Connection'] = new Connection();
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
 
