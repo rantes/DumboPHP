@@ -243,16 +243,19 @@ final class IrregularNouns {
 }
 $GLOBALS['IN'] = new IrregularNouns();
 $GLOBALS['PDOCASTS'] = array(
-    'VAR_STRING' => false,
-    'STRING' => false,
     'BLOB' => false,
-    'LONGLONG' => true,
-    'LONG' => true,
-    'SHORT' => true,
     'DATETIME' => false,
     'DATE' => false,
     'DOUBLE' => true,
-    'TIMESTAMP' => true
+    'FLOAT' => true,
+    'LONGLONG' => true,
+    'LONG' => true,
+    'NEWDECIMAL' => false,
+    'SHORT' => true,
+    'STRING' => false,
+    'TIMESTAMP' => true,
+    'TINY' => true,
+    'VAR_STRING' => false,
 );
 /**
  * Turns a singular word into its plural
@@ -733,46 +736,53 @@ class Connection extends PDO {
     public $_settings = null;
     public $engine = null;
 
-    function __construct($file = 'config/db_settings.ini') {
+    function __construct() {
         empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
+        $databases = array();
 
-        if (!$this->_settings = parse_ini_file($file, TRUE)) throw new exception('Unable to open ' . $file . '.');
+        try {
 
-        $this->_settings = $this->_settings[$GLOBALS['env']];
-        $this->engine = $this->_settings['driver'];
-
-        switch ($this->engine) {
-            case 'firebird':
-                $dsn = 'firebird:dbname='.$this->_settings['host'].'/'.$this->_settings['port'].':'.$this->_settings['schema'];
-            break;
-            case 'sqlite':
-            case 'sqlite2':
-                if($this->_settings['schema'] === 'memory'){
-                    $dsn = $this->engine.'::memory:';
-                } else {
-                    $dsn = $this->engine.':'.$this->_settings['schema'];
-                }
-            break;
-            default:
-
-                if (!empty($this->_settings['unix_socket'])) {
-                    $host = ':unix_socket=' . $this->_settings['unix_socket'];
-                }
-
-                if (!empty($this->_settings['port'])) {
-                    $host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port'];
-                }
-
-                $dsn = $this->engine . $host .
-                ';dbname=' . $this->_settings['schema'] .
-                ((!empty($this->_settings['dialect'])) ? (';dialect=' . $this->_settings['dialect']) : '') .
-                ((!empty($this->_settings['charset'])) ? (';charset=' . $this->_settings['charset']) : '');
-            break;
+            require_once 'config/db_settings.php';
+            $this->_settings = $databases[$GLOBALS['env']];
+            $this->engine = $this->_settings['driver'];
+    
+            switch ($this->engine) {
+                case 'firebird':
+                    $dsn = 'firebird:dbname='.$this->_settings['host'].'/'.$this->_settings['port'].':'.$this->_settings['schema'];
+                break;
+                case 'sqlite':
+                case 'sqlite2':
+                    if($this->_settings['schema'] === 'memory'){
+                        $dsn = $this->engine.'::memory:';
+                    } else {
+                        $dsn = $this->engine.':'.$this->_settings['schema'];
+                    }
+                break;
+                default:
+    
+                    if (!empty($this->_settings['unix_socket'])) {
+                        $host = ':unix_socket=' . $this->_settings['unix_socket'];
+                    }
+    
+                    if (!empty($this->_settings['port'])) {
+                        $host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port'];
+                    }
+    
+                    $dsn = $this->engine . $host .
+                    ';dbname=' . $this->_settings['schema'] .
+                    ((!empty($this->_settings['dialect'])) ? (';dialect=' . $this->_settings['dialect']) : '') .
+                    ((!empty($this->_settings['charset'])) ? (';charset=' . $this->_settings['charset']) : '');
+                break;
+            }
+            empty($this->_settings['username']) and $this->_settings['username'] = null;
+            empty($this->_settings['password']) and $this->_settings['password'] = null;
+            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => true,PDO::ATTR_PERSISTENT => true));
+            $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            die('Error to connect to database due to: '.$e->getMessage());
+        } catch (Exception $e) {
+            die('Internal error: '.$e->getMessage());
         }
-        empty($this->_settings['username']) and $this->_settings['username'] = null;
-        empty($this->_settings['password']) and $this->_settings['password'] = null;
-        parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => true,PDO::ATTR_PERSISTENT => true));
-        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 }
 /**
@@ -910,11 +920,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
-    protected $has_many                = array();
-    protected $has_one                 = array();
-    protected $belongs_to              = array();
-    protected $has_many_and_belongs_to = array();
-    protected $validate                = array();
+    public $has_many                = array();
+    public $has_one                 = array();
+    public $belongs_to              = array();
+    public $has_many_and_belongs_to = array();
+    public $validate                = array();
     protected $before_insert           = array();
     protected $after_insert            = array();
     protected $after_find              = array();
@@ -938,7 +948,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     public function _init_() {}
 
-    public final function __construct(array $data = []) {
+    public final function __construct() {
         $name = get_class($this);
 
         if (empty($GLOBALS['models'][$name])) {
@@ -955,7 +965,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 
         if (empty($GLOBALS['Connection'])) {
-            $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
+            $GLOBALS['Connection'] = new Connection();
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
 
@@ -965,23 +975,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
 
         $this->_error = new Errors;
-//         empty($GLOBALS['driver']->tableName) && ($GLOBALS['driver']->tableName = $this->_ObjTable);
-//         empty($GLOBALS['driver']->pk) && ($GLOBALS['driver']->pk = $this->pk);
         $this->_init_();
         $this->_counter = 0;
-    }
-    private function _setValues(array $values) {
-        if (empty($values)) {
-            foreach ($this->_fields as $field => $cast){
-                $values[$field] = $cast? 0 : null;
-            }
-        }
-
-        foreach ($values as $field => $value) {
-            if (array_key_exists($field, $this->_fields)) {
-                $this->{$field} = $value;
-            }
-        }
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
@@ -1161,6 +1156,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $this->{$meta['name']} = '';
         $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
         $this->_dataAttributes[$meta['name']]['cast'] = $this->_fields[$meta['name']];
+    }
+    private function _setValues(array $values) {
+        if (empty($values)) {
+            foreach ($this->_fields as $field => $cast){
+                $values[$field] = $cast? 0 : null;
+            }
+        }
+        foreach ($values as $field => $value) {
+            if (array_key_exists($field, $this->_fields)) {
+                $this->{$field} = $value;
+            }
+        }
     }
     /**
      * Creates a new Active Record instance
@@ -1566,11 +1573,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
             foreach (array_keys($this->_fields) as $field) {
                 $item = $xitem->getElementsByTagName($field);
-                $regenerate && ($this->_insertionFields[] = "`{$field}`");
                 if (is_object($item->item(0))) {
+                    $regenerate && ($this->_insertionFields[] = "`{$field}`");
                     $row[$field] = "'{$item->item(0)->nodeValue}'";
-                } else {
-                    $row[$field] = "''";
                 }
             }
 
@@ -1593,22 +1598,30 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             foreach ($this->_prepareFromXML($items) as $row) {
                 $query .= "(".implode(',', $row)."),";
             }
-            $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
-            $query = substr($query, 0, -1);
-            $this->_sqlQuery .= $query;
-            $GLOBALS['Connection']->beginTransaction();
-
-            try {
-                $sh = $GLOBALS['Connection']->exec($this->_sqlQuery);
-            } catch (PDOException $e) {
-                fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
-                return false;
-            } catch (Exception $e) {
-                fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
-                return false;
+            if (strlen($query) > 1) {
+                $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
+                $query = substr($query, 0, -1);
+                $this->_sqlQuery .= $query;
+    
+                try {
+                    $GLOBALS['Connection']->setAttribute(PDO::ATTR_AUTOCOMMIT, 0);
+                    $GLOBALS['Connection']->beginTransaction();
+                    $sh = $GLOBALS['Connection']->exec($this->_sqlQuery);
+                    $GLOBALS['Connection']->commit();
+                    $GLOBALS['Connection']->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);
+                } catch (PDOException $e) {
+                    fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
+                    $GLOBALS['Connection']->rollback();
+                    return false;
+                } catch (Exception $e) {
+                    fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
+                    $GLOBALS['Connection']->rollback();
+                    return false;
+                }
+                fwrite(STDOUT, "Inserted {$sh} Regs.". PHP_EOL);
+            } else {
+                fwrite(STDOUT, "Inserted 0 Regs. Empty dump.". PHP_EOL);
             }
-            $GLOBALS['Connection']->commit();
-            fwrite(STDOUT, "Inserted {$sh} Regs.". PHP_EOL);
         }
 
         return true;
@@ -2020,7 +2033,7 @@ abstract class Migrations extends Core_General_Class {
 
     private final function connect() {
         if (empty($GLOBALS['Connection'])) {
-            $GLOBALS['Connection'] = new Connection(INST_PATH.'config/db_settings.ini');
+            $GLOBALS['Connection'] = new Connection();
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
 
@@ -2321,14 +2334,6 @@ class index {
                 echo "Missing Action";
             }
         }
-    }
-}
-
-class ActiveRow extends Core_General_Class {
-    public $_parent = null;
-    public function __construct($obj, $a) {
-        $this->offsetSet($a, null);
-        $this->_parent = &$obj;
     }
 }
 ?>
