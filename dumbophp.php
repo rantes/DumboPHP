@@ -794,7 +794,7 @@ class Errors {
     private $actived  = FALSE;
     private $messages = array();
     private $counter  = 0;
-    public function add($params = NULL) {
+    public function add($params) {
         if ($params === NULL or !is_array($params)):
             throw new Exception("Must to give an array with the params to add.");
         else :
@@ -1303,10 +1303,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (sizeof($this->before_save) > 0) {
             foreach ($this->before_save as $functiontoRun) {
                 $this->{$functiontoRun}();
+                if ($this->_error->isActived()) {
+                    return false;
+                }
             }
-        }
-        if ($this->_error->isActived()) {
-            return FALSE;
         }
 
         if (!empty($this->{$this->pk})) {
@@ -1328,10 +1328,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             if (!empty($this->before_insert)) {
                 foreach ($this->before_insert as $functiontoRun) {
                     $this->{$functiontoRun}();
+                    if ($this->_error->isActived()) {
+                        return false;
+                    }
                 }
-            }
-            if ($this->_error->isActived()) {
-                return false;
             }
 
             $this->_ValidateOnSave();
@@ -1408,16 +1408,16 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (sizeof($this->before_delete) > 0) {
             foreach ($this->before_delete as $functiontoRun) {
                 $this->{$functiontoRun}();
-            }
-            if (!empty($this->_error) && $this->_error->isActived()) {
-                return false;
+                if (!empty($this->_error) && $this->_error->isActived()) {
+                    return false;
+                }
             }
         }
         if (!$this->_delete_or_nullify_dependents($conditions)) {
             return false;
         }
         $this->_sqlQuery = $GLOBALS['driver']->Delete($conditions, $this->_ObjTable);
-        if (!$GLOBALS['Connection']->exec($this->_sqlQuery)) {
+        if ($GLOBALS['Connection']->exec($this->_sqlQuery) === false) {
             $e = $GLOBALS['Connection']->errorInfo();
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
             return FALSE;
@@ -1425,6 +1425,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (sizeof($this->after_delete) > 0) {
             foreach ($this->after_delete as $functiontoRun) {
                 $this->{$functiontoRun}();
+                if (!empty($this->_error) && $this->_error->isActived()) {
+                    return false;
+                }
             }
         }
         CAN_USE_MEMCACHED && $this->_refreshCache();
