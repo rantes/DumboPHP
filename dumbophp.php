@@ -925,6 +925,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $belongs_to              = array();
     public $has_many_and_belongs_to = array();
     public $validate                = array();
+    public $disableCast = false;
     protected $before_insert           = array();
     protected $after_insert            = array();
     protected $after_find              = array();
@@ -1081,6 +1082,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             foreach ($obj->_fields as $field => $cast) {
                 if (isset($obj[0]->{$field})) {
                     $obj->{$field} = $obj[0]->{$field};
+                }
+            }
+        }
+        if (!$this->disableCast) {
+            for ($i=0; $i<$obj->_counter; $i++) {
+                foreach ($obj->_fields as $field => $cast) {
+                    $obj[$i]->{$field} = $cast ? 0 + $obj[$i]->{$field} : $obj[$i]->{$field};
                 }
             }
         }
