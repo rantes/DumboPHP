@@ -741,11 +741,10 @@ class Connection extends PDO {
         $databases = array();
 
         try {
-
-            require_once 'config/db_settings.php';
+            include_once INST_PATH.'config/db_settings.php';
             $this->_settings = $databases[$GLOBALS['env']];
             $this->engine = $this->_settings['driver'];
-    
+
             switch ($this->engine) {
                 case 'firebird':
                     $dsn = 'firebird:dbname='.$this->_settings['host'].'/'.$this->_settings['port'].':'.$this->_settings['schema'];
@@ -759,15 +758,15 @@ class Connection extends PDO {
                     }
                 break;
                 default:
-    
+
                     if (!empty($this->_settings['unix_socket'])) {
                         $host = ':unix_socket=' . $this->_settings['unix_socket'];
                     }
-    
+
                     if (!empty($this->_settings['port'])) {
                         $host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port'];
                     }
-    
+
                     $dsn = $this->engine . $host .
                     ';dbname=' . $this->_settings['schema'] .
                     ((!empty($this->_settings['dialect'])) ? (';dialect=' . $this->_settings['dialect']) : '') .
@@ -1613,7 +1612,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
                 $query = substr($query, 0, -1);
                 $this->_sqlQuery .= $query;
-    
+
                 try {
                     $GLOBALS['Connection']->setAttribute(PDO::ATTR_AUTOCOMMIT, 0);
                     $GLOBALS['Connection']->beginTransaction();
