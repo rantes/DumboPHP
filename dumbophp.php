@@ -741,7 +741,7 @@ class Connection extends PDO {
         $databases = array();
 
         try {
-            include_once INST_PATH.'config/db_settings.php';
+            require INST_PATH.'config/db_settings.php';
             $this->_settings = $databases[$GLOBALS['env']];
             $this->engine = $this->_settings['driver'];
 
