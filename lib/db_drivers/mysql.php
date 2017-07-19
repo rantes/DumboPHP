@@ -46,6 +46,7 @@ class mysqlDriver {
                     }
                 break;
                 case 'array':
+                    $tail = ' WHERE 1=1';
                     if(!empty($this->_params['conditions'])){
                         if(is_array($this->_params['conditions'])){
                             $NotOnlyInt = FALSE;
@@ -53,18 +54,20 @@ class mysqlDriver {
                                 $NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
                             }
                             if(!$NotOnlyInt){
-                                $tail .= $pk." in (".implode(',',$this->_params['conditions']).")";
+                                $tail .= " AND {$pk} in (".implode(',',$this->_params['conditions']).")";
                             }else{
                                 foreach($this->_params['conditions'] as $field => $value){
-                                    if(is_numeric($field)) $tail .= " AND ".$value;
-                                    else $tail .= " AND $field='$value'";
+                                    if(is_numeric($field)) {
+                                        $tail .= " AND {$value}";
+                                    } else {
+                                        $tail .= " AND $field='{$value}'";
+                                    }
                                 }
                                 $tail = substr($tail, 4);
                             }
-                        }elseif(is_string($this->_params['conditions'])){
-                            $tail .= $this->_params['conditions'];
+                        } elseif (is_string($this->_params['conditions'])) {
+                            $tail .= ' AND '. $this->_params['conditions'];
                         }
-                        $tail = ' WHERE '.$tail;
                     }
                     if(!empty($this->_params['join'])){
                         $body .= $this->_params['join'];
