@@ -1331,7 +1331,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $data[$field] = $this->{$field};
                 }
             }
-            echo $this->_ObjTable.' - data: ';
             $prepared = $GLOBALS['driver']->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = " .$this->{$this->pk}), $this->_ObjTable);
         } else {
             if (!empty($this->before_insert)) {
