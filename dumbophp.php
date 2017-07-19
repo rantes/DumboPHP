@@ -974,6 +974,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $GLOBALS['driver'] = new $driver();
         }
 
+        $this->_setInitialCols();
         $this->_error = new Errors;
         $this->_init_();
         $this->_counter = 0;
@@ -1330,6 +1331,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $data[$field] = $this->{$field};
                 }
             }
+            echo $this->_ObjTable.' - data: ';
             $prepared = $GLOBALS['driver']->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = " .$this->{$this->pk}), $this->_ObjTable);
         } else {
             if (!empty($this->before_insert)) {
