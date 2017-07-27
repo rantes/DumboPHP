@@ -1734,26 +1734,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $params['limit'] = $start.",".$per_page;
         $params2['fields'] = empty($params['fields'])? "COUNT(*) AS PaginateTotalRegs" : $params['fields'];
         $queryCounter = $GLOBALS['driver']->Select($params2, $this->_ObjTable);
-        if (CAN_USE_MEMCACHED) {
-            $key = md5($queryCounter);
-            $resultset = $GLOBALS['memcached']->get($key);
+
+        try {
+            $regs = $GLOBALS['Connection']->query($queryCounter);
+        } catch (PDOException $e) {
+            echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
+        } catch (Exception $e) {
+            echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
         }
-        if (empty($resultset) || !is_array($resultset)) {
-            try {
-                $regs = $GLOBALS['Connection']->query($queryCounter);
-            } catch (PDOException $e) {
-                echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
-            } catch (Exception $e) {
-                echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
-            }
-            $regs->setFetchMode(PDO::FETCH_ASSOC);
-            $resultset = $regs->fetchAll();
-            if (CAN_USE_MEMCACHED) {
-                $key = md5($queryCounter);
-                $GLOBALS['memcached']->set($key, $resultset);
-                $this->_setMemcacheKey($key);
-            }
-        }
+
         $this->PaginateTotalItems = $regs->rowCount();
         $this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
         return $this->Find($params);
