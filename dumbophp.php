@@ -1732,7 +1732,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         $start = ($this->PaginatePageNumber-1)*$per_page;
         $params['limit'] = $start.",".$per_page;
-        $params2['fields'] = "COUNT({$this->_ObjTable}.{$this->pk}) AS PaginateTotalRegs";
+        $params2['fields'] = empty($params['fields'])? "COUNT(*) AS PaginateTotalRegs" : $params['fields'];
         $queryCounter = $GLOBALS['driver']->Select($params2, $this->_ObjTable);
         if (CAN_USE_MEMCACHED) {
             $key = md5($queryCounter);
@@ -1754,7 +1754,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $this->_setMemcacheKey($key);
             }
         }
-        $this->PaginateTotalItems = 0+$resultset[0]['PaginateTotalRegs'];
+        $this->PaginateTotalItems = $regs->rowCount();
         $this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
         return $this->Find($params);
     }
