@@ -1732,7 +1732,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         $start = ($this->PaginatePageNumber-1)*$per_page;
         $params['limit'] = $start.",".$per_page;
-        $params2['fields'] = empty($params['fields'])? "COUNT(*) AS PaginateTotalRegs" : $params['fields'];
+        $params2['fields'] = empty($params['fields'])? $this->pk : $params['fields'];
         $queryCounter = $GLOBALS['driver']->Select($params2, $this->_ObjTable);
 
         try {
