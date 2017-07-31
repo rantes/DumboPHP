@@ -1706,12 +1706,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return json_encode($this->getArray());
     }
     public function Paginate($params = NULL) {
-        $resultset = array();
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
         }
 
-        $params2 = $params;
 
         $request = parse_url(_FULL_URL);
 
@@ -1732,8 +1730,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         $start = ($this->PaginatePageNumber-1)*$per_page;
         $params['limit'] = $start.",".$per_page;
-        $params2['fields'] = empty($params['fields'])? $this->pk : $params['fields'];
-        $queryCounter = $GLOBALS['driver']->Select($params2, $this->_ObjTable);
+        $queryCounter = $GLOBALS['driver']->Select($params, $this->_ObjTable);
 
         try {
             $regs = $GLOBALS['Connection']->query($queryCounter);
