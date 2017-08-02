@@ -1729,8 +1729,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName];
         }
         $start = ($this->PaginatePageNumber-1)*$per_page;
-        $params['limit'] = $start.",".$per_page;
         $queryCounter = $GLOBALS['driver']->Select($params, $this->_ObjTable);
+        $params['limit'] = $start.",".$per_page;
 
         try {
             $regs = $GLOBALS['Connection']->query($queryCounter);
