@@ -151,10 +151,12 @@ DUMBO;
      * What supposed to do whe the script ends.
      */
     public function __destruct() {
+        $result = $this->_failed? 'TESTS FAILED!' : 'TESTS PASSED!';
         fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
         fwrite(STDOUT, 'Tests Success: ' . $this->_passed . "\n");
         fwrite(STDOUT, 'Tests failed: ' . $this->_failed . "\n");
-        ($this->_failed and $this->_showError('TESTS FAILED!')) or $this->_showMessage('TESTS PASSED!');
+        ($this->_failed and $this->_showError($result)) or $this->_showMessage($result);
+        exit($result);
     }
 }
 ?>
