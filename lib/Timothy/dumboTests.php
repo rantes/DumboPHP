@@ -4,14 +4,13 @@
  * @author rantes <rantes.javier@gmail.com> http://rantes.info
  *
  */
-class dumboTests extends Page{
+class dumboTests extends Page {
     private $_failed = 0;
     private $_passed = 0;
     private $_assertions = 0;
     private $_result = '';
 
     public function __construct() {
-        $this->colors = new Colors();
         file_put_contents(INST_PATH.'tests.log', '');
         fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
     }
@@ -20,14 +19,14 @@ class dumboTests extends Page{
      * @param string $errorMessage
      */
     private function _showError($errorMessage) {
-        return fwrite(STDERR, "\n". $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
+        return fwrite(STDERR, "\n{$errorMessage}\n");
     }
     /**
      * Output for a standard message
      * @param string $errorMessage
      */
     private function _showMessage($message) {
-        return fwrite(STDOUT, "\n". $this->colors->getColoredString($message, 'white', 'green') . "\n");
+        return fwrite(STDOUT, "\n{$message}\n");
     }
     /**
      * Displays the progress of each test: P - passed. F - failed.
@@ -37,7 +36,7 @@ class dumboTests extends Page{
         $color = $passed ? 'green' : 'red';
         $text = $passed ? 'P' : 'F';
 
-        fwrite(STDOUT, $this->colors->getColoredString($text, 'white', $color));
+        fwrite(STDOUT, $text);
     }
     /**
      * Logs the process of each test
@@ -128,19 +127,17 @@ DUMBO;
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
                 $passed = strcmp($migrationType, $field['Type']) === 0;
-                $this->_passed += $passed;
                 $this->_log('Assert if `' . $field['Field'] . '` is the same as defined at migration: ' . $migrationType. ': '.($passed ? 'Passed.' : 'Failed'));
                 !$passed && $this->_log("Field `{$fields[$i]['field']}` is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
-                $this->_progress($passed);
-                $passed or $this->_triggerError('Asserts Has FieldTypes');
             } else {
                 $passed = false;
-                $this->_passed += $passed;
                 $this->_log('Assert if `' . $field['Field'] . '` is in the same order as defined at migration: Failed');
                 !$passed && $this->_log("Field `{$fields[$i]['field']}` is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
-                $this->_progress($passed);
-                $passed or $this->_triggerError('Asserts Has FieldTypes');
             }
+
+            $this->_passed += $passed;
+            $this->_progress($passed);
+            $passed or $this->_triggerError('Asserts Has FieldTypes');
         }
     }
     public function describe($message) {
