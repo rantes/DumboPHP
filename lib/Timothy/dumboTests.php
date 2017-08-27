@@ -156,7 +156,7 @@ DUMBO;
         fwrite(STDOUT, 'Tests Success: ' . $this->_passed . "\n");
         fwrite(STDOUT, 'Tests failed: ' . $this->_failed . "\n");
         ($this->_failed and $this->_showError($result)) or $this->_showMessage($result);
-        exit($result);
+        exit(0 + !!$this->_failed);
     }
 }
 ?>
