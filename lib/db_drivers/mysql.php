@@ -116,21 +116,23 @@ class mysqlDriver {
         }
 
         $query = substr($query, 0, -1);
-        AUTO_AUDITS && ($query .= ',`updated_at`='.time());
 
         $query .= ' WHERE '.$params['conditions'];
 
         return array('query'=>$query, 'prepared'=>$prepared);
     }
 
-    public function Insert($params, $table) {
+    public function Insert($params, $table, $replace = false) {
         $prepared = array();
         $fields = '';
         $values = '';
+        $action = 'INSERT';
 
-        $query = "INSERT INTO `{$table}` ";
+        $replace && ($action = 'REPLACE');
+
+        $query = "{$action} INTO `{$table}` ";
         foreach($params as $field => $value){
-            if(is_string($value) || is_numeric($value)){
+            if(is_string($value) || is_numeric($value)) {
                 $fields .= "`$field`,";
                 $values .= ":".$field.",";
                 $prepared[':'.$field] = $value;
@@ -236,6 +238,14 @@ DUMBO;
         }
 
         return $query;
+    }
+    
+    public function AddIndex($table, $name, $fields) {
+        return "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
+    }
+
+    public function AddPrimaryKey($table, $fields) {
+        return "ALTER TABLE `{$table}` ADD PRIMARY KEY ({$fields})";
     }
 }
 

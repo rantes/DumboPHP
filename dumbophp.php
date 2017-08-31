@@ -1323,15 +1323,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 return false;
             }
 
-            $this->updated_at = time();
+            AUTO_AUDITS && ($this->updated_at = time());
             $data = array();
 
             foreach ($fields as $field) {
-                if ($field !== $this->pk && isset($this->{$field})) {
+                if ($field !== $this->pk && isset($this->{$field}) && $field !== 'created_at') {
                     $data[$field] = $this->{$field};
                 }
             }
-            $prepared = $GLOBALS['driver']->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = " .$this->{$this->pk}), $this->_ObjTable);
+            $prepared = $GLOBALS['driver']->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" .$this->{$this->pk}."'"), $this->_ObjTable);
         } else {
             if (!empty($this->before_insert)) {
                 foreach ($this->before_insert as $functiontoRun) {
@@ -1347,8 +1347,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 return false;
             }
 
-            $this->created_at = time();
-            $this->updated_at = 0;
+            if (AUTO_AUDITS) {
+                $this->created_at = time();
+                $this->updated_at = 0;
+            }
             $data = array();
 
             foreach ($fields as $field) {
@@ -1902,8 +1904,40 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return $string;
     }
 }
+class Vendor {
+    private $_path = '';
+    private $_vendors = null;
+
+    public function __construct() {
+        $this->_path = INST_PATH.'vendor/dumbophp/';
+        $this->_vendors = new stdClass();
+    }
+
+    public function __get($var) {
+        if (empty($this->_vendors->{$var})) {
+            $lowerName = strtolower($var);
+            $className = "DumboPHP{$var}";
+            $file = "{$this->_path}dumbophp_{$lowerName}.php";
+
+            require_once $file;
+            $this->_vendors->{$var} = new $className();
+        }
+
+        return $this->_vendors->{$var};
+    }
+
+    public function __set($var, $value) {
+        return null;
+    }
+}
+/**
+ *
+ * @author Javier Serrano <rantes.javier@gmail.com>
+ *
+ */
 abstract class Page extends Core_General_Class {
     public $excepts_before_filter    = array();
+    public $Vendor = null;
     protected $layout                = "";
     protected $render                = NULL;
     protected $flash                 = "";
@@ -1922,6 +1956,11 @@ abstract class Page extends Core_General_Class {
     private $_respondToAJAX          = '';
     private $_canrespondtoajax       = false;
     private $models                  = array();
+
+    public function __construct() {
+        $this->Vendor = new Vendor();
+    }
+
     public function __get($var) {
         $model = unCamelize($var);
         if (file_exists(INST_PATH.'app/models/'.$model.'.php')) {
@@ -1932,6 +1971,7 @@ abstract class Page extends Core_General_Class {
             return $this->{$var};
         }
     }
+
     public function display() {
         $renderPage  = TRUE;
         $this->action = _ACTION;
@@ -2129,9 +2169,6 @@ abstract class Migrations extends Core_General_Class {
  */
     protected function Add_Index(array $params) {
         $this->connect();
-        if (empty($params['Table'])) {
-            throw new Exception("Table param can not be empty", 1);
-        }
 
         if (empty($params['name'])) {
             throw new Exception("name param can not be empty", 1);
@@ -2144,10 +2181,26 @@ abstract class Migrations extends Core_General_Class {
         if (!is_array($params['fields'])) {
             throw new Exception("fields param must be an array", 1);
         }
+        
+        $query = $GLOBALS['driver']->AddIndex($this->_table, $params['name'], implode(',', $params['fields']));
 
-        $fields = implode(',', $params['fields']);
-        $query  = "ALTER TABLE `{$params['Table']}` ADD INDEX `{$params['name']}` ({$fields})";
-        $GLOBALS['Connection']->exec($query) !== false || print_r($GLOBALS['Connection']->errorInfo());
+        empty($query) || $this->_runQuery($query);
+    }
+    /**
+     * Set primary key in the table
+     * @param array $params
+     * @throws Exception
+     */
+    protected function Add_Primary(array $params) {
+        $this->connect();
+
+        if (empty($params['fields'])) throw new Exception("fields param can not be empty", 1);
+
+        if (!is_array($params['fields'])) throw new Exception("fields param must be an array", 1);
+
+        $query = $GLOBALS['driver']->AddPrimaryKey($this->_table, implode(',', $params['fields']));
+
+        empty($query) || $this->_runQuery($query);
     }
     /**
      * Change column definitions
