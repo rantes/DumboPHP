@@ -1957,11 +1957,8 @@ abstract class Page extends Core_General_Class {
     private $_canrespondtoajax       = false;
     private $models                  = array();
 
-    public function __construct() {
-        $this->Vendor = new Vendor();
-    }
-
     public function __get($var) {
+        empty($this->Vendor) && ($this->Vendor = new Vendor());
         $model = unCamelize($var);
         if (file_exists(INST_PATH.'app/models/'.$model.'.php')) {
             if (!class_exists($var)) {
@@ -2181,7 +2178,7 @@ abstract class Migrations extends Core_General_Class {
         if (!is_array($params['fields'])) {
             throw new Exception("fields param must be an array", 1);
         }
-        
+
         $query = $GLOBALS['driver']->AddIndex($this->_table, $params['name'], implode(',', $params['fields']));
 
         empty($query) || $this->_runQuery($query);
