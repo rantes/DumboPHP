@@ -1957,8 +1957,11 @@ abstract class Page extends Core_General_Class {
     private $_canrespondtoajax       = false;
     private $models                  = array();
 
+    public function __construct() {
+        $this->Vendor = new Vendor();
+    }
+
     public function __get($var) {
-        empty($this->Vendor) && ($this->Vendor = new Vendor());
         $model = unCamelize($var);
         if (file_exists(INST_PATH.'app/models/'.$model.'.php')) {
             if (!class_exists($var)) {
