@@ -1979,9 +1979,12 @@ abstract class Page extends Core_General_Class {
         if (property_exists($this, 'noTemplate') and in_array(_ACTION, $this->noTemplate)) $renderPage = FALSE;
         if ($this->canRespondToAJAX()) {
             if (!headers_sent()) {
-                header('Cache-Control: no-cache, must-revalidate');
-                header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+                header('Cache-Control: "max-age=0, no-cache, no-store, must-revalidate"');
                 header('Content-type: application/json');
+                header('ETag: 123');
+                header('Expires: "Wed, 11 Jan 1984 05:00:00 GMT"');
+                header('Pragma: "no-cache"');
+                header('X-Powered-By: "DUMBO PHP - LA TUTECA"');
             }
 
             $this->_outputContent = $this->respondToAJAX();
