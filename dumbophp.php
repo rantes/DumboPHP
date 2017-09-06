@@ -1955,6 +1955,7 @@ abstract class Page extends Core_General_Class {
     protected $_data_                = array();
     private $_respondToAJAX          = '';
     private $_canrespondtoajax       = false;
+    private $_preventLoad = false;
     private $models                  = array();
 
     public function __construct() {
@@ -2037,13 +2038,19 @@ abstract class Page extends Core_General_Class {
 
         $this->_exposeContent && print $this->_outputContent;
     }
+    public function PreventLoad($prevent = null) {
+        $prevent !== null && ($this->_preventLoad = !!$prevent);
+
+        return $this->_preventLoad;
+    }
     public function LoadHelper($helper = NULL) {
-        if (isset($helper) and is_array($helper)):
-        foreach ($helper as $file) {
-            require_once (INST_PATH."app/helpers/".$file."_Helper.php");
-        } elseif (isset($helper) and is_string($helper)):
-        require_once (INST_PATH."app/helpers/".$helper."_Helper.php");
-        endif;
+        if (isset($helper) and is_array($helper)) {
+            foreach ($helper as $file) {
+                require_once (INST_PATH."app/helpers/{$file}_Helper.php");
+            }
+        } elseif (isset($helper) and is_string($helper)) {
+            require_once (INST_PATH."app/helpers/{$helper}_Helper.php");
+        }
     }
     public function params($params = NULL) {
         $params !== null && ($this->params = $params);
@@ -2312,7 +2319,7 @@ class index {
         if ($canGo) {
             $classPage = Camelize($controller)."Controller";
             class_exists($classPage) || require_once ($path.$controllerFile);
-            $page      = new $classPage();
+            $page = new $classPage();
             $page->params($params);
             //loads of helpers
             if (isset($page->helper) and sizeof($page->helper) > 0) {
@@ -2340,7 +2347,7 @@ class index {
                 }
             }
             if (method_exists($page, $action."Action")) {
-                $page->{$action."Action"}();
+                !$page->PreventLoad() && $page->{$action."Action"}();
                 //before render, executed after the action execution and before the data renderize
                 if (method_exists($page, "before_render")) {
                     $actionsToExclude = $controllersToExclude = array();
