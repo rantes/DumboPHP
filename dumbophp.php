@@ -2395,5 +2395,9 @@ class index {
             }
         }
     }
+    
+    public function __destruct() {
+        $GLOBALS['Connection'] = null;
+    }
 }
 ?>
