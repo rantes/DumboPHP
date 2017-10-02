@@ -2196,6 +2196,15 @@ abstract class Migrations extends Core_General_Class {
 
         empty($query) || $this->_runQuery($query);
     }
+    protected function Add_Single_Index($fields) {
+        if (!is_array($fields)) {
+            throw new Exception('fields param must be an array', 1);
+        }
+
+        $query = $GLOBALS['driver']->AddSingleIndex($this->_table, implode(',', $params['fields']));
+
+        empty($query) || $this->_runQuery($query);
+    }
     /**
      * Set primary key in the table
      * @param array $params

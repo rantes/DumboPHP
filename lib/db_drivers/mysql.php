@@ -239,9 +239,13 @@ DUMBO;
 
         return $query;
     }
-    
+
     public function AddIndex($table, $name, $fields) {
         return "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
+    }
+
+    public function AddSIndex($table, $fields) {
+        return "ALTER TABLE `{$table}` ADD INDEX ({$fields})";
     }
 
     public function AddPrimaryKey($table, $fields) {
