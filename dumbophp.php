@@ -775,7 +775,7 @@ class Connection extends PDO {
             }
             empty($this->_settings['username']) and $this->_settings['username'] = null;
             empty($this->_settings['password']) and $this->_settings['password'] = null;
-            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], array(PDO::ATTR_PERSISTENT));
+            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], array(PDO::ATTR_PERSISTENT,  PDO::MYSQL_ATTR_USE_BUFFERED_QUERY));
             $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
             die('Error to connect to database due to: '.$e->getMessage());
@@ -2029,14 +2029,14 @@ abstract class Page extends Core_General_Class {
 
             $this->_outputContent = $this->yield;
 
-            if (strlen($this->layout) > 0) {
-                ob_start();
+            if (strlen($this->layout) > 0 && $this->_exposeContent) {
+//                 ob_start();
                 include_once ($viewsFolder.$this->layout.".phtml");
-                $this->_outputContent = ob_get_clean();
+//                 $this->_outputContent = ob_get_clean();
             }
         }
 
-        $this->_exposeContent && print $this->_outputContent;
+//         $this->_exposeContent && print $this->_outputContent;
     }
     public function PreventLoad($prevent = null) {
         $prevent !== null && ($this->_preventLoad = !!$prevent);
