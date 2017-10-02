@@ -2029,14 +2029,14 @@ abstract class Page extends Core_General_Class {
 
             $this->_outputContent = $this->yield;
 
-            if (strlen($this->layout) > 0 && $this->_exposeContent) {
-//                 ob_start();
+            if (strlen($this->layout) > 0) {
+                ob_start();
                 include_once ($viewsFolder.$this->layout.".phtml");
-//                 $this->_outputContent = ob_get_clean();
+                $this->_outputContent = ob_get_clean();
             }
         }
 
-//         $this->_exposeContent && print $this->_outputContent;
+        $this->_exposeContent && print $this->_outputContent;
     }
     public function PreventLoad($prevent = null) {
         $prevent !== null && ($this->_preventLoad = !!$prevent);
