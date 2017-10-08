@@ -2014,25 +2014,32 @@ abstract class Page extends Core_General_Class {
             } else {
                 $view = _CONTROLLER.'/'._ACTION.'.phtml';
             }
-
-            $viewsFolder = INST_PATH.'app/views/';
-
-            if ($renderPage) {
-                ob_start();
-                include_once ($viewsFolder.$view);
-                $this->yield = ob_get_clean();
-            }
-
             if (isset($this->render['layout']) && $this->render['layout'] !== false) $this->layout = $this->render['layout'];
 
             if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
 
-            $this->_outputContent = $this->yield;
+            $viewsFolder = INST_PATH.'app/views/';
+
+            if ($renderPage) {
+                if (strlen($this->layout) > 0) {
+                    ob_start();
+                    include_once ($viewsFolder.$view);
+                    $this->yield = ob_get_clean();
+                    $this->_outputContent = $this->yield;
+                } else {
+                    include_once ($viewsFolder.$view);
+                }
+            }
 
             if (strlen($this->layout) > 0) {
-                ob_start();
-                include_once ($viewsFolder.$this->layout.".phtml");
-                $this->_outputContent = ob_get_clean();
+                if ($this->_exposeContent) {
+                    $this->_exposeContent = false;
+                    include_once ($viewsFolder.$this->layout.".phtml");
+                } else {
+                    ob_start();
+                    include_once ($viewsFolder.$this->layout.".phtml");
+                    $this->_outputContent = ob_get_clean();
+                }
             }
         }
 
