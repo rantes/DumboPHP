@@ -241,11 +241,33 @@ DUMBO;
     }
 
     public function AddIndex($table, $name, $fields) {
-        return "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
+        $query = '';
+
+        if (!$this->ValidateIndex($table, $name)) {
+            "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
+        }
+
+        return $query;
+    }
+    
+    public function ValidateIndex($table, $index) {
+        $query = <<<DUMBO
+        SELECT COUNT(INDEX_NAME) AS counter FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}' AND index_name = '{$index}'
+DUMBO;
+
+        $res = $GLOBALS['Connection']->query($query);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        return 0 + $res->fetchAll()[0]['counter'];
     }
 
-    public function AddSIndex($table, $fields) {
-        return "ALTER TABLE `{$table}` ADD INDEX ({$fields})";
+    public function AddSingleIndex($table, $field) {
+        $query = '';
+
+        if (!$this->ValidateIndex($table, $field)) {
+            $query = "ALTER TABLE `{$table}` ADD INDEX ({$field})";
+        }
+
+            return $query;
     }
 
     public function AddPrimaryKey($table, $fields) {

@@ -1733,6 +1733,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $start = ($this->PaginatePageNumber-1)*$per_page;
         $queryCounter = $GLOBALS['driver']->Select($params, $this->_ObjTable);
         $params['limit'] = $start.",".$per_page;
+        $data = $this->Find($params);
 
         try {
             $regs = $GLOBALS['Connection']->query($queryCounter);
@@ -1742,9 +1743,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
         }
 
-        $this->PaginateTotalItems = $regs->rowCount();
-        $this->PaginateTotalPages = ceil($this->PaginateTotalItems/$per_page);
-        return $this->Find($params);
+        $data->PaginateTotalItems = $regs->rowCount();
+        $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
+        return $data;
     }
     public function WillPaginate($params = NULL) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
@@ -2208,7 +2209,7 @@ abstract class Migrations extends Core_General_Class {
             throw new Exception('fields param must be an array', 1);
         }
 
-        $query = $GLOBALS['driver']->AddSingleIndex($this->_table, implode(',', $params['fields']));
+        $query = $GLOBALS['driver']->AddSingleIndex($this->_table, implode(',', $fields));
 
         empty($query) || $this->_runQuery($query);
     }
