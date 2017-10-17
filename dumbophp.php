@@ -2204,12 +2204,8 @@ abstract class Migrations extends Core_General_Class {
 
         empty($query) || $this->_runQuery($query);
     }
-    protected function Add_Single_Index($fields) {
-        if (!is_array($fields)) {
-            throw new Exception('fields param must be an array', 1);
-        }
-
-        $query = $GLOBALS['driver']->AddSingleIndex($this->_table, implode(',', $fields));
+    protected function Add_Single_Index($field) {
+        $query = $GLOBALS['driver']->AddSingleIndex($this->_table, $field);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2412,7 +2408,7 @@ class index {
             }
         }
     }
-    
+
     public function __destruct() {
         $GLOBALS['Connection'] = null;
     }
