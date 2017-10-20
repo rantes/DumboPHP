@@ -127,12 +127,12 @@ DUMBO;
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
                 $passed = strcmp($migrationType, $field['Type']) === 0;
-                $this->_log('Assert if `' . $field['Field'] . '` is the same as defined at migration: ' . $migrationType. ': '.($passed ? 'Passed.' : 'Failed'));
-                !$passed && $this->_log("Field `{$fields[$i]['field']}` is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
+                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: ".($passed ? 'Passed.' : 'Failed'));
+                !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
             } else {
                 $passed = false;
-                $this->_log('Assert if `' . $field['Field'] . '` is in the same order as defined at migration: Failed');
-                !$passed && $this->_log("Field `{$fields[$i]['field']}` is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
+                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: Failed");
+                !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
             }
 
             $this->_passed += $passed;
