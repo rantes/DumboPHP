@@ -215,8 +215,13 @@ DUMBO;
 
         return $query;
     }
-
-    public function AlterColumn($table, $params) {
+    /**
+     * Alters a specific column on the table.
+     * @param string $table
+     * @param array $params
+     * @return string|NULL
+     */
+    public function AlterColumn($table, array $params) {
         $query = '';
         if ($this->validateField($table, $params['field']) > 0) {
             $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
@@ -230,7 +235,12 @@ DUMBO;
 
         return $query;
     }
-
+    /**
+     * Alters the table and drops a column
+     * @param string $table
+     * @param string $field
+     * @return string The query to run
+     */
     public function RemoveColumn($table, $field) {
         $query = '';
         if ($this->validateField($table, $field) > 0) {
@@ -239,7 +249,13 @@ DUMBO;
 
         return $query;
     }
-
+    /**
+     * Sets an index with a particular name
+     * @param string $table
+     * @param string $name
+     * @param string $fields
+     * @return string The query to run
+     */
     public function AddIndex($table, $name, $fields) {
         $query = '';
 
@@ -249,7 +265,12 @@ DUMBO;
 
         return $query;
     }
-
+    /**
+     * Validates if an index exists on a given table
+     * @param string $table
+     * @param string $index
+     * @return number how many indexes exists
+     */
     public function ValidateIndex($table, $index) {
         $query = <<<DUMBO
 SELECT COUNT(INDEX_NAME) AS indexes FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}' AND index_name = '{$index}'
@@ -260,7 +281,12 @@ DUMBO;
         $c = $res->fetchAll();
         return 0 + $c[0]['indexes'];
     }
-
+    /**
+     * Adds single index or index which is nothing but the field name
+     * @param string $table
+     * @param string $field
+     * @return string The query to run
+     */
     public function AddSingleIndex($table, $field) {
         $query = '';
         $x = $this->ValidateIndex($table, $field);
@@ -271,9 +297,43 @@ DUMBO;
 
         return $query;
     }
-
+    /**
+     * Adds primary key to the table
+     * @param string $table
+     * @param string $fields
+     * @return string The query to run
+     */
     public function AddPrimaryKey($table, $fields) {
         return "ALTER TABLE `{$table}` ADD PRIMARY KEY ({$fields})";
+    }
+    /**
+     * Retrieves all indexes from a single table
+     * @param string $table
+     * @return array The indexes names
+     */
+    public function GetAllIndexes($table) {
+        $query = <<<DUMBO
+SELECT INDEX_NAME FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}'
+DUMBO;
+
+        $res = $GLOBALS['Connection']->query($query);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $c = $res->fetchAll();
+        return $c;
+    }
+    /**
+     * Gets the query for dropping an index in a table
+     * @param string $table
+     * @param string $index
+     * @return string The query to run
+     */
+    public function RemoveIndex($table, $index) {
+        $query = '';
+        if ($this->validateIndex($table, $index) > 0) {
+            $query = "ALTER TABLE `{$table}` DROP INDEX `{$index}`";
+        }
+
+        return $query;
     }
 }
 

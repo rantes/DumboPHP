@@ -2204,26 +2204,47 @@ abstract class Migrations extends Core_General_Class {
 
         empty($query) || $this->_runQuery($query);
     }
+    /**
+     * Sets a single index into the table
+     * @param string $field
+     */
     protected function Add_Single_Index($field) {
+        $this->connect();
         $query = $GLOBALS['driver']->AddSingleIndex($this->_table, $field);
 
         empty($query) || $this->_runQuery($query);
     }
+    
+    protected function Remove_All_indexes() {
+        $this->connect();
+        $indexes = $GLOBALS['driver']->GetAllIndexes($this->_table);
+        foreach ($indexes as $index) {
+            if ($index['INDEX_NAME'] !== 'PRIMARY') {
+                $query = $GLOBALS['driver']->RemoveIndex($this->_table, $index['INDEX_NAME']);
+                empty($query) || $this->_runQuery($query);
+            }
+        }
+
+    }
     /**
      * Set primary key in the table
      * @param array $params
+     * @param boolean $autoIncrement
      * @throws Exception
      */
-    protected function Add_Primary(array $params) {
+    protected function Add_Primary(array $params, $autoIncrement = false) {
         $this->connect();
 
-        if (empty($params['fields'])) throw new Exception("fields param can not be empty", 1);
+        if (empty($params['field'])) throw new Exception("fields param can not be empty", 1);
 
-        if (!is_array($params['fields'])) throw new Exception("fields param must be an array", 1);
+        if (!is_string($params['field'])) throw new Exception("fields param must be a string", 1);
 
-        $query = $GLOBALS['driver']->AddPrimaryKey($this->_table, implode(',', $params['fields']));
+        $query = $GLOBALS['driver']->AddPrimaryKey($this->_table, $params['field']);
 
-        empty($query) || $this->_runQuery($query);
+        if (!empty($query)) {
+            $this->_runQuery($query);
+            $this->Alter_Column(['field'=>$params['field'], 'type'=>'AUTO_INCREMENT']);
+        }
     }
     /**
      * Change column definitions
