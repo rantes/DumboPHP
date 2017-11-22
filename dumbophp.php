@@ -1954,6 +1954,7 @@ abstract class Page extends Core_General_Class {
     protected $excepts_before_render = array();
     protected $_exposeContent        = true;
     protected $_data_                = array();
+    protected $outputHtml = true;
     private $_respondToAJAX          = '';
     private $_canrespondtoajax       = false;
     private $_preventLoad = false;
@@ -2032,6 +2033,7 @@ abstract class Page extends Core_General_Class {
                 }
             }
 
+            $this->_exposeContent = $this->outputHtml;
             if (strlen($this->layout) > 0) {
                 if ($this->_exposeContent) {
                     $this->_exposeContent = false;
