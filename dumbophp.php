@@ -1731,19 +1731,21 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName];
         }
         $start = ($this->PaginatePageNumber-1)*$per_page;
-        $queryCounter = $GLOBALS['driver']->Select($params, $this->_ObjTable);
         $params['limit'] = $start.",".$per_page;
         $data = $this->Find($params);
+        $params['limit'] = null;
+        $params['fields'] = 'COUNT(*) AS rows';
+        $queryCounter = $GLOBALS['driver']->Select($params, $this->_ObjTable);
 
         try {
-            $regs = $GLOBALS['Connection']->query($queryCounter);
+            $regs = $this->Find($params);
         } catch (PDOException $e) {
             echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
         } catch (Exception $e) {
             echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
         }
 
-        $data->PaginateTotalItems = $regs->rowCount();
+        $data->PaginateTotalItems = $regs->rows;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
         return $data;
     }
@@ -2216,7 +2218,7 @@ abstract class Migrations extends Core_General_Class {
 
         empty($query) || $this->_runQuery($query);
     }
-    
+
     protected function Remove_All_indexes() {
         $this->connect();
         $indexes = $GLOBALS['driver']->GetAllIndexes($this->_table);
