@@ -2035,7 +2035,7 @@ abstract class Page extends Core_General_Class {
                 }
             }
 
-            $this->_exposeContent = $this->outputHtml;
+//             $this->_exposeContent = $this->outputHtml;
             if (strlen($this->layout) > 0) {
                 if ($this->_exposeContent) {
                     $this->_exposeContent = false;
@@ -2048,7 +2048,7 @@ abstract class Page extends Core_General_Class {
             }
         }
 
-        $this->_exposeContent && print $this->_outputContent;
+        if ($this->_exposeContent) echo $this->_outputContent;
     }
     public function PreventLoad($prevent = null) {
         $prevent !== null && ($this->_preventLoad = !!$prevent);
