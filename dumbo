@@ -1,6 +1,9 @@
 #!/usr/bin/php
+if (file_exists('./config/host.php')) {
+    require_once './config/host.php';
+    set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp', INST_PATH.'/DumboPHP')));
+}
 <?php
-require_once 'lib/colorClass.php';
 
 class dumboShell{
     private $commands = array(
@@ -25,14 +28,16 @@ class dumboShell{
     private $colors = null;
 
     public function __construct() {
-        $this->colors = new Colors();
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $this->systemFolder = 'C:/Windows/';
-        }
 
         $this->dumboSource = $this->systemFolder . 'dumbophp/src';
         $this->dumboSystemPath = $this->systemFolder . 'dumbophp';
         $this->dumboLibs = $this->systemFolder . 'dumbophp/lib';
+
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $this->systemFolder = 'C:/Windows';
+        }
+        require_once 'lib/colorClass.php';
+        $this->colors = new Colors();
     }
 
     public function showError($errorMessage) {
@@ -280,8 +285,8 @@ DUMBO;
              * @todo script for remove scaffolding files
              */
             // case 'scaffold':
-            // 	$this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
-            // 	$generator->scaffold($this->params);
+            //     $this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
+            //     $generator->scaffold($this->params);
             // break;
             case 'model':
                 $model = INST_PATH.'app/models/'.singulars($this->arguments[1]).'.php';
@@ -297,14 +302,14 @@ DUMBO;
              * @todo script for remove controller and views
              */
             // case 'controller':
-            // 	$controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
-            // 	$migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
-            // 	$this->showNotice('Deleting model: "'.$model.'".');
-            // 	file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
-            // 	unlink($model);
-            // 	$this->showNotice('Deleting migration: "'.$migration.'".');
-            // 	file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
-            // 	unlink($migration);
+            //     $controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
+            //     $migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
+            //     $this->showNotice('Deleting model: "'.$model.'".');
+            //     file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
+            //     unlink($model);
+            //     $this->showNotice('Deleting migration: "'.$migration.'".');
+            //     file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
+            //     unlink($migration);
             // break;
             default:
                 $this->help();
@@ -475,10 +480,6 @@ DUMBO;
             break;
         }
     }
-}
-if (file_exists('./config/host.php')) {
-    require_once './config/host.php';
-    set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp', INST_PATH.'/DumboPHP')));
 }
 $shell = new dumboShell();
 $shell->run($argv);
