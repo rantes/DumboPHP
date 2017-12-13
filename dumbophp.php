@@ -1746,7 +1746,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
         }
 
-        $data->PaginateTotalItems = $regs->counter() > 1 ? $regs->counter() : $regs->rows;
+        $data->PaginateTotalItems = !empty($params['group']) || $regs->counter() > 1 ? $regs->counter() : $regs->rows;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
         return $data;
     }
