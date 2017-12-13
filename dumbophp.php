@@ -1712,7 +1712,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $params = $params[0];
         }
 
-
         $request = parse_url(_FULL_URL);
 
         $per_page = (isset($params['per_page']))? 0 + $params['per_page'] : 10;
@@ -1747,7 +1746,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
         }
 
-        $data->PaginateTotalItems = $regs->rows;
+        $data->PaginateTotalItems = $regs->counter() > 1 ? $regs->counter() : $regs->rows;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
         return $data;
     }
@@ -2037,7 +2036,6 @@ abstract class Page extends Core_General_Class {
                 }
             }
 
-//             $this->_exposeContent = $this->outputHtml;
             if (strlen($this->layout) > 0) {
                 if ($this->_exposeContent) {
                     $this->_exposeContent = false;
