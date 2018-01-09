@@ -3,8 +3,6 @@
 
 $dumboSystemPath = '/etc/dumbophp';
 $path = dirname(__FILE__);
-$dumboSystemPathSrc = $dumboSystemPath.'/src';
-$dumboSystemPathLib = $dumboSystemPath.'/lib';
 $pathSrc = $path.'/src';
 $pathLib = $path.'/lib';
 $binPath = '/usr/local/bin';
@@ -25,6 +23,8 @@ if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
     is_dir($binPath) or mkdir($binPath);
 }
 
+$dumboSystemPathSrc = $dumboSystemPath.'/src';
+$dumboSystemPathLib = $dumboSystemPath.'/lib';
 file_exists($dumboSystemPath) || mkdir($dumboSystemPath, 0777, TRUE);
 
 $d = dir($path);
