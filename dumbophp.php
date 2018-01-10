@@ -1994,6 +1994,10 @@ abstract class Page extends Core_General_Class {
             }
 
             $this->_outputContent = $this->respondToAJAX();
+            if (!is_string($this->_outputContent)) {
+                throw new Exception('The output content for JSON should be an string.', HTTP_500);
+            }
+
             if (!empty($this->params['callback'])) $this->_outputContent = "({$this->_outputContent}));";
 
             $renderPage   = false;
