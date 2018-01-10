@@ -2097,7 +2097,7 @@ abstract class Migrations extends Core_General_Class {
     private final function connect() {
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection();
-            require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
+            require_once implode(array(dirname(__FILE__),'lib', 'db_drivers', $GLOBALS['Connection']->engine.'.php'), DIRECTORY_SEPARATOR);
         }
 
         if (empty($GLOBALS['driver'])) {
