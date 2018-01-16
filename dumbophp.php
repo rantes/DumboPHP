@@ -1051,12 +1051,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         try {
             $regs = $GLOBALS['Connection']->query($query);
         } catch (PDOException $e) {
-            echo 'Failed to run ', $query, ' due to: ', $e->getMessage();
-        } catch (Exception $e) {
-            echo 'Failed to run ', $query, ' due to: ', $e->getMessage();
+            throw new Exception("Failed to run {$query} due to: {$e->getMessage()}");
         }
-
-        is_object($regs) or die("Error in SQL Query. Please check the SQL Query: ".$query);
 
         $cols = $regs->columnCount();
         for ($i = 0; $i < $cols; $i++) {
@@ -1738,13 +1734,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $params['fields'] = 'COUNT(*) AS rows';
         $queryCounter = $GLOBALS['driver']->Select($params, $this->_ObjTable);
 
-        try {
-            $regs = $this->Find($params);
-        } catch (PDOException $e) {
-            echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
-        } catch (Exception $e) {
-            echo 'Failed to run ', $queryCounter, ' due to: ', $e->getMessage();
-        }
+        $regs = $this->Find($params);
 
         $data->PaginateTotalItems = !empty($params['group']) || $regs->counter() > 1 ? $regs->counter() : $regs->rows;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
