@@ -2005,6 +2005,7 @@ abstract class Page extends Core_General_Class {
                 } elseif (!empty($this->render['text'])) {
                     $this->yield = $this->render['text'];
                     $renderPage  = FALSE;
+                    $view = null;
                 } elseif (!empty($this->render['action'])) {
                     $view = _CONTROLLER.'/'.$this->render['action'].'.phtml';
                 } else {
@@ -2018,6 +2019,7 @@ abstract class Page extends Core_General_Class {
             if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
 
             $viewsFolder = INST_PATH.'app/views/';
+            $this->_outputContent = $this->yield;
 
             if ($renderPage) {
                 if (strlen($this->layout) > 0) {
@@ -2025,7 +2027,7 @@ abstract class Page extends Core_General_Class {
                     include_once ($viewsFolder.$view);
                     $this->yield = ob_get_clean();
                     $this->_outputContent = $this->yield;
-                } else {
+                } elseif (!empty($view)) {
                     include_once ($viewsFolder.$view);
                 }
             }
