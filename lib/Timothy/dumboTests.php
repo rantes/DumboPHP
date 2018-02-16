@@ -77,14 +77,18 @@ DUMBO;
 
         $passed or $this->_triggerError('Asserts Equals');
     }
-
-    public function assertTrue($param, $message = false) {
-        $message || ($message = 'Assert if <' . gettype($param) . '> ' . $param . ' is true ');
-        $passed = $param === true;
+    /**
+     * Asserts if the Value is true.
+     * @param any $value
+     * @param string $message
+     */
+    public function assertTrue($value, $message = false) {
+        $message || ($message = 'Assert if <' . gettype($value) . '> ' . $value . ' is true ');
+        $passed = $value === true;
         $this->_passed += $passed;
         $this->_log($message. ': '.($passed ? 'Passed.' : 'Failed'));
         $this->_progress($passed);
-        !$passed && $this->_log('Expectig `true` but found <' . gettype($param) . '> ' . $param) && $this->_triggerError('Asserts True');
+        !$passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . $value) && $this->_triggerError('Asserts True');
     }
 
     /**
