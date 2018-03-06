@@ -154,27 +154,7 @@ DUMBO;
         //echo $text;
     }
 
-    private function initAppScript() {
-        file_exists('./config/host.php') or die('Generator must be executed at the top level of project path.'.PHP_EOL);
-        require_once './config/host.php';
-
-        $this->showNotice('Initializing DumboPHP project. ');
-        if (!empty($this->arguments[0]) && $this->arguments[0] === 'standalone') {
-            $this->showMessage('Building standalone site.');
-            copy($this->dumboSource.'/dumbophp.php',INST_PATH.'dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
-        } else {
-            symlink($this->dumboSystemPath.'/dumbophp.php',INST_PATH.'dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
-        }
-    }
-
-    private function createSite() {
-        $this->showNotice('Creating site named: "'.$this->arguments[0].'"');
-        if(!file_exists($this->arguments[0])) {
-            mkdir($this->arguments[0]);
-        } else {
-            die($this->showError('Error: Creation aborted. Project folder exists already.'));
-        }
-
+    private function _copyInstallFiles() {
         $d = dir($this->arguments[0]);
         $this->fullPathTarget = realpath($d->path);
         $d->close();
@@ -222,6 +202,30 @@ DUMBO;
             $this->showMessage('Building standalone site.');
             copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
         }
+    }
+
+    private function initAppScript() {
+        $this->showNotice('Initializing DumboPHP project. ');
+
+        $this->_copyInstallFiles();
+
+        if (!empty($this->arguments[1]) && $this->arguments[1] === 'standalone') {
+            $this->showMessage('Building standalone site.');
+            copy($this->dumboSource.'/dumbophp.php',INST_PATH.'dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+        }
+
+        $this->showNotice('Build complete.');
+    }
+
+    private function createSite() {
+        $this->showNotice('Creating site named: "'.$this->arguments[0].'"');
+        if(!file_exists($this->arguments[0])) {
+            mkdir($this->arguments[0]);
+        } else {
+            die($this->showError('Error: Creation aborted. Project folder exists already.'));
+        }
+
+        $this->_copyInstallFiles();
 
         $this->showNotice('Build complete.');
     }
