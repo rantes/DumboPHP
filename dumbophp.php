@@ -888,13 +888,6 @@ abstract class Core_General_Class extends ArrayObject {
         }
     }
 }
-defined('CAN_USE_MEMCACHED') or define('CAN_USE_MEMCACHED', false);
-if (CAN_USE_MEMCACHED) {
-    $GLOBALS['memcached'] = new Memcached();
-    defined('MEMCACHED_HOST') or define('MEMCACHED_HOST', 'localhost');
-    defined('MEMCACHED_PORT') or define('MEMCACHED_PORT', '11211');
-    $GLOBALS['memcached']->addServer(MEMCACHED_HOST, MEMCACHED_PORT);
-}
 $GLOBALS['models'] = array();
 /**
  * Class for Active Record design
@@ -993,19 +986,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         return true;
     }
-    private function _setMemcacheKey($key) {
-        $res = $GLOBALS['memcached']->get($this->_ObjTable);
-        ($GLOBALS['memcached']->getResultCode() === 0 && is_array($res)) || ($res = array());
-        in_array($key, $res) || array_push($res, $key);
-        $GLOBALS['memcached']->set($this->_ObjTable, $res);
-    }
-    private function _refreshCache() {
-        $res = $GLOBALS['memcached']->get($this->_ObjTable);
-        ($GLOBALS['memcached']->getResultCode() === 0 && is_array($res)) || ($res = array());
-        foreach ($res as $key) {
-            $GLOBALS['memcached']->delete($key);
-        }
-    }
     public function jsonSerialize() {
         return $this->getArray();
     }
@@ -1102,13 +1082,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $this->{$functiontoRun}();
             }
         }
-        if (CAN_USE_MEMCACHED) {
-            $key = md5($this->_ObjTable.':'.serialize($params));
-            $res = $GLOBALS['memcached']->get($key);
-            if ($GLOBALS['memcached']->getResultCode() == 0 && is_object($res)) {
-                return $res;
-            }
-        }
         $this->_sqlQuery = $GLOBALS['driver']->Select($params, $this->_ObjTable);
         $x = $this->getData($this->_sqlQuery);
         if (sizeof($x->after_find) > 0) {
@@ -1116,7 +1089,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $x->{$functiontoRun}();
             }
         }
-        CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $x) && $this->_setMemcacheKey($key);
         return $x;
     }
     /**
@@ -1130,16 +1102,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             exit;
         } else {
             $this->_sqlQuery = $query;
-            if (CAN_USE_MEMCACHED) {
-                $key = md5($query);
-                $res = null;
-                $res = $GLOBALS['memcached']->get($key);
-                if ($GLOBALS['memcached']->getResultCode() == 0 && is_object($res)) {
-                    return $res;
-                }
-            }
             $x = $this->getData($query);
-            CAN_USE_MEMCACHED && $GLOBALS['memcached']->set($key, $x);
             return $x;
         }
     }
@@ -1212,7 +1175,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
             return false;
         }
-        CAN_USE_MEMCACHED && $this->_refreshCache();
         return true;
     }
     /**
@@ -1388,7 +1350,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $this->{$functiontoRun}();
             }
         }
-        CAN_USE_MEMCACHED && $this->_refreshCache();
         return true;
     }
     /**
@@ -1436,7 +1397,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             }
         }
-        CAN_USE_MEMCACHED && $this->_refreshCache();
         return TRUE;
     }
     /**
