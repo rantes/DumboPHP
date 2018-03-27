@@ -1,4 +1,4 @@
 language: php
 php:
   - '7.0'
-script: ./dumbo test Test
+script: php dumbo test Test
