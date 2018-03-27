@@ -11,6 +11,7 @@ class dumboTests extends Page {
     private $_result = '';
 
     public function __construct() {
+        defined('INST_PATH') or define('INST_PATH', './');
         file_put_contents(INST_PATH.'tests.log', '');
         fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
     }
