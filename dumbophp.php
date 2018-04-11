@@ -917,7 +917,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $belongs_to              = array();
     public $has_many_and_belongs_to = array();
     public $validate                = array();
-    public $disableCast = false;
+    public $disableCast = true;
     protected $before_insert           = array();
     protected $after_insert            = array();
     protected $after_find              = array();
@@ -981,9 +981,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return $this->_ObjTable;
     }
     private function _setInitialCols() {
-        foreach ($GLOBALS['driver']->getColumns($this->_ObjTable) as $field) {
-            $this->_fields[$field['Field']] = $field['Cast'];
+        if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
+            foreach ($GLOBALS['driver']->getColumns($this->_ObjTable) as $field) {
+                $this->_fields[$field['Field']] = $field['Cast'];
+            }
+            $GLOBALS['models'][$this->_ObjTable]['fields'] = $this->_fields;
+        } else {
+            $this->_fields = $GLOBALS['models'][$this->_ObjTable]['fields'];
         }
+
         return true;
     }
     public function jsonSerialize() {
