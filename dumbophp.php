@@ -980,6 +980,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         empty($name) or ($this->_ObjTable = $name);
         return $this->_ObjTable;
     }
+    /**
+     * Sets the initial col names (attrs)
+     */
     private function _setInitialCols() {
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
             foreach ($GLOBALS['driver']->getColumns($this->_ObjTable) as $field) {
@@ -1493,18 +1496,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $arraux = array();
         $fields = array_keys($this->_fields);
 
-        if ($this->_counter > 0) {
-            for ($j = 0; $j < $this->_counter; $j++) {
-                foreach ($fields as $field) {
-                    if (isset($this[$j]->{$field})) {
-                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
-                    }
-                }
-            }
-        } else {
+        for ($j = 0; $j < $this->_counter; $j++) {
             foreach ($fields as $field) {
-                if (isset($this->{$field})) {
-                    $arraux[$field] = $this->{$field};
+                if (isset($this[$j]->{$field})) {
+                    $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
                 }
             }
         }
