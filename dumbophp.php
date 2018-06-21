@@ -2189,22 +2189,22 @@ abstract class Migrations extends Core_General_Class {
     }
     /**
      * Set primary key in the table
-     * @param array $params
+     * @param string $field
      * @param boolean $autoIncrement
      * @throws Exception
      */
-    protected function Add_Primary(array $params, $autoIncrement = false) {
+    protected function Add_Primary($field, $autoIncrement = false) {
         $this->connect();
 
-        if (empty($params['field'])) throw new Exception("fields param can not be empty", 1);
+        if (empty($field)) throw new Exception("fields param can not be empty", 1);
 
-        if (!is_string($params['field'])) throw new Exception("fields param must be a string", 1);
+        if (!is_string($field)) throw new Exception("fields param must be a string", 1);
 
-        $query = $GLOBALS['driver']->AddPrimaryKey($this->_table, $params['field']);
+        $query = $GLOBALS['driver']->AddPrimaryKey($this->_table, $field);
 
         if (!empty($query)) {
             $this->_runQuery($query);
-            $this->Alter_Column(['field'=>$params['field'], 'type'=>'AUTO_INCREMENT']);
+            $autoIncrement && $this->Alter_Column(['field'=>$field, 'type'=>'AUTO_INCREMENT']);
         }
     }
     /**
