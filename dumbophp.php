@@ -1128,6 +1128,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
     }
     private function _set_columns($meta) {
+        isset($meta['native_type']) or ($meta['native_type'] = 'VAR_STRING');
         $this->_fields[$meta['name']] = $GLOBALS['PDOCASTS'][$meta['native_type']];
         $this->{$meta['name']} = '';
         $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
