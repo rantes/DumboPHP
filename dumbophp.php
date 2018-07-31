@@ -1051,6 +1051,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $obj->_counter = $regs->rowCount();
         $regs->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
         $resultset = $regs->fetchAll();
+        $regs->closeCursor();
         $obj->exchangeArray($resultset);
         if ($obj->_counter === 0) {
             $obj->offsetSet(0, NULL);
@@ -1693,7 +1694,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $data = $this->Find($params);
         $params['limit'] = null;
         $params['sort'] = null;
-        $params['fields'] = 'COUNT(*) AS rows';
+        $params['fields'] = 'COUNT(*) AS `rows`';
         $queryCounter = $GLOBALS['driver']->Select($params, $this->_ObjTable);
 
         $regs = $this->Find($params);
@@ -2008,6 +2009,11 @@ abstract class Page extends Core_General_Class {
 
         if ($this->_exposeContent) echo $this->_outputContent;
     }
+    /**
+     * Sets or retrieve if should or not to load the view/action
+     * @param boolean $prevent
+     * @return boolean
+     */
     public function PreventLoad($prevent = null) {
         $prevent !== null && ($this->_preventLoad = !!$prevent);
 
