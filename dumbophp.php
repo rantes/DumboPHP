@@ -775,7 +775,7 @@ class Connection extends PDO {
             }
             empty($this->_settings['username']) and $this->_settings['username'] = null;
             empty($this->_settings['password']) and $this->_settings['password'] = null;
-            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], array(PDO::ATTR_PERSISTENT => true, PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true));
+            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
             $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
             die('Error to connect to database due to: '.$e->getMessage());
