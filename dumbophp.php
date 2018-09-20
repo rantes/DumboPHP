@@ -909,6 +909,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $_error              = NULL;
     public $_sqlQuery           = '';
     public $candump             = true;
+    public $id = null;
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
