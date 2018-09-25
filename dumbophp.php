@@ -2318,9 +2318,10 @@ class index {
         }
         defined('_CONTROLLER') || define('_CONTROLLER', $controller);
         defined('_ACTION') || define('_ACTION', $action);
-        $params = http_build_query($params);
-        empty($params) || ($params = "?{$params}");
-        defined('_FULL_URL') || define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/');
+        $queryparams = http_build_query($params);
+        empty($queryparams) || ($queryparams = "?{$queryparams}");
+        defined('_FULL_URL') || define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/'.$queryparams);
+
         if ($canGo) {
             $classPage = Camelize($controller)."Controller";
             class_exists($classPage) || require_once ($path.$controllerFile);
