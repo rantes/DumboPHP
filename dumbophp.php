@@ -960,10 +960,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection();
-            require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
         }
 
         if (empty($GLOBALS['driver'])) {
+            require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
             $driver = $GLOBALS['Connection']->engine.'Driver';
             $GLOBALS['driver'] = new $driver();
         }
@@ -1940,7 +1940,7 @@ abstract class Page extends Core_General_Class {
         if ($this->canRespondToAJAX()) {
             if (!headers_sent()) {
                 header('Cache-Control: "max-age=0, no-cache, no-store, must-revalidate"');
-                header('Content-type: application/json');
+                header('Content-type: "application/json; charset=utf-8"');
                 header('ETag: 123');
                 header('Expires: "Wed, 11 Jan 1984 05:00:00 GMT"');
                 header('Pragma: "no-cache"');
@@ -2318,7 +2318,9 @@ class index {
         }
         defined('_CONTROLLER') || define('_CONTROLLER', $controller);
         defined('_ACTION') || define('_ACTION', $action);
-        defined('_FULL_URL') || define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/?'.http_build_query($params));
+        $params = http_build_query($params);
+        empty($params) || ($params = "?{$params}");
+        defined('_FULL_URL') || define('_FULL_URL', INST_URI._CONTROLLER.'/'._ACTION.'/');
         if ($canGo) {
             $classPage = Camelize($controller)."Controller";
             class_exists($classPage) || require_once ($path.$controllerFile);
