@@ -291,7 +291,7 @@ DUMBO;
 				$model = INST_PATH."app/models/{$singular}.php";
 				$migration = INST_PATH."migrations/create_{$singular}.php";
 				$controller = INST_PATH."app/controllers/{$singular}_controller.php";
-				$views = INST_PATH.'app/views';
+				$views = INST_PATH."app/views/{$singular}";
 
 				$this->showNotice("Deleting model: {$model}");
 				is_file($model) && unlink($model);
