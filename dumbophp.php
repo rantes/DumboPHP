@@ -1997,14 +1997,14 @@ abstract class Page extends Core_General_Class {
             }
 
             if (strlen($this->layout) > 0) {
-                if ($this->_exposeContent) {
-                    $this->_exposeContent = false;
-                    include_once ($viewsFolder.$this->layout.".phtml");
-                } else {
+//                 if ($this->_exposeContent) {
+//                     $this->_exposeContent = false;
+//                     include_once ($viewsFolder.$this->layout.".phtml");
+//                 } else {
                     ob_start();
                     include_once ($viewsFolder.$this->layout.".phtml");
                     $this->_outputContent = ob_get_clean();
-                }
+//                 }
             }
         }
 
