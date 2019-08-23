@@ -242,9 +242,10 @@ final class IrregularNouns {
     }
 }
 $GLOBALS['IN'] = new IrregularNouns();
-$GLOBALS['PDOCASTS'] = array(
+$GLOBALS['PDOCASTS'] = [
     'BLOB' => false,
     'MEDIUM_BLOB' => false,
+    'LONG_BLOB' => false,
     'DATETIME' => false,
     'DATE' => false,
     'DOUBLE' => false,
@@ -254,10 +255,11 @@ $GLOBALS['PDOCASTS'] = array(
     'NEWDECIMAL' => false,
     'SHORT' => true,
     'STRING' => false,
+    'TIME' => false,
     'TIMESTAMP' => true,
     'TINY' => true,
     'VAR_STRING' => false,
-);
+];
 /**
  * Turns a singular word into its plural
  * @param array|string $params
