@@ -9,9 +9,12 @@ class dumboTests extends Page {
     private $_passed = 0;
     private $_assertions = 0;
     private $_result = '';
+    private $_colors = null;
 
     public function __construct() {
         defined('INST_PATH') or define('INST_PATH', './');
+        require_once 'lib/colorClass.php';
+        $this->_colors = new Colors();
         file_put_contents(INST_PATH.'tests.log', '');
         fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
     }
@@ -37,7 +40,7 @@ class dumboTests extends Page {
         $color = $passed ? 'green' : 'red';
         $text = $passed ? 'P' : 'F';
 
-        fwrite(STDOUT, $text);
+        fwrite(STDOUT, $this->_colors->getColoredString($text, $color));
     }
     /**
      * Logs the process of each test
@@ -72,7 +75,9 @@ DUMBO;
         $message || ($message = 'Assert if <' . gettype($param1) . '> ' . $param1 . ' is equals to <' . gettype($param2) . '> ' . $param2);
         $passed = $param1 === $param2;
         $this->_passed += $passed;
-        $this->_log($message. ': '.($passed ? 'Passed.' : 'Failed'));
+        $color = $passed ? 'green' : 'red';
+        $text = $passed ? 'Passed.' : 'Failed';
+        $this->_log($message. ': '.$this->_colors->getColoredString($text, $color));
 
         $this->_progress($passed);
 
@@ -87,7 +92,9 @@ DUMBO;
         $message || ($message = 'Assert if <' . gettype($value) . '> ' . $value . ' is true ');
         $passed = $value === true;
         $this->_passed += $passed;
-        $this->_log($message. ': '.($passed ? 'Passed.' : 'Failed'));
+        $color = $passed ? 'green' : 'red';
+        $text = $passed ? 'Passed.' : 'Failed';
+        $this->_log($message. ': '.$this->_colors->getColoredString($text, $color));
         $this->_progress($passed);
         !$passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . $value) && $this->_triggerError('Asserts True');
     }
@@ -107,7 +114,9 @@ DUMBO;
         $passed = !empty($fields) & !empty($expected) & empty(array_diff($fields, $expected));
 
         $this->_passed += $passed;
-        $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.($passed ? 'Passed.' : 'Failed'));
+        $color = $passed ? 'green' : 'red';
+        $text = $passed ? 'Passed.' : 'Failed';
+        $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.$this->_colors->getColoredString($text, $color));
 
         !$passed && $this->_log('Missing fields: '.implode(',', array_diff($fields, $expected)));
 
@@ -132,11 +141,13 @@ DUMBO;
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
                 $passed = strcmp($migrationType, $field['Type']) === 0;
-                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: ".($passed ? 'Passed.' : 'Failed'));
+                $color = $passed ? 'green' : 'red';
+                $text = $passed ? 'Passed.' : 'Failed';
+                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: ".$this->_colors->getColoredString($text, $color));
                 !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
             } else {
                 $passed = false;
-                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: Failed");
+                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: ".$this->_colors->getColoredString('Failed', 'red'));
                 !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
             }
 
@@ -145,21 +156,30 @@ DUMBO;
             $passed or $this->_triggerError('Asserts Has FieldTypes');
         }
     }
+    /**
+     * Add description for a set of tests
+     *
+     * @param [string] $message
+     * @return void
+     */
     public function describe($message) {
         if (!is_string($message)) {
             throw new Exception('The message for the description must be string.');
         }
 
-        $this->_log($message);
+        $this->_log("\n\n{$message}\n");
     }
     /**
      * What supposed to do whe the script ends.
      */
     public function __destruct() {
-        $result = $this->_failed? 'TESTS FAILED!' : 'TESTS PASSED!';
+        $color = $this->_failed ? 'red' : 'green';
+        $text = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
+        $result = $this->_colors->getColoredString($text, $color);
+        $this->_log($message. ': '.$this->_colors->getColoredString($text, $color));
         fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
-        fwrite(STDOUT, 'Tests Success: ' . $this->_passed . "\n");
-        fwrite(STDOUT, 'Tests failed: ' . $this->_failed . "\n");
+        fwrite(STDOUT, "\n\nTests Success: {$this->_passed}\n");
+        fwrite(STDOUT, "Tests failed: {$this->_failed}\n");
         ($this->_failed and $this->_showError($result)) or $this->_showMessage($result);
         exit(0 + !!$this->_failed);
     }
