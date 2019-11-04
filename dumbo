@@ -423,7 +423,16 @@ DUMBO;
 
 		require_once 'dumbophp.php';
 		require_once 'lib/Timothy/dumboTests.php';
-		require_once 'lib/Timothy/testDispatcher.php';
+        require_once 'lib/Timothy/testDispatcher.php';
+        if (in_array('all', $this->arguments)):
+            $testsDir = dir('tests/');
+            $this->arguments = [];
+            while (($file = $testsDir->read()) !== FALSE) {
+                if($file != '.' and $file != '..' and preg_match('/(.+)\.php/', $file, $matches) === 1) {
+                    $this->arguments[] = substr($file, 0, -4);
+                }
+            }
+        endif;
 		$testLaunch = new testDispatcher($this->arguments);
 		foreach ($this->arguments as $test) {
 			$testLaunch->run($test);

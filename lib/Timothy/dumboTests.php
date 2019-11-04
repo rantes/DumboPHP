@@ -176,7 +176,7 @@ DUMBO;
         $color = $this->_failed ? 'red' : 'green';
         $text = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
         $result = $this->_colors->getColoredString($text, $color);
-        $this->_log($message. ': '.$this->_colors->getColoredString($text, $color));
+        $this->_log($result);
         fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
         fwrite(STDOUT, "\n\nTests Success: {$this->_passed}\n");
         fwrite(STDOUT, "Tests failed: {$this->_failed}\n");
