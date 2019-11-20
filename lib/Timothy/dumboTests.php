@@ -1,4 +1,70 @@
 <?php
+class mockObject {
+    public $data = [];
+    public $className = '';
+
+    public function columnCount() {
+        return sizeof($this->data[0]);
+    }
+    
+    public function rowCount() {
+        return sizeof($this->data);
+    }
+
+    public function setFetchMode($any, $class) {
+        if (!empty($any)) $this->className = $class;
+    }
+
+    public function getColumnMeta($index) {
+        $i = 0;
+        foreach ($this->data[0] as $key => $value) {
+            if ($index === $i) {
+                return ['name' => $key];
+            }
+            $i++;
+        }
+
+    }
+
+    public function closeCursor() { return true; }
+
+    public function fetchAll() {
+        $temp = [];
+
+        foreach ($this->data as $reg) {
+            $a = new $this->className();
+            foreach ($reg as $index => $value) {
+                $a->{$index} = $value;
+            }
+            $temp[] = $a;
+        }
+
+        return $temp;
+    }
+}
+
+class mockConnection {
+    public $mockData = [];
+    public $engine = 'mysql';
+
+    public function query($query) {
+        preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
+        $obj = new mockObject();
+        $obj->data = $this->mockData[$matches[1]];
+        return $obj;
+    }
+
+    public function getColumnFields($query) {
+        preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
+        $fields = [];
+
+        foreach($this->mockData[$matches[1]][0] as $field => $value) {
+            $fields[] = ['Field' => $field, 'Cast' => false];
+        }
+
+        return $fields;
+    }
+}
 /**
  *
  * @author rantes <rantes.javier@gmail.com> http://rantes.info
@@ -7,9 +73,10 @@
 class dumboTests extends Page {
     private $_failed = 0;
     private $_passed = 0;
-    private $_assertions = 0;
-    private $_result = '';
     private $_colors = null;
+    private $_colorsPalete = ['red', 'green'];
+    private $_textOutputs = ['Failed', 'Passed'];
+    public $mockedData = [];
 
     public function __construct() {
         defined('INST_PATH') or define('INST_PATH', './');
@@ -135,8 +202,7 @@ DUMBO;
         $migrationName = 'Create'.Camelize(Singulars($table));
         $migration = new $migrationName();
         $fields = $migration->getDefinitions();
-        $expected = $GLOBALS['driver']->getColumns($table);
-        foreach ($GLOBALS['driver']->getColumns($table) as $i => $field) {
+        foreach ($GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($table)) as $i => $field) {
             if (strcmp($field['Field'], $fields[$i]['field']) === 0) {
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
@@ -173,15 +239,54 @@ DUMBO;
      * What supposed to do whe the script ends.
      */
     public function __destruct() {
-        $color = $this->_failed ? 'red' : 'green';
+        // $color = $this->_failed ? 'red' : 'green';
         $text = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
-        $result = $this->_colors->getColoredString($text, $color);
+        $result = $this->_colors->getColoredString($text, $this->_colorsPalete[!$this->_failed]);
         $this->_log($result);
         fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
         fwrite(STDOUT, "\n\nTests Success: {$this->_passed}\n");
         fwrite(STDOUT, "Tests failed: {$this->_failed}\n");
         ($this->_failed and $this->_showError($result)) or $this->_showMessage($result);
         exit(0 + !!$this->_failed);
+    }
+
+    // public function mockModel($model) {
+
+    // }
+
+    public function beforeEach() {}
+
+    /**
+     * Redefines a method to set an spy
+     *
+     * @param Page $controller
+     * @param string $method
+     * @param Closure $closure
+     * @return void
+     */
+    public function spyOn(Page $controller, $method) {
+       /**NOOP */
+    }
+    /**
+     * Undocumented function
+     *
+     * @param [type] $method
+     * @param string $message
+     * @return void
+     */
+    public function assertMethodHasBeenCalled($method, $message = '') {
+        // $backtrace = debug_backtrace();
+        // var_dump($backtrace);
+
+        // while (($trace = array_pop($backtrace)) != null) {
+        //     $passed = $trace['function'] === $method;
+        //     if ($passed) break;
+        // }
+
+        // $this->_passed += $passed;
+        // $this->_log("Expecting {$method} to have been called: {$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed])}");
+        // $this->_progress($passed);
+        // !$passed && $this->_log("Expecting {$method} to have been called") && $this->_triggerError('Asserts Method Have Been Called');
     }
 }
 ?>

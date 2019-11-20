@@ -1,10 +1,9 @@
 <?php
-$in_shell = false;
-if (php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) && !empty($argv)) {
+defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty($_SERVER['REMOTE_ADDR']));
+
+if (_IN_SHELL_ && !empty($argv)) {
     parse_str(implode('&', array_slice($argv, 1)), $_GET);
-    $in_shell = true;
 }
-defined('_IN_SHELL_') || define('_IN_SHELL_', $in_shell);
 
 for ($i = 1; $i <= 5; $i++) {
     for ($j = 0; $j <= 10; $j++) {
@@ -250,6 +249,7 @@ $GLOBALS['PDOCASTS'] = [
     'DATE' => false,
     'DOUBLE' => false,
     'FLOAT' => true,
+    'BIGINT' => true,
     'LONGLONG' => true,
     'LONG' => true,
     'NEWDECIMAL' => false,
@@ -497,239 +497,6 @@ function GetInput($type, &$obj = NULL) {
     return 'text';
 }
 /**
- * Returns an array with the attributes of the current active record
- * @deprecated
- * @param array $arr
- * @param ActiveRecord $obj
- * @return string[]
- */
-function toOptions(&$arr, &$obj = NULL) {
-    $arr1   = array();
-    $arraux = array();
-    if (isset($obj) and is_object($obj)) {
-        $arr = $obj->getArray();
-    }
-    foreach ($arr as $element) {
-        $arraux = array();
-        foreach ($element as $value) {
-            $arraux[] = (string) $value;
-        }
-        $arr1[$arraux[0]] = $arraux[1];
-    }
-    return $arr1;
-}
-/**
- * @deprecated
- * @param string $arr
- * @param ActiveRecord $obj
- * @return number
- */
-function checkBoxToInt(&$arr, &$obj = NULL) {
-    if ($arr !== NULL and $arr == 'on') {
-        return 1;
-    }
-
-    return 0;
-}
-/**
- * Outputs ending form tag
- * @deprecated
- * @return string
- */
-function end_form_for() {
-    return '</form>';
-}
-/**
- * Outputs a html img tag
- * @deprecated
- * @param array $params
- * @param ActiveRecord $obj
- * @return string
- */
-function image_tag($params, &$obj = NULL) {
-    $rute   = 'images/';
-    $params = ($obj === NULL)?$params:$params[0];
-    if (is_array($params)):
-    if (isset($params['image'])):
-    if (isset($params['rute'])):
-    if ($params['rute'] == 'absolute'):
-    $rute = INST_URI.$rute;
-     else :
-    $rute = '/'.$rute;
-    endif;
-     else :
-    $rute = '/'.$rute;
-    endif;
-    $params['image'] = $params['image'];
-    $html_options    = '';
-    if (isset($params['html'])):
-    foreach ($params['html'] as $attr => $value):
-    $html_options .= " $attr=\"$value\"";
-    endforeach;
-    endif;
-    if (isset($params['alt'])) {$html_options .= ' alt="'.$params['alt'].'"';
-    }
-
-    if (isset($params['border'])) {$html_options .= ' border="'.$params['border'].'"';
-    }
-
-    return '<img src="'.INST_URI.'images/'.$params['image'].'" '.$html_options.' />';
-    endif;
-     elseif (is_string($params)):
-    $image = $params;
-    return '<img src="'.INST_URI.'images/'.$image.'" />';
-    endif;
-}
-/**
- * Outputs html tag for css inluding
- * @deprecated
- * @param array $params
- * @param ActiveRecord $obj
- * @throws Exception
- * @return string
- */
-function stylesheet_link_tag($params, &$obj = NULL) {
-    $css                                                         = NULL;
-    if (!is_array($params) and is_string($params)) {$css         = $params;
-    } elseif (isset($params[0]) and sizeof($params) === 1) {$css = $params[0];
-    } elseif (isset($params['css'])) {$css                       = $params['css'];
-    }
-
-    if ($css === NULL):
-    throw new Exception('Must specify a css file');
-     elseif (!file_exists(INST_PATH.'app/webroot/css/'.$css)):
-    throw new Exception('The file specified do not exists: '.INST_PATH.'app/webroot/css/'.$css);
-     else :
-    $media = 'all';
-    $type  = 'text/css';
-    $rel   = 'stylesheet';
-    if (is_array($params)):
-    if (isset($params['type'])) {$type = $params['type'];
-    }
-
-    if (isset($params['rel'])) {$rel = $params['rel'];
-    }
-
-    if (isset($params['media'])) {$media = $params['media'];
-    }
-
-    endif;
-    $css .= '?'.time();
-    return "<link href=\"".INST_URI."css/$css\" type=\"$type\" rel=\"$rel\" media=\"$media\"  />";
-    endif;
-}
-/**
- * Outputs a html <a> tag
- * @deprecated
- * @param array $params
- * @param unknown $obj
- * @return string
- */
-function link_to($params = array(), &$obj = NULL) {
-    $params       = ($obj === NULL)?$params:$params[0];
-    $link         = '';
-    $content      = '';
-    $html_options = '';
-    $action       = _ACTION;
-    $controller   = _CONTROLLER;
-    if (isset($params)):
-    if (is_string($params) and strlen($params) > 0):
-    $content = $params;
-     elseif (is_array($params)):
-    if (isset($params['controller'])):
-    $controller = $params['controller'];
-    unset($params['controller']);
-    $link = INST_URI.$controller.'/';
-    endif;
-    if (isset($params['action'])):
-    $action = $params['action'];
-    unset($params['action']);
-    $link .= $action;
-    endif;
-    if (isset($params['url'])):
-    if (is_string($params['url'])):
-    $link = $params['url'];
-    endif;
-    unset($params['url']);
-    endif;
-    if (isset($params['params'])):
-    $link .= '/'.$params['params'];
-    endif;
-    if (isset($params[0])):
-    $content = $params[0];
-    unset($params[0]);
-    endif;
-    if (isset($params['html'])):
-    foreach ($params['html'] as $attr => $value) {
-        $html_options .= " $attr=\"$value\"";
-    }
-    unset($params['html']);
-    endif;
-    if (sizeof($params) > 0 and !is_array($params)):
-    if (sizeof($params) === 1):
-    list($var) = $params;
-    if (key($params) == 'id'):
-    $link .= "/$var";
-     else :
-    $link .= "/?".key($params)."=".$var;
-    endif;
-     else :
-    $link .= "/?";
-    foreach ($params as $var => $val) {
-        $link .= "$var=$val&";
-    }
-    $link = substr($link, 0, -1);
-    endif;
-    endif;
-    endif;
-    if (strlen($link) > 0) {$link = 'href="'.$link.'"';
-    }
-
-    return "<a ".$link." $html_options>$content</a>";
-    endif;
-}
-/**
- * Outputs html javascript including tag
- * @deprecated
- * @param array $params
- * @param ActiveRecord $obj
- * @throws Exception
- * @return string|NULL
- */
-function javascript_include_tag($params, &$obj = NULL) {
-    $js     = '';
-    $params = ($obj === NULL)?$params:$params[0];
-    if (isset($params) or $params != NULL):
-    if (is_string($params) and strlen($params) > 0):
-    preg_match("@plugins/[.]*@U", $params, $arr);
-    if (!empty($arr[0]) and $arr[0] == 'plugins/'):
-    $js = INST_URI.$params.'.js';
-     else :
-    $js = INST_URI."js/".$params.'.js';
-    endif;
-    return "<script type=\"text/javascript\" language=\"javascript\" src=\"$js\"></script>";
-     elseif (is_array($params) and sizeof($params) > 0):
-    $string = '';
-    foreach ($params as $file) {
-        preg_match("@plugins/[.]*@U", $file, $arr);
-        if (!empty($arr[0]) and $arr[0] == 'plugins/'):
-        $js = INST_URI.$file.'.js';
-         else :
-        $js = INST_URI."js/".$file.'.js';
-        endif;
-        $string .= "<script type=\"text/javascript\"  src=\"$js\"></script>";
-    }
-    return $string;
-     else :
-    throw new Exception("Must give a valid string for file name.");
-    return NULL;
-    endif;
-     else :
-    throw new Exception("Must to give a file name.");
-    return NULL;
-    endif;
-}
-/**
  * Handles the database connet
  * @author rantes
  * @package Core
@@ -785,6 +552,39 @@ class Connection extends PDO {
         } catch (Exception $e) {
             die('Internal error: '.$e->getMessage());
         }
+    }
+    /**
+     * Regarding the espcific dirver query, get the fields info from a table
+     *
+     * @param [string] $query
+     * @return yield
+     */
+    public function getColumnFields($query) {
+        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG'];
+        $result1 = $this->query($query);
+        $result1->setFetchMode(PDO::FETCH_ASSOC);
+        $resultset1 = $result1->fetchAll();
+        foreach ($resultset1 as $res) {
+            $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+
+            yield [
+                'Cast'=>in_array($type, $numerics),
+                'Field'=>$res['Field'],
+                'Type'=>$type,
+                'Value' => null
+            ];
+        }
+    }
+    /**
+     * gets the number fields validated by the query
+     *
+     * @param [string] $query
+     * @return integer
+     */
+    public function validateField($query) {
+        $res = $this->query($query);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        return 0 + $res->fetchAll()[0]['counter'];
     }
 }
 /**
@@ -947,7 +747,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     public final function __construct() {
         $name = get_class($this);
-
+        
         if (empty($GLOBALS['models'][$name])) {
             $className       = unCamelize($name);
             $words           = explode("_", $className);
@@ -955,22 +755,22 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $words[$i]       = Plurals($words[$i]);
             $GLOBALS['models'][$name]['tableName'] = implode("_", $words);
         }
-
+        
         if (empty($this->_ObjTable)) {
             $this->_ObjTable = $GLOBALS['models'][$name]['tableName'];
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-
+        
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection();
         }
-
+        
         if (empty($GLOBALS['driver'])) {
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
             $driver = $GLOBALS['Connection']->engine.'Driver';
             $GLOBALS['driver'] = new $driver();
         }
-
+        
         $this->_setInitialCols();
         $this->_error = new Errors;
         $this->_init_();
@@ -989,7 +789,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     private function _setInitialCols() {
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
-            foreach ($GLOBALS['driver']->getColumns($this->_ObjTable) as $field) {
+            foreach ($GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable)) as $field) {
                 $this->_fields[$field['Field']] = $field['Cast'];
             }
             $GLOBALS['models'][$this->_ObjTable]['fields'] = $this->_fields;
@@ -1061,8 +861,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $obj->offsetSet(0, NULL);
             $obj[0] = NULL;
             unset($obj[0]);
-            $fields = $GLOBALS['driver']->getColumns($this->_ObjTable);
-            foreach ($fields as $row) {
+            foreach ($GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable)) as $row) {
                 $obj->_fields[$row['Field']] = false;
                 $obj->{$row['Field']} = null;
                 $obj->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
@@ -1918,7 +1717,6 @@ abstract class Page extends Core_General_Class {
     private $_respondToAJAX          = '';
     private $_canrespondtoajax       = false;
     private $_preventLoad = false;
-    private $models                  = array();
 
     public function __construct() {
         $this->Vendor = new Vendor();
@@ -2000,14 +1798,9 @@ abstract class Page extends Core_General_Class {
             }
 
             if (strlen($this->layout) > 0) {
-//                 if ($this->_exposeContent) {
-//                     $this->_exposeContent = false;
-//                     include_once ($viewsFolder.$this->layout.".phtml");
-//                 } else {
-                    ob_start();
-                    include_once ($viewsFolder.$this->layout.".phtml");
-                    $this->_outputContent = ob_get_clean();
-//                 }
+                ob_start();
+                include_once ($viewsFolder.$this->layout.".phtml");
+                $this->_outputContent = ob_get_clean();
             }
         }
 
@@ -2054,7 +1847,6 @@ abstract class Page extends Core_General_Class {
  *
  */
 abstract class Migrations extends Core_General_Class {
-    private $_driver = null;
     private $_table = '';
     protected $_fields;
 
@@ -2147,9 +1939,12 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Add_Column(array $params) {
         $this->connect();
-        $query = $GLOBALS['driver']->AddColumn($this->_table, $params);
+        $query = $GLOBALS['driver']->validateField($this->_table, $params['field']);
+        if ($GLOBALS['Connection']->validateField($query) < 1) {
+            $query = $GLOBALS['driver']->AddColumn($this->_table, $params);
+            $this->_runQuery($query);
+        }
 
-        empty($query) || $this->_runQuery($query);
     }
 /**
  * Add index to the table
@@ -2189,7 +1984,8 @@ abstract class Migrations extends Core_General_Class {
 
     protected function Remove_All_indexes() {
         $this->connect();
-        $indexes = $GLOBALS['driver']->GetAllIndexes($this->_table);
+        $query = $GLOBALS['driver']->GetAllIndexes($this->_table);
+        $indexes = $this->_runQuery($query);
         foreach ($indexes as $index) {
             if ($index['INDEX_NAME'] !== 'PRIMARY') {
                 $query = $GLOBALS['driver']->RemoveIndex($this->_table, $index['INDEX_NAME']);
@@ -2224,9 +2020,11 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Alter_Column(array $params) {
         $this->connect();
-        $query = $GLOBALS['driver']->AlterColumn($this->_table, $params);
-
-        empty($query) || $this->_runQuery($query);
+        $query = $GLOBALS['driver']->validateField($this->_table, $params['field']);
+        if ($GLOBALS['Connection']->validateField($query) > 0) {
+            $query = $GLOBALS['driver']->AlterColumn($this->_table, $params);
+            $this->_runQuery($query);
+        }
     }
     /**
      * Deletes a column in the table

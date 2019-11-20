@@ -8,21 +8,7 @@ class mysqlDriver {
     public $pk = 'id';
 
     public function getColumns($table) {
-        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG'];
-        $fields = array();
-        $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$table}");
-        $result1->setFetchMode(PDO::FETCH_ASSOC);
-        $resultset1 = $result1->fetchAll();
-        foreach ($resultset1 as $res) {
-            $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
-
-            yield [
-                'Cast'=>in_array($type, $numerics),
-                'Field'=>$res['Field'],
-                'Type'=>$type,
-                'Value' => null
-            ];
-        }
+        return "SHOW COLUMNS FROM {$table}";
     }
 
     public function Select($params = null, $table, $pk = 'id') {
@@ -187,31 +173,33 @@ class mysqlDriver {
     public function DropTable($table) {
         return "DROP TABLE IF EXISTS `{$table}`";
     }
-
+    /**
+     * Query for assertion of presence of a field in a table
+     *
+     * @param [string] $table
+     * @param [string] $field
+     * @return string query
+     */
     public function validateField($table, $field) {
-        $getinfo =<<<DUMBO
+        $query =<<<DUMBO
 SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE table_name = '{$table}'
     AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
     AND column_name = '{$field}';
 DUMBO;
-        $res = $GLOBALS['Connection']->query($getinfo);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
-        return 0 + $res->fetchAll()[0]['counter'];
+        return $query;
     }
 
     public function AddColumn($table, $params) {
         $query = '';
-        if ($this->validateField($table, $params['field']) < 1) {
-            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+        $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-            $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
-        }
+        $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
+        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
 
         return $query;
     }
@@ -223,15 +211,13 @@ DUMBO;
      */
     public function AlterColumn($table, array $params) {
         $query = '';
-        if ($this->validateField($table, $params['field']) > 0) {
-            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+        $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-            $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
-        }
+        $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
+        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
 
         return $query;
     }
@@ -316,10 +302,7 @@ DUMBO;
 SELECT INDEX_NAME FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}'
 DUMBO;
 
-        $res = $GLOBALS['Connection']->query($query);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
-        $c = $res->fetchAll();
-        return $c;
+        return $query;
     }
     /**
      * Gets the query for dropping an index in a table

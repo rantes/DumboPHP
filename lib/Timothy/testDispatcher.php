@@ -24,6 +24,7 @@ class testDispatcher {
         endforeach;
 
         foreach ($actions as $action):
+            $this->{$test}->beforeEach();
             $this->{$test}->{$action}();
         endforeach;
 
