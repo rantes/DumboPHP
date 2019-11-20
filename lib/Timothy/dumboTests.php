@@ -77,13 +77,12 @@ class dumboTests extends Page {
     private $_colorsPalete = ['red', 'green'];
     private $_textOutputs = ['Failed', 'Passed'];
     public $mockedData = [];
+    public $testName = '';
 
     public function __construct() {
-        defined('INST_PATH') or define('INST_PATH', './');
         require_once 'lib/colorClass.php';
         $this->_colors = new Colors();
-        file_put_contents(INST_PATH.'tests.log', '');
-        fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
+        $this->testName = get_class($this);
     }
     /**
      * Output for an error message
@@ -104,10 +103,10 @@ class dumboTests extends Page {
      * @param boolean $passed
      */
     private function _progress($passed) {
-        $color = $passed ? 'green' : 'red';
         $text = $passed ? 'P' : 'F';
 
-        fwrite(STDOUT, $this->_colors->getColoredString($text, $color));
+        fwrite(STDOUT, $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]));
+        return true;
     }
     /**
      * Logs the process of each test
@@ -118,6 +117,7 @@ class dumboTests extends Page {
         $message = "[{$date}]: $text \n";
 
         file_put_contents(INST_PATH.'tests.log', $message, FILE_APPEND);
+        return true;
     }
     /**
      * Handle error for a test
@@ -131,6 +131,7 @@ class dumboTests extends Page {
 ERROR Failed to {$additional}, on {$track[1]['file']} at line {$track[1]['line']}.
 DUMBO;
         $this->_log($output);
+        return true;
     }
 
     /**
@@ -142,11 +143,8 @@ DUMBO;
         $message || ($message = 'Assert if <' . gettype($param1) . '> ' . $param1 . ' is equals to <' . gettype($param2) . '> ' . $param2);
         $passed = $param1 === $param2;
         $this->_passed += $passed;
-        $color = $passed ? 'green' : 'red';
-        $text = $passed ? 'Passed.' : 'Failed';
-        $this->_log($message. ': '.$this->_colors->getColoredString($text, $color));
-
         $this->_progress($passed);
+        $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
 
         $passed or $this->_triggerError('Asserts Equals');
     }
@@ -159,9 +157,7 @@ DUMBO;
         $message || ($message = 'Assert if <' . gettype($value) . '> ' . $value . ' is true ');
         $passed = $value === true;
         $this->_passed += $passed;
-        $color = $passed ? 'green' : 'red';
-        $text = $passed ? 'Passed.' : 'Failed';
-        $this->_log($message. ': '.$this->_colors->getColoredString($text, $color));
+        $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
         !$passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . $value) && $this->_triggerError('Asserts True');
     }
@@ -181,9 +177,7 @@ DUMBO;
         $passed = !empty($fields) & !empty($expected) & empty(array_diff($fields, $expected));
 
         $this->_passed += $passed;
-        $color = $passed ? 'green' : 'red';
-        $text = $passed ? 'Passed.' : 'Failed';
-        $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.$this->_colors->getColoredString($text, $color));
+        $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
 
         !$passed && $this->_log('Missing fields: '.implode(',', array_diff($fields, $expected)));
 
@@ -209,7 +203,7 @@ DUMBO;
                 $passed = strcmp($migrationType, $field['Type']) === 0;
                 $color = $passed ? 'green' : 'red';
                 $text = $passed ? 'Passed.' : 'Failed';
-                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: ".$this->_colors->getColoredString($text, $color));
+                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: ".$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
                 !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
             } else {
                 $passed = false;
@@ -233,20 +227,21 @@ DUMBO;
             throw new Exception('The message for the description must be string.');
         }
 
-        $this->_log("\n\n{$message}\n");
+        $this->_log($message);
     }
     /**
      * What supposed to do whe the script ends.
      */
-    public function __destruct() {
-        // $color = $this->_failed ? 'red' : 'green';
+    public function _summary() {
         $text = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
         $result = $this->_colors->getColoredString($text, $this->_colorsPalete[!$this->_failed]);
         $this->_log($result);
-        fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
-        fwrite(STDOUT, "\n\nTests Success: {$this->_passed}\n");
+        fwrite(STDOUT, "\n\n{$this->testName}: {$result}\n");
+        fwrite(STDOUT, "Tests Success: {$this->_passed}\n");
         fwrite(STDOUT, "Tests failed: {$this->_failed}\n");
-        ($this->_failed and $this->_showError($result)) or $this->_showMessage($result);
+    }
+
+    public function __destruct() {
         exit(0 + !!$this->_failed);
     }
 

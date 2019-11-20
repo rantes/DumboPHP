@@ -1707,7 +1707,7 @@ abstract class Page extends Core_General_Class {
     protected $pageTitle             = '';
     protected $controller            = '';
     protected $action                = '';
-    protected $_outputContent        = '';
+    public $_outputContent        = '';
     protected $excepts_after_filter  = array();
     protected $excepts_after_render  = array();
     protected $excepts_before_render = array();
@@ -1803,7 +1803,6 @@ abstract class Page extends Core_General_Class {
                 $this->_outputContent = ob_get_clean();
             }
         }
-
         if ($this->_exposeContent) echo $this->_outputContent;
     }
     /**

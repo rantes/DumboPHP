@@ -6,6 +6,10 @@ class testDispatcher {
      * @param array $tests
      */
     function __construct(array $tests) {
+        defined('INST_PATH') or define('INST_PATH', './');
+        file_put_contents(INST_PATH.'tests.log', '');
+        fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
+
         foreach ($tests as $test):
             include_once $this->_testsPath.$test.'.php';
             $this->{$test} = new $test();
@@ -27,7 +31,11 @@ class testDispatcher {
             $this->{$test}->beforeEach();
             $this->{$test}->{$action}();
         endforeach;
-
+        $this->{$test}->_summary();
+    }
+    
+    public function __destruct() {
         fwrite(STDOUT, "\n");
+        fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
     }
 }

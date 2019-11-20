@@ -433,7 +433,7 @@ DUMBO;
                 }
             }
         endif;
-		$testLaunch = new testDispatcher($this->arguments);
+        $testLaunch = new testDispatcher($this->arguments);
 		foreach ($this->arguments as $test) {
 			$testLaunch->run($test);
 		}
