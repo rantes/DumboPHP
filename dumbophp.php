@@ -406,13 +406,15 @@ function cleanToSEO($params, &$obj = NULL) {
         $string = $params[0];
     }
 
-    $specialChars = array("/\xc0/", "/\xc1/", "/\xc2/", "/\xc3/", "/\xc4/", "/\xc5/", "/\xc6/", "/\xc7/", "/\xc8/", "/\xc9/", "/\xca/", "/\xcb/", "/\xcc/", "/\xcd/", "/\xce/", "/\xcf/", "/\xd0/", "/\xd1/",
-        "/\xd2/", "/\xd3/", "/\xd4/", "/\xd5/", "/\xd6/", "/\xd7/", "/\xd8/", "/\xd9/", "/\xda/", "/\xdb/", "/\xdc/", "/\xdd/", "/\xde/", "/\xdf/", "/\xe0/", "/\xe1/", "/\xe2/", "/\xe3/", "/\xe4/", "/\xe5/", "/\xe6/",
-        "/\xe7/", "/\xe8/", "/\xe9/", "/\xea/", "/\xeb/", "/\xec/", "/\xed/", "/\xee/", "/\xef/", "/\xf0/", "/\xf1/", "/\xf2/", "/\xf3/", "/\xf4/", "/\xf5/", "/\xf6/", "/\xf7/", "/\xf8/", "/\xf9/", "/\xfa/", "/\xfb/", "/\xfc/", "/\xfd/", "/\xfe/", "/\xff/");
-    $normalChars = array('A', 'A', 'A', 'A', 'A', 'A', 'A', 'C', 'E', 'E', 'E', 'E', 'I', 'I', 'I', 'I', 'D', 'N',
-        'O', 'O', 'O', 'O', 'O', 'O', 'U', 'U', 'U', 'U', 'Y', 'B', 'Ss', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'c', 'e', 'e', 'e', 'e', 'i', 'i', 'i', 'i', 'd', 'n',
-        'o', 'o', 'o', 'o', 'o', 'o', 'u', 'u', 'u', 'u', 'y', 'b', 'y');
-    $string = preg_replace($specialChars, $normalChars, $string);
+    $string = preg_replace('/[áàãâä]/ui', 'a', $string);
+    $string = preg_replace('/[éèêë]/ui', 'e', $string);
+    $string = preg_replace('/[íìîï]/ui', 'i', $string);
+    $string = preg_replace('/[óòõôö]/ui', 'o', $string);
+    $string = preg_replace('/[úùûü]/ui', 'u', $string);
+    $string = preg_replace('/[ç]/ui', 'c', $string);
+    $string = preg_replace('/[ÿý]/ui', 'y', $string);
+    $string = preg_replace('/[þ]/ui', 'b', $string);
+    $string = preg_replace('/[ð]/ui', 'd', $string);
     $string = strtolower($string);
     $string = preg_replace('/[\s]+/', '-', $string);
     $string = preg_replace('/[^a-zA-Z0-9-]/', '', $string);
@@ -736,7 +738,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     protected $pk                      = 'id';
     protected $escapeField             = array();
     protected $_fields                 = array();
-    private $engine                    = 'mysql';
     private $_paginatePrevChar  = '&lt;';
     private $_paginateNextChar  = '&gt;';
     private $_paginateFirstChar  = '|&lt;&lt;';
@@ -1088,7 +1089,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             }
         }
-
+        
         if (!empty($this->{$this->pk})) {
             $this->_ValidateOnSave('update');
             if ($this->_error->isActived()) {
@@ -1135,6 +1136,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $this->_sqlQuery = $prepared['query'];
         $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+        
         try {
             if (!$sh->execute($prepared['prepared'])) {
                 $e = $GLOBALS['Connection']->errorInfo();

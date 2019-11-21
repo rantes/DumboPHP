@@ -43,6 +43,12 @@ class mockObject {
     }
 }
 
+class preparedMockQuery {
+    public function execute() {
+        return true;
+    }
+}
+
 class mockConnection {
     public $mockData = [];
     public $engine = 'mysql';
@@ -63,6 +69,18 @@ class mockConnection {
         }
 
         return $fields;
+    }
+
+    public function prepare() {
+        return new preparedMockQuery();
+    }
+
+    public function lastInsertId() {
+        return 1;
+    }
+
+    public function errorInfo() {
+        return [];
     }
 }
 /**
