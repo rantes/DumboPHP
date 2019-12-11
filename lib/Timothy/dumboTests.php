@@ -4,7 +4,7 @@ class mockObject {
     public $className = '';
 
     public function columnCount() {
-        return sizeof($this->data[0]);
+        return empty($this->data[0]) ? 0 : sizeof($this->data[0]);
     }
     
     public function rowCount() {
@@ -23,7 +23,10 @@ class mockObject {
             }
             $i++;
         }
+    }
 
+    public function counter() {
+        return sizeof($this->data);
     }
 
     public function closeCursor() { return true; }
@@ -52,11 +55,62 @@ class preparedMockQuery {
 class mockConnection {
     public $mockData = [];
     public $engine = 'mysql';
+    private $_mockTables = null;
+
+    public function __construct(array $tables = []) {
+        $this->_mockTables =  new stdClass();
+
+        if (!empty($tables)) {
+            foreach($tables as $table) {
+                if(file_exists(INST_PATH."migrations/create_{$table}.php")) {
+                    require_once INST_PATH."migrations/create_{$table}.php";
+                    $class = 'Create'.Camelize(Singulars($table));
+                    $obj = new $class();
+                    $this->_mockTables->{$table} = [];
+                    $fields = [];
+
+                    foreach($obj->_fields as $field) {
+                        $fields[$field['field']] = '';
+                    }
+                    $this->_mockTables->{$table}[] = $fields;
+                } else {
+                    throw new Exception("Migration file for {$table} does not exists.");
+                }
+
+            }
+        }
+        // $migrationsPath = INST_PATH.'migrations/';
+        // $migrationsDir = dir($migrationsPath);
+        // while (($file = $migrationsDir->read()) != FALSE) {
+        //     if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
+        //         require_once $migrationsPath.$matches[0];
+        //         $class = 'Create'.Camelize(Singulars($matches[1]));
+        //         $obj = new $class();
+        //         $obj->{$this->arguments[0]}();
+        //     }
+        // }
+    }
+
+    // private function _buildTables(array $migrations) {
+
+    // }
 
     public function query($query) {
-        preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
-        $obj = new mockObject();
-        $obj->data = $this->mockData[$matches[1]];
+        // preg_match('@^insert|update|delete|create|select@i', $query, $matches);
+        // $action = strtolower($matches[0]);
+        // $obj = null;
+        // switch ($action) {
+        //     case 'select':
+        //         preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
+        //         $obj = new mockObject();
+        //         $obj->data = $this->mockData[$matches[1]];
+        //     break;
+        //     case 'insert':
+                preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
+                $obj = new mockObject();
+                $obj->data = empty($this->mockData[$matches[1]]) ? [] : $this->mockData[$matches[1]];
+        //     break;
+        // }
         return $obj;
     }
 
@@ -64,8 +118,8 @@ class mockConnection {
         preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
         $fields = [];
 
-        foreach($this->mockData[$matches[1]][0] as $field => $value) {
-            $fields[] = ['Field' => $field, 'Cast' => false];
+        foreach($this->_mockTables->{$matches[1]}[0] as $field => $value) {
+            $fields[] = ['Field' => $field, 'Cast' => false, 'Type' => 'string'];
         }
 
         return $fields;
@@ -101,7 +155,10 @@ class dumboTests extends Page {
         require_once 'lib/colorClass.php';
         $this->_colors = new Colors();
         $this->testName = get_class($this);
+
+        $this->_init_();
     }
+    public function _init_() {}
     /**
      * Output for an error message
      * @param string $errorMessage
@@ -158,7 +215,7 @@ DUMBO;
      * @param any $param2
      */
     public function assertEquals($param1, $param2, $message = false) {
-        $message || ($message = 'Assert if <' . gettype($param1) . '> ' . $param1 . ' is equals to <' . gettype($param2) . '> ' . $param2);
+        $message || ($message = 'Assert if <' . gettype($param1) . '> ' . var_export($param1, true) . ' is equals to <' . gettype($param2) . '> ' . var_export($param2, true));
         $passed = $param1 === $param2;
         $this->_passed += $passed;
         $this->_progress($passed);

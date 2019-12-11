@@ -1849,7 +1849,7 @@ abstract class Page extends Core_General_Class {
  */
 abstract class Migrations extends Core_General_Class {
     private $_table = '';
-    protected $_fields;
+    public $_fields;
 
     private final function connect() {
         if (empty($GLOBALS['Connection'])) {
