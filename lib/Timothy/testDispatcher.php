@@ -27,13 +27,15 @@ class testDispatcher {
             endif;
         endforeach;
 
+        $this->{$test}->_init_();
         foreach ($actions as $action):
             $this->{$test}->beforeEach();
             $this->{$test}->{$action}();
         endforeach;
         $this->{$test}->_summary();
+        $this->{$test}->_end_();
     }
-    
+
     public function __destruct() {
         fwrite(STDOUT, "\n");
         fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));

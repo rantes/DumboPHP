@@ -6,7 +6,7 @@ class mockObject {
     public function columnCount() {
         return empty($this->data[0]) ? 0 : sizeof($this->data[0]);
     }
-    
+
     public function rowCount() {
         return sizeof($this->data);
     }
@@ -155,10 +155,9 @@ class dumboTests extends Page {
         require_once 'lib/colorClass.php';
         $this->_colors = new Colors();
         $this->testName = get_class($this);
-
-        $this->_init_();
     }
     public function _init_() {}
+    public function _end_() {}
     /**
      * Output for an error message
      * @param string $errorMessage
@@ -221,7 +220,7 @@ DUMBO;
         $this->_progress($passed);
         $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
 
-        $passed or $this->_triggerError('Asserts Equals');
+        $passed or $this->_triggerError("Assert {$param1} is equals to {$param2}");
     }
     /**
      * Asserts if the Value is true.

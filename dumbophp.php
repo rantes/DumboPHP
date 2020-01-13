@@ -634,7 +634,7 @@ class Errors {
         return $errorCodes;
     }
     public function errFields() {
-        $errorsFields = array();
+        $errorFields = array();
         foreach ($this->messages as $field => $messages) {
             $errorFields[] = $field;
         }
@@ -748,7 +748,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     public final function __construct() {
         $name = get_class($this);
-        
+
         if (empty($GLOBALS['models'][$name])) {
             $className       = unCamelize($name);
             $words           = explode("_", $className);
@@ -756,22 +756,22 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $words[$i]       = Plurals($words[$i]);
             $GLOBALS['models'][$name]['tableName'] = implode("_", $words);
         }
-        
+
         if (empty($this->_ObjTable)) {
             $this->_ObjTable = $GLOBALS['models'][$name]['tableName'];
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        
+
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection();
         }
-        
+
         if (empty($GLOBALS['driver'])) {
             require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
             $driver = $GLOBALS['Connection']->engine.'Driver';
             $GLOBALS['driver'] = new $driver();
         }
-        
+
         $this->_setInitialCols();
         $this->_error = new Errors;
         $this->_init_();
@@ -1089,7 +1089,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             }
         }
-        
+
         if (!empty($this->{$this->pk})) {
             $this->_ValidateOnSave('update');
             if ($this->_error->isActived()) {
@@ -1136,7 +1136,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $this->_sqlQuery = $prepared['query'];
         $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
-        
+
         try {
             if (!$sh->execute($prepared['prepared'])) {
                 $e = $GLOBALS['Connection']->errorInfo();
@@ -1471,6 +1471,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public function toJSON() {
         return json_encode($this->getArray());
     }
+    /**
+     * Sets pagination for an Active Record Model
+     * @param array $params
+     * @return ActiveRecord
+     */
     public function Paginate($params = NULL) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
@@ -1508,6 +1513,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
         return $data;
     }
+    /**
+     * Displays the proper html for the paginated model
+     * @param array $params
+     * @return string
+     */
     public function WillPaginate($params = NULL) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
@@ -1555,6 +1565,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     /**
      * Creates an input depending on the type of field
+     * @deprecated
      * @param array $params
      * @throws Exception
      * @return NULL|string
@@ -1644,6 +1655,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         return $input;
     }
+    /**
+     * @deprecated
+     * @param string $params
+     * @return html
+     */
     public function form_for($params) {
         $string = '<form';
         $method = 'post';
@@ -1658,8 +1674,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $html .= $element.'="'.$value.'" ';
             }
         }
-        $html                         = trim($html);
-        if (strlen($html) > 0) {$html = ' '.$html;
+        $html = trim($html);
+        if (strlen($html) > 0) {
+            $html = " {$html}";
         }
 
         $string .= ' method="'.$method.'" action="'.$action.'" name="'.$name.'"'.$html.'>';
