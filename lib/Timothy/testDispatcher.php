@@ -19,6 +19,7 @@ class testDispatcher {
     function run($test) {
         $test = (string) $test;
         $actions = [];
+        fwrite(STDOUT, "\nRunning tests on {$test}\n");
         $methods = get_class_methods($this->{$test});
         foreach ($methods as $method):
             preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
@@ -29,6 +30,7 @@ class testDispatcher {
 
         $this->{$test}->_init_();
         foreach ($actions as $action):
+            fwrite(STDOUT, "\nRunning test: {$action}\n");
             $this->{$test}->beforeEach();
             $this->{$test}->{$action}();
         endforeach;
