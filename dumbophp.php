@@ -561,6 +561,7 @@ class Connection extends PDO {
                 break;
                 case 'sqlite':
                 case 'sqlite2':
+                case 'sqlite3':
                     if($this->_settings['schema'] === 'memory'){
                         $dsn = $this->engine.'::memory:';
                     } else {
@@ -600,19 +601,26 @@ class Connection extends PDO {
      * @return yield
      */
     public function getColumnFields($query) {
-        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG'];
-        $result1 = $this->query($query);
-        $result1->setFetchMode(PDO::FETCH_ASSOC);
-        $resultset1 = $result1->fetchAll();
-        foreach ($resultset1 as $res) {
-            $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER'];
+        try {
+            $result1 = $this->query($query);
+            $result1->setFetchMode(PDO::FETCH_ASSOC);
+            $resultset1 = $result1->fetchAll();
+            foreach ($resultset1 as $res) {
 
-            yield [
-                'Cast'=>in_array($type, $numerics),
-                'Field'=>$res['Field'],
-                'Type'=>$type,
-                'Value' => null
-            ];
+                $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+
+                yield [
+                    'Cast'=>in_array($type, $numerics),
+                    'Field'=>$res['Field'],
+                    'Type'=>$type,
+                    'Value' => null
+                ];
+            }
+        } catch (PDOException $e) {
+            die("Error to run query: -- {$query} -- due to: ".$e->getMessage());
+        } catch (Exception $e) {
+            die('Internal error: '.$e->getMessage());
         }
     }
     /**
