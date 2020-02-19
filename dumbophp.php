@@ -1114,7 +1114,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    empty($this->{$field}) and $this->_error->add(array('field' => $field, 'message' => $message));
+                    empty($this->{$field}) and !is_numeric($this->{$field}) and $this->_error->add(array('field' => $field, 'message' => $message));
                 }
             }
         }
