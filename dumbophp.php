@@ -988,7 +988,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     private function _setValues(array $values) {
         if (empty($values)) {
             foreach ($this->_fields as $field => $cast){
-                $values[$field] = $cast? 0 : null;
+                $values[$field] = null;
             }
         }
         foreach ($values as $field => $value) {
