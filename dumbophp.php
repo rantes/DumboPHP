@@ -1,8 +1,23 @@
 <?php
 defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty($_SERVER['REMOTE_ADDR']));
+/**
+ * This function is to handle transition to php7.4 since this will change the way you call imppolde
+ * Will change on php7.4 official release
+ * 
+ */
+function imploder(string $glue = '', array $values) {
+    $result = '';
+    $separator_size = strlen($glue);
+    while(null != ($value = array_shift($values))) {
+        $result .= "{$value}{$glue}";
+    }
+    if($separator_size > 0) $result = substr($result, 0, -$separator_size);
+
+    return $result;
+}
 
 if (_IN_SHELL_ && !empty($argv)) {
-    parse_str(implode('&', array_slice($argv, 1)), $_GET);
+    parse_str(imploder('&', array_slice($argv, 1)), $_GET);
 }
 
 for ($i = 1; $i <= 5; $i++) {
@@ -404,7 +419,7 @@ function ToList($arr, $obj = NULL) {
         $arr = $obj->getArray();
     }
 
-    return implode(',', $arr);
+    return imploder(',', $arr);
 }
 /**
  * Set a CamelizedString back to uncamelized_string
@@ -665,7 +680,7 @@ class Errors {
                 $msgs[] = $message['message'];
             }
         }
-        return implode(',', $msgs);
+        return imploder(',', $msgs);
     }
     public function isActived() {
         return $this->actived;
@@ -794,13 +809,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     public final function __construct() {
         $name = get_class($this);
-
+        
         if (empty($GLOBALS['models'][$name])) {
             $className       = unCamelize($name);
             $words           = explode("_", $className);
             $i               = sizeof($words)-1;
             $words[$i]       = Plurals($words[$i]);
-            $GLOBALS['models'][$name]['tableName'] = implode("_", $words);
+            $GLOBALS['models'][$name]['tableName'] = imploder('_', $words);
         }
 
         if (empty($this->_ObjTable)) {
@@ -943,6 +958,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         }
         $this->_sqlQuery = $GLOBALS['driver']->Select($params, $this->_ObjTable);
+
         $x = $this->getData($this->_sqlQuery);
         if (sizeof($x->after_find) > 0) {
             foreach ($x->after_find as $functiontoRun) {
@@ -1273,7 +1289,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $m = Camelize($s);
                 class_exists($m) or require_once INST_PATH.'app/models/'.strtolower($s).'.php';
                 $model1   = new $m();
-                $condition = is_numeric($id)? " = '{$id}'" : " IN (".implode(',', $id).")";
+                $condition = is_numeric($id)? " = '{$id}'" : " IN (".imploder(',', $id).")";
                 $children = $model1->Find(array('conditions' => Singulars($this->_ObjTable)."_id{$condition}"));
                 if ($children->counter() > 0) {
                     foreach ($children as $child) {
@@ -1419,10 +1435,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $query = '';
             empty($this->_fields) && $this->_setInitialCols();
             foreach ($this->_prepareFromXML($items) as $row) {
-                $query .= "(".implode(',', $row)."),";
+                $query .= "(".imploder(',', $row)."),";
             }
             if (strlen($query) > 1) {
-                $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
+                $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . imploder(',', $this->_insertionFields) . ") VALUES ";
                 $query = substr($query, 0, -1);
                 $this->_sqlQuery .= $query;
 
@@ -1917,7 +1933,7 @@ abstract class Migrations extends Core_General_Class {
     private final function connect() {
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection();
-            require_once implode(array(dirname(__FILE__),'lib', 'db_drivers', $GLOBALS['Connection']->engine.'.php'), DIRECTORY_SEPARATOR);
+            require_once imploder(DIRECTORY_SEPARATOR, array(dirname(__FILE__),'lib', 'db_drivers', $GLOBALS['Connection']->engine.'.php'));
         }
 
         if (empty($GLOBALS['driver'])) {
@@ -2031,7 +2047,7 @@ abstract class Migrations extends Core_General_Class {
             throw new Exception("fields param must be an array", 1);
         }
 
-        $query = $GLOBALS['driver']->AddIndex($this->_table, $params['name'], implode(',', $params['fields']));
+        $query = $GLOBALS['driver']->AddIndex($this->_table, $params['name'], imploder(',', $params['fields']));
 
         empty($query) || $this->_runQuery($query);
     }
