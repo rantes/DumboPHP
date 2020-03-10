@@ -5,15 +5,8 @@ defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty
  * Will change on php7.4 official release
  * 
  */
-function imploder(string $glue = '', array $values) {
-    $result = '';
-    $separator_size = strlen($glue);
-    while(null != ($value = array_shift($values))) {
-        $result .= "{$value}{$glue}";
-    }
-    if($separator_size > 0) $result = substr($result, 0, -$separator_size);
-
-    return $result;
+function imploder(string $glue = '', array $pieces) {
+    return (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70400) ? implode($glue, $pieces) : implode($pieces, $glue);
 }
 
 if (_IN_SHELL_ && !empty($argv)) {
@@ -1014,6 +1007,21 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
     }
     /**
+     * Set a flat set of the current dataset
+     * Will take the first value as key and the second as value
+     *
+     * @return array
+     */
+    public function flatten() {
+        $result = [];
+        foreach($this as $row) {
+            $items = array_values($row->getArray());
+            $result[$items[0]] = $items[1];
+        }
+
+        return $result;
+    }
+    /**
      * Creates a new Active Record instance
      * @param array $contents
      * @return ActiveRecord
@@ -1365,10 +1373,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $arraux = array();
         $fields = array_keys($this->_fields);
 
-        for ($j = 0; $j < $this->_counter; $j++) {
+        if ($this->_counter > 0) {
+            for ($j = 0; $j < $this->_counter; $j++) {
+                foreach ($fields as $field) {
+                    if (isset($this[$j]->{$field})) {
+                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
+                    }
+                }
+            }
+        } else {
             foreach ($fields as $field) {
-                if (isset($this[$j]->{$field})) {
-                    $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
+                if (isset($this->{$field})) {
+                    $arraux[$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
                 }
             }
         }
