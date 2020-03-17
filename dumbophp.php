@@ -5,7 +5,7 @@ defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty
  * Will change on php7.4 official release
  * 
  */
-function imploder(string $glue = null, array $pieces ) {
+function imploder($glue = '', array $pieces ) {
     return (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70400) ? implode($glue, $pieces) : implode($pieces, $glue);
 }
 
