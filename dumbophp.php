@@ -5,7 +5,7 @@ defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty
  * Will change on php7.4 official release
  * 
  */
-function imploder(string $glue = '', array $pieces) {
+function imploder(string $glue = null, array $pieces ) {
     return (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70400) ? implode($glue, $pieces) : implode($pieces, $glue);
 }
 
@@ -1339,7 +1339,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             foreach ($fields as $field) {
                 $buffer = 'NULL'.PHP_EOL;
                 if (isset($this->{$field})) {
-                    ob_start();
+                    ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
                     var_dump($this->{$field});
                     $buffer = ob_get_clean();
                 }
@@ -1885,7 +1885,7 @@ abstract class Page extends Core_General_Class {
 
             if ($renderPage) {
                 if (strlen($this->layout) > 0) {
-                    ob_start();
+                    ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
                     include_once ($viewsFolder.$view);
                     $this->yield = ob_get_clean();
                     $this->_outputContent = $this->yield;
@@ -1895,7 +1895,7 @@ abstract class Page extends Core_General_Class {
             }
 
             if (strlen($this->layout) > 0) {
-                ob_start();
+                ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
                 include_once ($viewsFolder.$this->layout.".phtml");
                 $this->_outputContent = ob_get_clean();
             }
