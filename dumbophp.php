@@ -14,7 +14,7 @@ if (_IN_SHELL_ && !empty($argv)) {
 }
 
 for ($i = 1; $i <= 5; $i++) {
-    for ($j = 0; $j <= 10; $j++) {
+    for ($j = 0; $j < 100; $j++) {
         $code = ($i*100)+$j;
         defined('HTTP_'.$code) || define('HTTP_'.$code, $code);
     }
