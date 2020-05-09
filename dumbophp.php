@@ -1045,19 +1045,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return boolean
      */
     public function Update(array $params) {
-        if (empty($params['conditions']) || !is_string($params['conditions'])) {
+        if (empty($params['conditions']) || !is_string($params['conditions'])) 
             throw new Exception('The param conditions should not be empty and must be string.');
-        }
-        if (empty($params['data']) || !is_array($params['data'])) {
+ 
+        if (empty($params['data']) || !is_array($params['data']))
             throw new Exception('The param data should not be empty and must be array.');
-        }
+
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        $prepared        = $GLOBALS['driver']->Update($params, $this->_ObjTable);
+        $prepared = $GLOBALS['driver']->Update($params, $this->_ObjTable);
         $this->_sqlQuery = $prepared['query'];
-        $sh              = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+        $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
         if (!$sh->execute($prepared['prepared'])) {
-            $e = $GLOBALS['Connection']->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
+            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $GLOBALS['Connection']->errorInfo()[2]."\n {$this->_sqlQuery}"));
             return false;
         }
         return true;
@@ -1084,30 +1083,27 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             if (!empty($this->validate['email'])) {
                 foreach ($this->validate['email'] as $field) {
                     $message = 'The email provided is not a valid email address.';
-                    $matches = array();
+                    $matches = [];
                     if (is_array($field)) {
-                        if (empty($field['field'])) {
-                            throw new Exception('Field key must be defined in array.');
-                        }
+                        if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
 
-                        empty($field['message']) or ($message = $field['message']);
+                        empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
                     }
                     preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
-                    isset($this->{$field}) and empty($matches) and $this->_error->add(array('field' => $field, 'message' => $message));
+                    isset($this->{$field}) && empty($matches) && $this->_error->add(['field' => $field, 'message' => $message]);
                 }
             }
             if (!empty($this->validate['numeric'])) {
                 foreach ($this->validate['numeric'] as $field) {
                     $message = 'This Field must be numeric.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');
-                        }
+                        if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
 
                         empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    isset($this->{$field}) && (!is_numeric($this->{$field})) && $this->_error->add(array('field' => $field, 'message' => $message));
+                    isset($this->{$field}) && (!is_numeric($this->{$field})) && $this->_error->add(['field' => $field, 'message' => $message]);
                 }
             }
             if (!empty($this->validate['unique'])) {
@@ -1120,9 +1116,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         $field = $field['field'];
                     }
                     if (!empty($this->{$field})) {
-                        $obj1      = new $this;
+                        $obj1 = new $this;
                         $resultset = $obj1->Find(array('fields' => $field, 'conditions' => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
-                        $resultset->counter() > 0 && $this->_error->add(array('field' => $field, 'message' => $message));
+                        $resultset->counter() > 0 && $this->_error->add(['field' => $field, 'message' => $message]);
                     }
                 }
             }
@@ -1131,14 +1127,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 foreach ($this->validate['presence_of'] as $field) {
                     $message = 'This field can not be empty or null.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) {
-                            throw new Exception('Field key must be defined in array.');
-                        }
+                        if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
 
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    empty($this->{$field}) and !is_numeric($this->{$field}) and $this->_error->add(array('field' => $field, 'message' => $message));
+                    empty($this->{$field}) && !is_numeric($this->{$field}) && $this->_error->add(['field' => $field, 'message' => $message]);
                 }
             }
         }
@@ -1151,56 +1145,40 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public function Save() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
         $fields = array_keys($this->_fields);
-        if (sizeof($this->before_save) > 0) {
-            foreach ($this->before_save as $functiontoRun) {
-                $this->{$functiontoRun}();
-                if ($this->_error->isActived()) {
-                    return false;
-                }
-            }
+
+        foreach($this->before_save as $functiontoRun) {
+            $this->{$functiontoRun}();
+            if ($this->_error->isActived()) return false;
         }
 
         if (!empty($this->{$this->pk})) {
             $this->_ValidateOnSave('update');
-            if ($this->_error->isActived()) {
-                return false;
-            }
+            if ($this->_error->isActived()) return false;
 
             AUTO_AUDITS && ($this->updated_at = time());
-            $data = array();
+            $data = [];
 
-            foreach ($fields as $field) {
-                if ($field !== $this->pk && isset($this->{$field}) && $field !== 'created_at') {
-                    $data[$field] = $this->{$field};
-                }
+            while (null !== ($field = array_shift($fields))) {
+                $field !== $this->pk && isset($this->{$field}) && $field !== 'created_at' && ($data[$field] = $this->{$field});
             }
-            $prepared = $GLOBALS['driver']->Update(array('data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" .$this->{$this->pk}."'"), $this->_ObjTable);
+
+            $prepared = $GLOBALS['driver']->Update(['data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" .$this->{$this->pk}."'"], $this->_ObjTable);
         } else {
-            if (!empty($this->before_insert)) {
-                foreach ($this->before_insert as $functiontoRun) {
-                    $this->{$functiontoRun}();
-                    if ($this->_error->isActived()) {
-                        return false;
-                    }
-                }
+            foreach ($this->before_insert as $functiontoRun) {
+                $this->{$functiontoRun}();
+                if ($this->_error->isActived()) return false;
             }
 
             $this->_ValidateOnSave();
-            if ($this->_error->isActived()) {
-                return false;
+            if ($this->_error->isActived()) return false;
+
+            AUTO_AUDITS && ($this->created_at = time());
+            $data = [];
+
+            while (null !== ($field = array_shift($fields))) {
+                $field != $this->pk && isset($this->{$field}) && ($data[$field] = $this->{$field});
             }
 
-            if (AUTO_AUDITS) {
-                $this->created_at = time();
-                $this->updated_at = 0;
-            }
-            $data = array();
-
-            foreach ($fields as $field) {
-                if ($field != $this->pk && isset($this->{$field})) {
-                    $data[$field] = $this->{$field};
-                }
-            }
             $prepared = $GLOBALS['driver']->Insert($data, $this->_ObjTable);
         }
 
@@ -1210,7 +1188,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         try {
             if (!$sh->execute($prepared['prepared'])) {
                 $e = $GLOBALS['Connection']->errorInfo();
-                $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
+                $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
                 return FALSE;
             }
         } catch (PDOException $e) {
@@ -1226,16 +1204,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             }
         }
-        if ($this->_counter === 0) {
-            $this->_counter = 1;
-            $this->offsetSet(0, $this);
-        }
+
+        $this->_counter === 0 && ($this->_counter = 1) && $this->offsetSet(0, $this);
 
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
                 $this->{$functiontoRun}();
             }
         }
+
         return true;
     }
     /**
