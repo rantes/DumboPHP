@@ -1,111 +1,111 @@
 #!/usr/bin/php
 <?php
 if (file_exists('./config/host.php')) {
-	require_once './config/host.php';
-	set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', 'C:\windows\system32\dumbophp', 'C:\windows\dumbophp', INST_PATH.'/DumboPHP')));
+    require_once './config/host.php';
+    set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', 'C:\windows\system32\dumbophp', 'C:\windows\dumbophp', INST_PATH.'/DumboPHP')));
 }
 
 class dumboShell{
-	private $commands = array(
-				'create',
-				'run',
-				'init',
-				'db',
-				'generate',
-				'destroy',
-				'migration',
-				'test'
-			);
-	private $command = null;
-	private $systemFolder = '/etc/';
-	private $dumboSource = 'dumbophp/src';
-	private $dumboSystemPath = 'dumbophp';
-	private $dumboLibs = 'dumbophp/lib';
-	private $binPath = '/usr/bin';
-	private $fullPathTarget = '';
-	private $arguments = array();
-	private $params = array();
-	private $colors = null;
+    private $commands = array(
+                'create',
+                'run',
+                'init',
+                'db',
+                'generate',
+                'destroy',
+                'migration',
+                'test'
+            );
+    private $command = null;
+    private $systemFolder = '/etc/';
+    private $dumboSource = 'dumbophp/src';
+    private $dumboSystemPath = 'dumbophp';
+    private $dumboLibs = 'dumbophp/lib';
+    private $binPath = '/usr/bin';
+    private $fullPathTarget = '';
+    private $arguments = array();
+    private $params = array();
+    private $colors = null;
 
-	public function __construct() {
+    public function __construct() {
 
-		$this->dumboSource = $this->systemFolder . 'dumbophp/src';
-		$this->dumboSystemPath = $this->systemFolder . 'dumbophp';
-		$this->dumboLibs = $this->systemFolder . 'dumbophp/lib';
+        $this->dumboSource = $this->systemFolder . 'dumbophp/src';
+        $this->dumboSystemPath = $this->systemFolder . 'dumbophp';
+        $this->dumboLibs = $this->systemFolder . 'dumbophp/lib';
 
-		if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-			$this->systemFolder = 'C:/Windows';
-		}
-		require_once 'lib/colorClass.php';
-		$this->colors = new Colors();
-	}
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $this->systemFolder = 'C:/Windows';
+        }
+        require_once 'lib/colorClass.php';
+        $this->colors = new Colors();
+    }
 
-	public function showError($errorMessage) {
-		fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
-	}
+    public function showError($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
+    }
 
-	public function showMessage($errorMessage) {
-		fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
-	}
+    public function showMessage($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
+    }
 
-	public function showNotice($errorMessage) {
-		fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
-	}
+    public function showNotice($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
+    }
 
-	public function validateApacheConf() {
-		$modsRequired = array(
-							'mod_rewrite'
-						);
-	}
+    public function validateApacheConf() {
+        $modsRequired = array(
+                            'mod_rewrite'
+                        );
+    }
 
-	public function run($argv) {
-		if(empty($argv[1]) || sizeof($argv) < 2) {
-			$this->help();
-			die($this->showError('Error: Option not valid.'));
-		}
+    public function run($argv) {
+        if(empty($argv[1]) || sizeof($argv) < 2) {
+            $this->help();
+            die($this->showError('Error: Option not valid.'));
+        }
 
-		array_shift($argv);
-		$this->command = array_shift($argv);
-		$this->arguments = $argv;
+        array_shift($argv);
+        $this->command = array_shift($argv);
+        $this->arguments = $argv;
 
-		if(in_array($this->command, $this->commands)){
-			switch($this->command) {
-				case 'create':
-					$this->createSite();
-				break;
-				case 'generate':
-					$this->generateScripts();
-				break;
-				case 'destroy':
-					$this->destroyScripts();
-				break;
-				case 'db':
-					$this->dbScripts();
-				break;
-				case 'migration':
-					$this->migrationScripts();
-				break;
-				case 'init':
-					$this->initAppScript();
-				break;
-				case 'run':
-					$this->runActionScript();
-				break;
-				case 'test':
-					$this->runTestScript();
-				break;
-				default:
-					$this->help();
-				break;
-			}
-		} else {
-			$this->help();
-		}
+        if(in_array($this->command, $this->commands)){
+            switch($this->command) {
+                case 'create':
+                    $this->createSite();
+                break;
+                case 'generate':
+                    $this->generateScripts();
+                break;
+                case 'destroy':
+                    $this->destroyScripts();
+                break;
+                case 'db':
+                    $this->dbScripts();
+                break;
+                case 'migration':
+                    $this->migrationScripts();
+                break;
+                case 'init':
+                    $this->initAppScript();
+                break;
+                case 'run':
+                    $this->runActionScript();
+                break;
+                case 'test':
+                    $this->runTestScript();
+                break;
+                default:
+                    $this->help();
+                break;
+            }
+        } else {
+            $this->help();
+        }
 
-	}
+    }
 
-	private function help() {
-		$text = <<<DUMBO
+    private function help() {
+        $text = <<<DUMBO
 ▓█████▄  █    ██  ███▄ ▄███▓ ▄▄▄▄    ▒█████
 ▒██▀ ██▌ ██  ▓██▒▓██▒▀█▀ ██▒▓█████▄ ▒██▒  ██▒
 ░██   █▌▓██  ▒██░▓██    ▓██░▒██▒ ▄██▒██░  ██▒
@@ -121,308 +121,307 @@ DumboPHP 2.0 by Rantes
 DumboPHP shell.
 Ussage:
 
-	dumbo <command> <option> <params>
+    dumbo <command> <option> <params>
 
 Commands:
 
-	create <project-name>
-		Creates a new site. Param: site name.
+    create <project-name>
+        Creates a new site. Param: site name.
 
-	init [standalone]
-		Initializes the project to use DumboPHP.
+    init [standalone]
+        Initializes the project to use DumboPHP.
 
-	generate [scaffold|controller|model|seed] <name>
-		Generates scripts for model, controller or scaffold.
+    generate [scaffold|controller|model|seed] <name>
+        Generates scripts for model, controller or scaffold.
 
-	destroy [scaffold|model] <name>
-		Generates scripts for model, controller or scaffold.
+    destroy [scaffold|model] <name>
+        Generates scripts for model, controller or scaffold.
 
-	migration [up|down|reset|run|sow] <migration>
-		Executes migrations actions.
+    migration [up|down|reset|run|sow] <migration>
+        Executes migrations actions.
 
-	db [dump|load] <all|model>
-		Actions for database.
+    db [dump|load] <all|model>
+        Actions for database.
 
-	run [controller/action] [<param=val> <paramn=valn>]
-		executes a controller/action. index/index as default.
+    run [controller/action] [<param=val> <paramn=valn>]
+        executes a controller/action. index/index as default.
 
-	test [all|<unitTest>,<unitTest>,<unitTest>]
-		 executes Unit test file(s).
+    test [all|<unitTest>,<unitTest>,<unitTest>]
+         executes Unit test file(s).
 
 DUMBO;
-		fwrite(STDOUT, $text . "\n");
-		//echo $text;
-	}
+        fwrite(STDOUT, $text . "\n");
+        //echo $text;
+    }
 
-	private function _copyInstallFiles() {
-		$d = dir($this->arguments[0]);
-		$this->fullPathTarget = realpath($d->path);
-		$d->close();
+    private function _copyInstallFiles() {
+        $d = dir($this->arguments[0]);
+        $this->fullPathTarget = realpath($d->path);
+        $d->close();
 
-		$actions = array(
-			'Creating directory: '.$this->fullPathTarget.'/app' =>'/app',
-			'Creating directory: '.$this->fullPathTarget.'/app/controllers' => '/app/controllers',
-			'Creating directory: '.$this->fullPathTarget.'/app/helpers' =>'/app/helpers',
-			'Creating directory: '.$this->fullPathTarget.'/app/models' =>'/app/models',
-			'Creating directory: '.$this->fullPathTarget.'/app/views' =>'/app/views',
-			'Creating directory: '.$this->fullPathTarget.'/app/webroot' =>'/app/webroot',
-			'Creating directory: '.$this->fullPathTarget.'/app/webroot/css' =>'/app/webroot/css',
-			'Creating directory: '.$this->fullPathTarget.'/app/webroot/fonts' =>'/app/webroot/fonts',
-			'Creating directory: '.$this->fullPathTarget.'/app/webroot/images' =>'/app/webroot/images',
-			'Creating directory: '.$this->fullPathTarget.'/app/webroot/js' =>'/app/webroot/js',
-			'Creating directory: '.$this->fullPathTarget.'/app/webroot/plugins' =>'/app/webroot/plugins',
-			'Creating directory: '.$this->fullPathTarget.'/config' =>'/config',
-			'Creating directory: '.$this->fullPathTarget.'/migrations' =>'/migrations',
-			'Creating directory: '.$this->fullPathTarget.'/vendor' =>'/vendor'
-		);
+        $actions = array(
+            'Creating directory: '.$this->fullPathTarget.'/app' =>'/app',
+            'Creating directory: '.$this->fullPathTarget.'/app/controllers' => '/app/controllers',
+            'Creating directory: '.$this->fullPathTarget.'/app/helpers' =>'/app/helpers',
+            'Creating directory: '.$this->fullPathTarget.'/app/models' =>'/app/models',
+            'Creating directory: '.$this->fullPathTarget.'/app/views' =>'/app/views',
+            'Creating directory: '.$this->fullPathTarget.'/app/webroot' =>'/app/webroot',
+            'Creating directory: '.$this->fullPathTarget.'/app/webroot/css' =>'/app/webroot/css',
+            'Creating directory: '.$this->fullPathTarget.'/app/webroot/fonts' =>'/app/webroot/fonts',
+            'Creating directory: '.$this->fullPathTarget.'/app/webroot/images' =>'/app/webroot/images',
+            'Creating directory: '.$this->fullPathTarget.'/app/webroot/js' =>'/app/webroot/js',
+            'Creating directory: '.$this->fullPathTarget.'/app/webroot/plugins' =>'/app/webroot/plugins',
+            'Creating directory: '.$this->fullPathTarget.'/config' =>'/config',
+            'Creating directory: '.$this->fullPathTarget.'/migrations' =>'/migrations',
+            'Creating directory: '.$this->fullPathTarget.'/vendor' =>'/vendor'
+        );
 
-		foreach($actions as $copy => $action){
-			$this->showMessage('Running task: '.$copy);
-			mkdir($this->fullPathTarget.$action) or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
-		}
+        foreach($actions as $copy => $action){
+            $this->showMessage('Running task: '.$copy);
+            mkdir($this->fullPathTarget.$action) or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+        }
 
-		$actions = array(
-			'Creating file system: Main .htaccess' => array($this->dumboSource.'/main.htaccess', $this->fullPathTarget.'/.htaccess'),
-			'Creating file system: Webroot .htaccess' => array($this->dumboSource.'/webroot.htaccess', $this->fullPathTarget.'/app/webroot/.htaccess'),
-			'Creating file system: favicon' => array($this->dumboSource.'/favicon.ico', $this->fullPathTarget.'/app/webroot/favicon.ico'),
-			'Creating file system: config/db' => array($this->dumboSource.'/db_settings.php', $this->fullPathTarget.'/config/db_settings.php'),
-			'Creating file system: config/host' => array($this->dumboSource.'/host.php', $this->fullPathTarget.'/config/host.php'),
-			'Creating file system: config/index' => array($this->dumboSource.'/index.php', $this->fullPathTarget.'/app/webroot/index.php'),
-			'Creating file system: layout' => array($this->dumboSource.'/layout.phtml', $this->fullPathTarget.'/app/views/layout.phtml')
-		);
+        $actions = array(
+            'Creating file system: Main .htaccess' => array($this->dumboSource.'/main.htaccess', $this->fullPathTarget.'/.htaccess'),
+            'Creating file system: Webroot .htaccess' => array($this->dumboSource.'/webroot.htaccess', $this->fullPathTarget.'/app/webroot/.htaccess'),
+            'Creating file system: favicon' => array($this->dumboSource.'/favicon.ico', $this->fullPathTarget.'/app/webroot/favicon.ico'),
+            'Creating file system: config/db' => array($this->dumboSource.'/db_settings.php', $this->fullPathTarget.'/config/db_settings.php'),
+            'Creating file system: config/host' => array($this->dumboSource.'/host.php', $this->fullPathTarget.'/config/host.php'),
+            'Creating file system: config/index' => array($this->dumboSource.'/index.php', $this->fullPathTarget.'/app/webroot/index.php'),
+            'Creating file system: layout' => array($this->dumboSource.'/layout.phtml', $this->fullPathTarget.'/app/views/layout.phtml')
+        );
 
-		reset($actions);
+        reset($actions);
 
-		foreach($actions as $copy => $action){
-			$this->showMessage('Running task: '.$copy);
-			copy($action[0], $action[1]) or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
-		}
+        foreach($actions as $copy => $action){
+            $this->showMessage('Running task: '.$copy);
+            copy($action[0], $action[1]) or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+        }
 
-		if(isset($this->options['standalone'])) {
-			$this->showMessage('Building standalone site.');
-			copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
-		}
-	}
+        if(isset($this->options['standalone'])) {
+            $this->showMessage('Building standalone site.');
+            copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+        }
+    }
 
-	private function initAppScript() {
-		$this->showNotice('Initializing DumboPHP project. ');
+    private function initAppScript() {
+        $this->showNotice('Initializing DumboPHP project. ');
 
-		$this->_copyInstallFiles();
+        $this->_copyInstallFiles();
 
-		if (!empty($this->arguments[1]) && $this->arguments[1] === 'standalone') {
-			$this->showMessage('Building standalone site.');
-			copy($this->dumboSource.'/dumbophp.php',INST_PATH.'dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
-		}
+        if (!empty($this->arguments[1]) && $this->arguments[1] === 'standalone') {
+            $this->showMessage('Building standalone site.');
+            copy($this->dumboSource.'/dumbophp.php',INST_PATH.'dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
+        }
 
-		$this->showNotice('Build complete.');
-	}
+        $this->showNotice('Build complete.');
+    }
 
-	private function createSite() {
-		$this->showNotice('Creating site named: "'.$this->arguments[0].'"');
-		if(!file_exists($this->arguments[0])) {
-			mkdir($this->arguments[0]);
-		} else {
-			die($this->showError('Error: Creation aborted. Project folder exists already.'));
-		}
+    private function createSite() {
+        $this->showNotice('Creating site named: "'.$this->arguments[0].'"');
+        if(!file_exists($this->arguments[0])) {
+            mkdir($this->arguments[0]);
+        } else {
+            die($this->showError('Error: Creation aborted. Project folder exists already.'));
+        }
 
-		$this->_copyInstallFiles();
+        $this->_copyInstallFiles();
 
-		$this->showNotice('Build complete.');
-	}
+        $this->showNotice('Build complete.');
+    }
 
-	private function generateScripts() {
-		if(empty($this->arguments[0]) || $this->arguments[0] !== 'seed' && sizeof($this->arguments) < 2) {
-			$this->help();
-			die($this->showError('Error: Missing params.'));
-		}
+    private function generateScripts() {
+        if(empty($this->arguments[0]) || $this->arguments[0] !== 'seed' && sizeof($this->arguments) < 2) {
+            $this->help();
+            die($this->showError('Error: Missing params.'));
+        }
 
-		for ($i=1; $i < sizeof($this->arguments); $i++) {
-			$this->params[] = $this->arguments[$i];
-		}
+        for ($i=1; $i < sizeof($this->arguments); $i++) {
+            $this->params[] = $this->arguments[$i];
+        }
 
-		require_once __DIR__.'/lib/generator.php';
-		$generator = new DumboGeneratorClass();
+        require_once __DIR__.'/lib/generator.php';
+        $generator = new DumboGeneratorClass();
 
-		switch ($this->arguments[0]) {
-			case 'scaffold':
-				$this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
-				$generator->scaffold($this->params);
-			break;
-			case 'controller':
-				$this->showNotice('Creating controller: "'.$this->arguments[1].'".');
-				$generator->controller($this->params);
-			break;
-			case 'model':
-				$this->showNotice('Creating model: "'.$this->arguments[1].'".');
-				$generator->model($this->params);
-			break;
-			case 'seed':
-				$this->showNotice('Creating seed file...');
-				$generator->seed();
-			break;
+        switch ($this->arguments[0]) {
+            case 'scaffold':
+                $this->showNotice('Creating scaffold for "'.$this->arguments[1].'".');
+                $generator->scaffold($this->params);
+            break;
+            case 'controller':
+                $this->showNotice('Creating controller: "'.$this->arguments[1].'".');
+                $generator->controller($this->params);
+            break;
+            case 'model':
+                $this->showNotice('Creating model: "'.$this->arguments[1].'".');
+                $generator->model($this->params);
+            break;
+            case 'seed':
+                $this->showNotice('Creating seed file...');
+                $generator->seed();
+            break;
 
-			default:
-				$this->help();
-				die($this->showError('Option no valid for generate.'));
-			break;
-		}
-	}
+            default:
+                $this->help();
+                die($this->showError('Option no valid for generate.'));
+            break;
+        }
+    }
 
-	private function destroyScripts() {
-		if(empty($this->arguments[0]) or empty($this->arguments[1])) {
-			$this->help();
-			die($this->showError('Error: Missing params.'));
-		}
+    private function destroyScripts() {
+        if(empty($this->arguments[0]) or empty($this->arguments[1])) {
+            $this->help();
+            die($this->showError('Error: Missing params.'));
+        }
 
-		if(sizeof($this->arguments) > 2) {
-			$this->help();
-			die($this->showError('Error: Only one model for delete at once.'));
-		}
+        if(sizeof($this->arguments) > 2) {
+            $this->help();
+            die($this->showError('Error: Only one model for delete at once.'));
+        }
 
-		file_exists('./config/host.php') or die($this->showError('Destroy actions must be executed at the top level of project path.'.PHP_EOL));
+        file_exists('./config/host.php') or die($this->showError('Destroy actions must be executed at the top level of project path.'.PHP_EOL));
 
-		require_once './config/host.php';
-		require_once 'dumbophp.php';
+        require_once './config/host.php';
+        require_once 'dumbophp.php';
 
-		switch ($this->arguments[0]) {
-			case 'scaffold':
-				$this->showNotice('Deleting scaffold for "'.$this->arguments[1].'".');
-				$singular = singulars($this->arguments[1]);
-				$model = INST_PATH."app/models/{$singular}.php";
-				$migration = INST_PATH."migrations/create_{$this->arguments[1]}.php";
-				$controller = INST_PATH."app/controllers/{$singular}_controller.php";
-				$views = INST_PATH."app/views/{$singular}";
+        switch ($this->arguments[0]) {
+            case 'scaffold':
+                $this->showNotice('Deleting scaffold for "'.$this->arguments[1].'".');
+                $singular = singulars($this->arguments[1]);
+                $model = INST_PATH."app/models/{$singular}.php";
+                $migration = INST_PATH."migrations/create_{$this->arguments[1]}.php";
+                $controller = INST_PATH."app/controllers/{$singular}_controller.php";
+                $views = INST_PATH."app/views/{$singular}";
 
-				$this->showNotice("Deleting model: {$model}");
-				is_file($model) && unlink($model);
+                $this->showNotice("Deleting model: {$model}");
+                is_file($model) && unlink($model);
 
-				$this->showNotice("Deleting migration: {$this->arguments[1]}");
-				is_file($migration) && unlink($migration);
+                $this->showNotice("Deleting migration: {$this->arguments[1]}");
+                is_file($migration) && unlink($migration);
 
-				$this->showNotice("Deleting controller: {$controller}");
-				is_file($controller) && unlink($controller);
+                $this->showNotice("Deleting controller: {$controller}");
+                is_file($controller) && unlink($controller);
 
-				if (is_dir($views)):
-					$dir = opendir($views);
-					while($file = readdir($dir)):
-						   if ($file != "." && $file != ".."):
+                if (is_dir($views)):
+                    $dir = opendir($views);
+                    while($file = readdir($dir)):
+                           if ($file != "." && $file != ".."):
                                 $this->showNotice("Deleting controller: {$file}");
-								is_dir("{$views}/{$file}") or unlink("{$views}/{$file}");
-						   endif;
-					 endwhile;
-					 closedir($dir);
-					 rmdir($views);
-				endif;
-			break;
-			case 'model':
-				$model = INST_PATH.'app/models/'.singulars($this->arguments[1]).'.php';
-				$migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
-				$this->showNotice('Deleting model: "'.$model.'".');
-				file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
-				unlink($model);
-				$this->showNotice('Deleting migration: "'.$migration.'".');
-				file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
-				unlink($migration);
-			break;
-			/**
-			 * @todo script for remove controller and views
-			 */
-			case 'controller':
-				$controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
-				$this->showNotice('Deleting controller: "'.$controller.'".');
-				file_exists($controller) or die($this->showError('controller file does not exists.'.PHP_EOL));
-				unlink($controller);
-			break;
-			default:
-				$this->help();
-				die($this->showError('Option no valid for generate.'));
-			break;
-		}
-	}
+                                is_dir("{$views}/{$file}") or unlink("{$views}/{$file}");
+                           endif;
+                     endwhile;
+                     closedir($dir);
+                     rmdir($views);
+                endif;
+            break;
+            case 'model':
+                $model = INST_PATH.'app/models/'.singulars($this->arguments[1]).'.php';
+                $migration = INST_PATH.'migrations/create_'.$this->arguments[1].'.php';
+                $this->showNotice('Deleting model: "'.$model.'".');
+                file_exists($model) or die($this->showError('Model file does not exists.'.PHP_EOL));
+                unlink($model);
+                $this->showNotice('Deleting migration: "'.$migration.'".');
+                file_exists($migration) or die($this->showError('Migration file does not exists.'.PHP_EOL));
+                unlink($migration);
+            break;
+            /**
+             * @todo script for remove controller and views
+             */
+            case 'controller':
+                $controller = INST_PATH.'app/controllers/'.$this->arguments[1].'_controller.php';
+                $this->showNotice('Deleting controller: "'.$controller.'".');
+                file_exists($controller) or die($this->showError('controller file does not exists.'.PHP_EOL));
+                unlink($controller);
+            break;
+            default:
+                $this->help();
+                die($this->showError('Option no valid for generate.'));
+            break;
+        }
+    }
 
-	private function dbScripts() {
-		if(empty($this->arguments[0]) or empty($this->arguments[1])) {
-			$this->help();
-			die($this->showError('Error: Missing params.'));
-		}
+    private function dbScripts() {
+        if(empty($this->arguments[0]) or empty($this->arguments[1])) {
+            $this->help();
+            die($this->showError('Error: Missing params.'));
+        }
 
-		file_exists('./config/host.php') or die($this->showError('DB actions must be executed at the top level of project path.'.PHP_EOL));
+        file_exists('./config/host.php') or die($this->showError('DB actions must be executed at the top level of project path.'.PHP_EOL));
 
-		require_once './config/host.php';
-		require 'dumbophp.php';
+        require_once './config/host.php';
+        require 'dumbophp.php';
 
-		$modelsPath = INST_PATH.'app/models/';
-		$models = array();
+        $modelsPath = INST_PATH.'app/models/';
+        $models = array();
 
-		if ($this->arguments[1] === 'all') {
-			$modelsDir = dir($modelsPath);
-			while (($file = $modelsDir->read()) != FALSE) {
-				if($file != "." and $file != ".." and preg_match('/(.+)\.php/', $file, $matches) === 1) {
-					$models[] = array('file'=>$matches[0],'model'=>$matches[1],'class'=>Camelize($matches[1]));
-				}
-			}
-		} else {
-			for ($i=1; $i < sizeof($this->arguments); $i++) {
-				$name = Singulars($this->arguments[$i]);
-				if (file_exists($modelsPath.$name.'.php')) {
-					$models[] = array('file'=>$name.'.php','model'=>$name,'class'=>Camelize($name));
-				} else {
-					$this->showError('Model not found: '.$this->arguments[$i]);
-				}
-			}
-		}
+        if ($this->arguments[1] === 'all') {
+            $modelsDir = dir($modelsPath);
+            while (($file = $modelsDir->read()) != FALSE) {
+                if($file != "." and $file != ".." and preg_match('/(.+)\.php/', $file, $matches) === 1) {
+                    $models[] = array('file'=>$matches[0],'model'=>$matches[1],'class'=>Camelize($matches[1]));
+                }
+            }
+        } else {
+            for ($i=1; $i < sizeof($this->arguments); $i++) {
+                $name = Singulars($this->arguments[$i]);
+                if (file_exists($modelsPath.$name.'.php')) {
+                    $models[] = array('file'=>$name.'.php','model'=>$name,'class'=>Camelize($name));
+                } else {
+                    $this->showError('Model not found: '.$this->arguments[$i]);
+                }
+            }
+        }
 
-		switch ($this->arguments[0]) {
-			case 'load':
-				if (!empty($models)) {
-					foreach ($models as $model) {
-						$this->showNotice('Loading data for the model: "'.$model['model'].'".');
-						require_once $modelsPath.$model['file'];
-						$obj = new $model['class']();
-						$obj->LoadDump();
-					}
-				}
-			break;
-			case 'dump':
-				if (!empty($models)) {
-					foreach ($models as $model) {
-						$this->showNotice('Exporting data for the model: "'.$model['model'].'".');
-						require_once $modelsPath.$model['file'];
-						$obj = new $model['class']();
-						$data = $obj->Find();
-						$data->Dump();
-					}
-				}
-			break;
-			default:
-				$this->help();
-				die($this->showError('Error: Option no valid.'));
-			break;
-		}
-	}
+        switch ($this->arguments[0]) {
+            case 'load':
+                if (!empty($models)) {
+                    foreach ($models as $model) {
+                        $this->showNotice('Loading data for the model: "'.$model['model'].'".');
+                        require_once $modelsPath.$model['file'];
+                        $obj = new $model['class']();
+                        $obj->LoadDump();
+                    }
+                }
+            break;
+            case 'dump':
+                if (!empty($models)) {
+                    foreach ($models as $model) {
+                        $this->showNotice('Exporting data for the model: "'.$model['model'].'".');
+                        require_once $modelsPath.$model['file'];
+                        $obj = new $model['class']();
+                        $data = $obj->Find();
+                        $data->Dump();
+                    }
+                }
+            break;
+            default:
+                $this->help();
+                die($this->showError('Error: Option no valid.'));
+            break;
+        }
+    }
 
-	private function runActionScript() {
-		empty($_SERVER['REQUEST_METHOD']) and ($_SERVER['REQUEST_METHOD'] = 'GET');
-		$_GET['url'] = empty($this->arguments[0])? 'index/index' : $this->arguments[0];
-		array_shift($this->arguments);
-		foreach ($this->arguments as $arg) {
-			$param = explode('=', $arg);
-			sizeof($param) === 2 and ($_GET[urldecode($param[0])] = urldecode($param[1]));
-		}
+    private function runActionScript() {
+        empty($_SERVER['REQUEST_METHOD']) and ($_SERVER['REQUEST_METHOD'] = 'GET');
+        $_GET['url'] = empty($this->arguments[0])? 'index/index' : $this->arguments[0];
+        array_shift($this->arguments);
+        while(null !== ($arg = array_shift($this->arguments))){
+            $param = explode('=', $arg);
+            sizeof($param) === 2 and ($_GET[urldecode($param[0])] = urldecode($param[1]));
+        }
 
-		require_once('dumbophp.php');
-		$index = new index();
-	}
+        require_once('app/webroot/index.php');
+    }
 
-	private function runTestScript() {
-		set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '.')));
-		if (file_exists('./config/host.php')) {
-			require_once './config/host.php';
-			set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendor', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp')));
-		}
+    private function runTestScript() {
+        set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '.')));
+        if (file_exists('./config/host.php')) {
+            require_once './config/host.php';
+            set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendor', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp')));
+        }
 
-		require_once 'dumbophp.php';
-		require_once 'lib/Timothy/dumboTests.php';
+        require_once 'dumbophp.php';
+        require_once 'lib/Timothy/dumboTests.php';
         require_once 'lib/Timothy/testDispatcher.php';
         if (in_array('all', $this->arguments)):
             $testsDir = dir('tests/');
@@ -434,86 +433,86 @@ DUMBO;
             }
         endif;
         $testLaunch = new testDispatcher($this->arguments);
-		foreach ($this->arguments as $test) {
-			$testLaunch->run($test);
-		}
-	}
+        foreach ($this->arguments as $test) {
+            $testLaunch->run($test);
+        }
+    }
 
-	private function migrationScripts() {
-		file_exists('./config/host.php') or die($this->showError('Migration actions must be executed at the top level of project path.'.PHP_EOL));
+    private function migrationScripts() {
+        file_exists('./config/host.php') or die($this->showError('Migration actions must be executed at the top level of project path.'.PHP_EOL));
 
-		require_once './config/host.php';
-		require_once 'dumbophp.php';
+        require_once './config/host.php';
+        require_once 'dumbophp.php';
 
-		for ($i=1; $i < sizeof($this->arguments); $i++) {
-			$this->params[] = $this->arguments[$i];
-		}
+        for ($i=1; $i < sizeof($this->arguments); $i++) {
+            $this->params[] = $this->arguments[$i];
+        }
 
-		empty($this->arguments[0]) && die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
+        empty($this->arguments[0]) && die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
 
-		($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
+        ($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
 
-		$migrationsPath = INST_PATH.'migrations/';
+        $migrationsPath = INST_PATH.'migrations/';
 
-		if($this->arguments[0] === 'sow') {
-			$this->showNotice('Sowing the seeds of this project...');
-			file_exists($migrationsPath.'seeds.php')  or die($this->showError('Error: No seeds file exists.'));
-			require_once $migrationsPath.'seeds.php';
-			$Seeds = new Seed();
-			$Seeds->sow();
-		} elseif(sizeof($this->params) === 1 and $this->params[0] === 'all') {
-			$migrationsDir = dir($migrationsPath);
-			while (($file = $migrationsDir->read()) != FALSE) {
-				if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
-					echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
-					require_once $migrationsPath.$matches[0];
-					$class = 'Create'.Camelize(Singulars($matches[1]));
-					$obj = new $class();
-					$obj->{$this->arguments[0]}();
-				}
-			}
-		} else {
-			foreach ($this->params as $migration) {
-				$file = $migrationsPath.'create_'.$migration.'.php';
-				file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
-				echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
-				require_once $file;
-				$class = 'Create'.Camelize(Singulars($migration));
-				$obj = new $class();
-				$obj->{$this->arguments[0]}();
-			}
-		}
+        if($this->arguments[0] === 'sow') {
+            $this->showNotice('Sowing the seeds of this project...');
+            file_exists($migrationsPath.'seeds.php')  or die($this->showError('Error: No seeds file exists.'));
+            require_once $migrationsPath.'seeds.php';
+            $Seeds = new Seed();
+            $Seeds->sow();
+        } elseif(sizeof($this->params) === 1 and $this->params[0] === 'all') {
+            $migrationsDir = dir($migrationsPath);
+            while (($file = $migrationsDir->read()) != FALSE) {
+                if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
+                    echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
+                    require_once $migrationsPath.$matches[0];
+                    $class = 'Create'.Camelize(Singulars($matches[1]));
+                    $obj = new $class();
+                    $obj->{$this->arguments[0]}();
+                }
+            }
+        } else {
+            foreach ($this->params as $migration) {
+                $file = $migrationsPath.'create_'.$migration.'.php';
+                file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
+                echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
+                require_once $file;
+                $class = 'Create'.Camelize(Singulars($migration));
+                $obj = new $class();
+                $obj->{$this->arguments[0]}();
+            }
+        }
 
-		switch ($this->arguments[0]) {
-			case 'up':
-				$this->showNotice(PHP_EOL. 'Running complementary migrations.'. PHP_EOL);
-				if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
-					$migrationsDir = dir($migrationsPath);
-					while (($file = $migrationsDir->read()) != FALSE) {
-						if($file != "." and $file != ".." and preg_match('/add_(.+)\.php/', $file, $matches) === 1) {
-							$this->showMessage(PHP_EOL. 'Running action '. $this->arguments[0]. ' for: '. $matches[1]. PHP_EOL);
-							require_once $migrationsPath.$matches[0];
-							$class = 'Add'.Camelize(Singulars($matches[1]));
-							$obj = new $class();
-							$obj->{$this->arguments[0]}();
-						}
-					}
-				} else {
-					foreach ($this->params as $migration) {
-						$file = $migrationsPath.'add_fields_to_'.Singulars($migration).'.php';
-						if (file_exists($file)) {
-							$this->showMessage(PHP_EOL. 'Running action '. $this->arguments[0]. ' for: '. $migration. PHP_EOL);
-							require_once $file;
-							$class = 'AddFieldsTo'.Camelize(Singulars($migration));
-							$obj = new $class();
-							$obj->{$this->arguments[0]}();
-						}
-					}
-				}
+        switch ($this->arguments[0]) {
+            case 'up':
+                $this->showNotice(PHP_EOL. 'Running complementary migrations.'. PHP_EOL);
+                if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
+                    $migrationsDir = dir($migrationsPath);
+                    while (($file = $migrationsDir->read()) != FALSE) {
+                        if($file != "." and $file != ".." and preg_match('/add_(.+)\.php/', $file, $matches) === 1) {
+                            $this->showMessage(PHP_EOL. 'Running action '. $this->arguments[0]. ' for: '. $matches[1]. PHP_EOL);
+                            require_once $migrationsPath.$matches[0];
+                            $class = 'Add'.Camelize(Singulars($matches[1]));
+                            $obj = new $class();
+                            $obj->{$this->arguments[0]}();
+                        }
+                    }
+                } else {
+                    foreach ($this->params as $migration) {
+                        $file = $migrationsPath.'add_fields_to_'.Singulars($migration).'.php';
+                        if (file_exists($file)) {
+                            $this->showMessage(PHP_EOL. 'Running action '. $this->arguments[0]. ' for: '. $migration. PHP_EOL);
+                            require_once $file;
+                            $class = 'AddFieldsTo'.Camelize(Singulars($migration));
+                            $obj = new $class();
+                            $obj->{$this->arguments[0]}();
+                        }
+                    }
+                }
 
-			break;
-		}
-	}
+            break;
+        }
+    }
 }
 $shell = new dumboShell();
 $shell->run($argv);

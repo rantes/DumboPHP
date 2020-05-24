@@ -614,17 +614,18 @@ class Connection extends PDO {
             $result1 = $this->query($query);
             $result1->setFetchMode(PDO::FETCH_ASSOC);
             $resultset1 = $result1->fetchAll();
-            foreach ($resultset1 as $res) {
+            $ret = [];
 
+            while(null !== ($res = array_shift($resultset1))) {
                 $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
-
-                yield [
-                    'Cast'=>in_array($type, $numerics),
-                    'Field'=>$res['Field'],
-                    'Type'=>$type,
+                $ret[] = [
+                    'Cast' => in_array($type, $numerics),
+                    'Field' => $res['Field'],
+                    'Type' => $type,
                     'Value' => null
                 ];
             }
+            return $ret;
         } catch (PDOException $e) {
             die("Error to run query: -- {$query} -- due to: ".$e->getMessage());
         } catch (Exception $e) {
@@ -748,6 +749,7 @@ abstract class Core_General_Class extends ArrayObject {
     }
 }
 $GLOBALS['models'] = array();
+$driver = null;
 /**
  * Class for Active Record design
  * @version 2.0
@@ -844,9 +846,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     private function _setInitialCols() {
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
-            foreach ($GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable)) as $field) {
+            $fields = $GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable));
+            while(null !== ($field = array_shift($fields))) {
                 $this->_fields[$field['Field']] = $field['Cast'];
             }
+
             $GLOBALS['models'][$this->_ObjTable]['fields'] = $this->_fields;
         } else {
             $this->_fields = $GLOBALS['models'][$this->_ObjTable]['fields'];
@@ -893,6 +897,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param string $query SQL query to fetch the data
      */
     protected function getData($query) {
+        empty($GLOBALS['Connection']) && $this->__construct();
         $obj = clone $this;
         $obj->_fields = array();
         $obj->_dataAttributes = array();
@@ -916,7 +921,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $obj->offsetSet(0, NULL);
             $obj[0] = NULL;
             unset($obj[0]);
-            foreach ($GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable)) as $row) {
+            $fields = $GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable));
+            while (null !== ($row = array_shift($fields))) {
                 $obj->_fields[$row['Field']] = false;
                 $obj->{$row['Field']} = null;
                 $obj->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
@@ -945,11 +951,14 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return ActiveRecord
      */
     public function Find($params = NULL) {
+        empty($GLOBALS['driver']) && $this->__construct();
+
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
                 $this->{$functiontoRun}();
             }
         }
+
         $this->_sqlQuery = $GLOBALS['driver']->Select($params, $this->_ObjTable);
 
         $x = $this->getData($this->_sqlQuery);
