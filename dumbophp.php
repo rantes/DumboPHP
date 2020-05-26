@@ -2150,26 +2150,22 @@ class index {
         if (sizeof($request) === 1 and !strstr($request[0], "=") and is_numeric($request[0])) {
             $params['id'] = $request[0];
         } elseif (sizeof($request) > 0 and strstr($request[0], "=")) {
-            for ($i = 0; $i < sizeof($request); $i++) {
-                $p = explode('=', $request[$i]);
+            while (null !== ($r = array_shift($request))) {
+                $p = explode('=', $r);
                 if (isset($p[1])) {
                     $params[$p[0]] = $p[1];
                 } else {
                     $params[] = $p[0];
                 }
-                unset($request[$i]);
             }
         } elseif (sizeof($request) > 0) {
-            foreach ($request as $index => $varParam) {
+            while (null !== ($varParam = array_shift($request))) {
                 $params[] = $varParam;
-                unset($request[$index]);
             }
         }
-        if (is_array($params)) {
-            $params = array_merge($params, $_GET);
-        } else {
-            $params = $_GET;
-        }
+
+        $params = is_array($params) ? array_merge($params, $_GET) : $_GET;
+        
         if (defined('SITE_STATUS') and SITE_STATUS == 'MAINTENANCE') {
             $urlToLand = explode('/', LANDING_PAGE);
             $replace   = false;
@@ -2197,7 +2193,8 @@ class index {
             $controllerFile             = $controller.'_controller.php';
         } elseif (!file_exists($path.$controllerFile)) {
             $canGo = false;
-            echo "Missing Controller";
+            http_response_code(HTTP_404);
+            echo 'Missing Controller';
         }
         defined('_CONTROLLER') || define('_CONTROLLER', $controller);
         defined('_ACTION') || define('_ACTION', $action);
@@ -2280,7 +2277,8 @@ class index {
                     }
                 }
             } else {
-                echo "Missing Action";
+                http_response_code(HTTP_404);
+                echo 'Missing Action';
             }
         }
     }
