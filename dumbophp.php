@@ -58,6 +58,32 @@ if (!function_exists('getallheaders')) {
     }
 }
 /**
+ * Generates an Universal Unique ID v4
+ *
+ * @return string
+ */
+function uuidV4() {
+    return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        // 32 bits for "time_low"
+        mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
+
+        // 16 bits for "time_mid"
+        mt_rand( 0, 0xffff ),
+
+        // 16 bits for "time_hi_and_version",
+        // four most significant bits holds version number 4
+        mt_rand( 0, 0x0fff ) | 0x4000,
+
+        // 16 bits, 8 bits for "clk_seq_hi_res",
+        // 8 bits for "clk_seq_low",
+        // two most significant bits holds zero and one for variant DCE1.1
+        mt_rand( 0, 0x3fff ) | 0x8000,
+
+        // 48 bits for "node"
+        mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
+    );
+}
+/**
  * Implements the functionalities for translating
  * @author rantes
  * @package Core
@@ -1141,7 +1167,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    empty($this->{$field}) && !is_numeric($this->{$field}) && $this->_error->add(['field' => $field, 'message' => $message]);
+                    (($action === 'insert' && !isset($this->{$field})) || (empty($this->{$field}) && isset($this->{$field}) && !is_numeric($this->{$field}))) 
+                    && $this->_error->add([
+                        'field' => $field, 
+                        'message' => $message
+                    ]);
                 }
             }
         }
@@ -1210,6 +1240,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             if (sizeof($this->after_insert) > 0) {
                 foreach ($this->after_insert as $functiontoRun) {
                     $this->{$functiontoRun}();
+                    if ($this->_error->isActived()) return false;
                 }
             }
         }
@@ -1219,6 +1250,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
                 $this->{$functiontoRun}();
+                if ($this->_error->isActived()) return false;
             }
         }
 
@@ -1335,9 +1367,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $listProperties .= "{$field} => {$buffer}";
             }
         } else {
+            ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
             for ($j = 0; $j < $this->_counter; $j++) {
                 $this[$j]->inspect($i+1);
             }
+            $buffer = ob_get_clean();
+            $listProperties .= $buffer;
         }
 
         for ($j = 0; $j < $i; $j++) {
@@ -1370,7 +1405,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         } else {
             foreach ($fields as $field) {
                 if (isset($this->{$field})) {
-                    $arraux[$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
+                    $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
                 }
             }
         }
