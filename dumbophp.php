@@ -1049,9 +1049,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function flatten() {
         $result = [];
+        $fields = $this->getRawFields();
         foreach($this as $row) {
-            $items = array_values($row->getArray());
-            $result[$items[0]] = $items[1];
+            $result[$row->{$fields[0]}] = $row->{$fields[1]};
         }
 
         return $result;
