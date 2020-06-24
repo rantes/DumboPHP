@@ -2163,7 +2163,8 @@ abstract class Migrations extends Core_General_Class {
 class index {
     public function __construct() {
         if (isset($_GET['url'])) {
-            $request = explode("/", $_GET['url']);
+            $_GET['url'][0] === '/' && ($request = substr($request, 1));
+            $request = explode('/', $_GET['url']);
             unset($_GET['url']);
         }
 
