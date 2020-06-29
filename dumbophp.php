@@ -1183,6 +1183,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function Save() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
+        AUTO_AUDITS && !($this->updated_at = 0) && !($this->created_at = 0);
         $fields = array_keys($this->_fields);
 
         foreach($this->before_save as $functiontoRun) {
