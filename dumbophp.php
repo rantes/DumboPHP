@@ -1237,19 +1237,24 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
                 return FALSE;
             }
-        } catch (PDOException $e) {
-            echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
-            return FALSE;
-        }
 
-        if (empty($this->{$this->pk})) {
-            $this->{$this->pk} = $GLOBALS['Connection']->lastInsertId()+0;
-            if (sizeof($this->after_insert) > 0) {
-                foreach ($this->after_insert as $functiontoRun) {
+            if (empty($this->{$this->pk})) {
+                $this->{$this->pk} = $GLOBALS['Connection']->lastInsertId()+0;
+                if (sizeof($this->after_insert) > 0) {
+                    foreach ($this->after_insert as $functiontoRun) {
+                        $this->{$functiontoRun}();
+                        if ($this->_error->isActived()) return false;
+                    }
+                }
+            } elseif (sizeof($this->after_update) > 0) {
+                foreach ($this->after_update as $functiontoRun) {
                     $this->{$functiontoRun}();
                     if ($this->_error->isActived()) return false;
                 }
             }
+        } catch (PDOException $e) {
+            echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
+            return FALSE;
         }
 
         $this->_counter === 0 && ($this->_counter = 1) && $this->offsetSet(0, $this);
