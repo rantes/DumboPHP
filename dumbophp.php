@@ -808,12 +808,14 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $disableCast = true;
     protected $before_insert           = array();
     protected $after_insert            = array();
-    protected $after_find              = array();
+    protected $before_update           = array();
+    protected $after_update            = array();
     protected $before_find             = array();
-    protected $after_save              = array();
+    protected $after_find              = array();
     protected $before_save             = array();
-    protected $after_delete            = array();
+    protected $after_save              = array();
     protected $before_delete           = array();
+    protected $after_delete            = array();
     protected $dependents              = '';
     protected $_dataAttributes         = array();
     protected $_params                 = array('fields' => '*', 'conditions' => '');
@@ -1192,6 +1194,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
 
         if (!empty($this->{$this->pk})) {
+            foreach($this->before_update as $functiontoRun) {
+                $this->{$functiontoRun}();
+                if ($this->_error->isActived()) return false;
+            }
             $this->_ValidateOnSave('update');
             if ($this->_error->isActived()) return false;
 
