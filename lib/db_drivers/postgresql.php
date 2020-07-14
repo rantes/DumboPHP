@@ -43,7 +43,7 @@ class mysqlDriver {
                 case 'integer':
                     $tail = "{$tail} WHERE `{$pk}` = {$this->_params}";
                     $prepared = "{$prepared} WHERE `{$pk}` = ?";
-                    $values = [$id];
+                    $values = [$this->_params];
                 break;
                 case 'string':
                     $ids = explode(',', $this->_params);
