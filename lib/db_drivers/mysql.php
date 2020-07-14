@@ -58,8 +58,8 @@ class mysqlDriver {
                                     unset($condition[1]);
                                 }
                                 $field = array_shift($condition);
-                                $prepared .= " {$connector} `{$field}` {$operator} ";
-                                $conditions .= " {$connector} `{$field}` {$operator} ";
+                                $prepared .= " {$connector} {$field} {$operator} ";
+                                $conditions .= " {$connector} {$field} {$operator} ";
 
                                 if(preg_match('@BETWEEN@i', $connector) === 1) {
                                     $conditions .= "{$condition[0]} AND {$condition[1]}";
