@@ -8,7 +8,21 @@ class mysqlDriver {
     public $pk = 'id';
 
     public function getColumns($table) {
-        return "SHOW COLUMNS FROM {$table}";
+        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG'];
+        $fields = array();
+        $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$table}");
+        $result1->setFetchMode(PDO::FETCH_ASSOC);
+        $resultset1 = $result1->fetchAll();
+        foreach ($resultset1 as $res) {
+            $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+
+            yield [
+                'Cast'=>in_array($type, $numerics),
+                'Field'=>$res['Field'],
+                'Type'=>$type,
+                'Value' => null
+            ];
+        }
     }
 
     public function Select($params = null, $table, $pk = 'id') {
@@ -190,9 +204,15 @@ class mysqlDriver {
                 $field['limit'] = 250;
             }
 
-            $query .= (!empty($field['field']) && !empty($field['type']))?"`".$field['field']."` ".$field['type']:NULL;
-            $query .= (!empty($field['limit']))?" (".$field['limit'].")":NULL;
-            $query .= (empty($field['null']) || $field['null'] === 'false')?" NOT NULL":NULL;
+            if (empty($field['field'])) {
+                throw new Exception('A column name must be defined');
+            }
+            if (empty($field['type'])) {
+                throw new Exception('A column type must be defined');
+            }
+            $query .= "`{$field['field']}` {$field['type']}";
+            $query .= (!empty($field['limit']))?" ({$field['limit']})":NULL;
+            $query .= (empty($field['null']))?" NOT NULL":NULL;
             $query .= (isset($field['default']))?" DEFAULT '".$field['default']."'":NULL;
             $query .= (!empty($field['comment']))?" COMMENT '".$field['comment']."'":NULL;
             $query .= " ,";
@@ -207,33 +227,31 @@ class mysqlDriver {
     public function DropTable($table) {
         return "DROP TABLE IF EXISTS `{$table}`";
     }
-    /**
-     * Query for assertion of presence of a field in a table
-     *
-     * @param [string] $table
-     * @param [string] $field
-     * @return string query
-     */
+
     public function validateField($table, $field) {
-        $query =<<<DUMBO
+        $getinfo =<<<DUMBO
 SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE table_name = '{$table}'
     AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
     AND column_name = '{$field}';
 DUMBO;
-        return $query;
+        $res = $GLOBALS['Connection']->query($getinfo);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        return 0 + $res->fetchAll()[0]['counter'];
     }
 
     public function AddColumn($table, $params) {
         $query = '';
-        $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+        if ($this->validateField($table, $params['field']) < 1) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-        $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+            $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+        }
 
         return $query;
     }
@@ -245,13 +263,15 @@ DUMBO;
      */
     public function AlterColumn($table, array $params) {
         $query = '';
-        $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+        if ($this->validateField($table, $params['field']) > 0) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-        $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+            $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+        }
 
         return $query;
     }
@@ -336,7 +356,10 @@ DUMBO;
 SELECT INDEX_NAME FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}'
 DUMBO;
 
-        return $query;
+        $res = $GLOBALS['Connection']->query($query);
+        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $c = $res->fetchAll();
+        return $c;
     }
     /**
      * Gets the query for dropping an index in a table

@@ -15,80 +15,114 @@ class sqliteDriver {
         $this->_params = $params;
 
         $tail = '';
+        $prepared = '';
+        $values = [];
         $head = 'SELECT ';
         $body = " FROM {$table} ";
 
+
         if(!empty($this->_params)){
-            if(is_numeric($this->_params) && strpos($this->_params,',') === FALSE) $this->_params = 0 + $this->_params;
+            is_numeric($this->_params) && ($this->_params = (integer) $this->_params);
             $type = gettype($this->_params);
 
             switch($type){
                 case 'integer':
-                    $tail .= " WHERE {$pk} in ($this->_params)";
+                    $tail = "{$tail} WHERE `{$pk}` = {$this->_params}";
+                    $prepared = "{$prepared} WHERE `{$pk}` = ?";
+                    $values = [$id];
                 break;
                 case 'string':
-                    if(strpos($this->_params,',')!== FALSE){
-                        $tail .= " WHERE {$pk} in ({$this->_params})";
+                    $ids = explode(',', $this->_params);
+                    $tail = "{$tail} WHERE `{$pk}` in ( ";
+                    while(null !== ($id = array_shift($ids))) {
+                        $id = (integer) $id;
+                        $values[] = $id;
+                        $tail .= '?,';
                     }
+                    $tail = substr($tail, -1);
+                    $tail = "{$tail})";
                 break;
                 case 'array':
                     $tail = ' WHERE 1=1';
+                    $operator = '=';
+                    $conditions = ' ';
+                    $connector = 'AND';
                     if(!empty($this->_params['conditions'])){
-                        if(is_array($this->_params['conditions'])){
-                            $NotOnlyInt = FALSE;
-                            while(!$NotOnlyInt and (list($key, $value) = each($this->_params['conditions']))){
-                                $NotOnlyInt = (!is_numeric($key))? TRUE: FALSE;
-                            }
-                            if(!$NotOnlyInt){
-                                $tail .= " AND {$pk} in (".implode(',',$this->_params['conditions']).")";
-                            }else{
-                                foreach($this->_params['conditions'] as $field => $value){
-                                    if(is_numeric($field)) {
-                                        $tail .= " AND {$value}";
-                                    } else {
-                                        $tail .= " AND $field='{$value}'";
-                                    }
+                        if (is_string($this->_params['conditions'])) {
+                            $prepared = $tail = "{$tail} AND {$this->_params['conditions']}";
+                        } elseif(is_array($this->_params['conditions'])){
+                            foreach($this->_params['conditions'] as $conn => $condition) {
+                                is_numeric($conn) or ($connector = strtoupper($conn));
+                                if(sizeof($condition) > 2) {
+                                    $operator = $condition[1];
+                                    unset($condition[1]);
                                 }
-                                $tail = substr($tail, 4);
+                                $field = array_shift($condition);
+                                $prepared .= " {$connector} `{$field}` {$operator} ";
+                                $conditions .= " {$connector} `{$field}` {$operator} ";
+
+                                if(preg_match('@BETWEEN@i', $connector) === 1) {
+                                    $conditions .= "{$condition[0]} AND {$condition[1]}";
+                                    $prepared .= '? AND ?';
+                                    $values[] = $condition[0];
+                                    $values[] = $condition[1];
+                                } elseif(preg_match('@IN@i', $connector) === 1) {
+                                    $conditions .= '( ';
+                                    while(null !== ($item = array_shift($condition))) {
+                                        $conditions .= "{$item},";
+                                        $prepared .= '?,';
+                                        $values[] = $item;
+                                    }
+                                    $conditions = substr($conditions, 0, -1);
+                                    $conditions .= ')';
+                                } else {
+                                    $value = array_shift($condition);
+                                    $conditions .= "'{$value}'";
+                                    $prepared .= '?';
+                                    $values[] = $value;
+                                }
                             }
-                        } elseif (is_string($this->_params['conditions'])) {
-                            $tail .= ' AND '. $this->_params['conditions'];
+
+                            $prepared = "{$tail}{$prepared}";
+                            $tail = "{$tail}{$conditions}";
                         }
                     }
                     if(!empty($this->_params['join'])){
                         $body .= $this->_params['join'];
                     }
                     if(isset($this->_params['group'])){
-                        $tail .= " GROUP BY ".$this->_params['group'];
+                        $tail .= " GROUP BY {$this->_params['group']}";
+                        $prepared .= " GROUP BY {$this->_params['group']}";
                     }
                     if(isset($this->_params['sort'])){
                         switch (gettype($this->_params['sort'])){
                             case 'string':
-                                $tail .= " ORDER BY ".$this->_params['sort'];
-                            break;
-                            case 'array':
-                                null;
+                                $tail .= " ORDER BY {$this->_params['sort']}";
+                                $prepared .= " ORDER BY {$this->_params['sort']}";
                             break;
                         }
                     }
 
                     if(isset($this->_params['limit'])){
-                        $tail .= " LIMIT ".$this->_params['limit'];
+                        $tail .= " LIMIT {$this->_params['limit']}";
+                        $prepared .= " LIMIT {$this->_params['limit']}";
                     }
                     if(isset($this->_params[0])){
                         switch($this->_params[0]){
-                        case ':first':
-                            $tail .= " LIMIT 1";
-                        break;
+                            case ':first':
+                                $tail .= " LIMIT 1";
+                                $prepared .= " LIMIT 1";
+                            break;
                         }
                     }
                 break;
             }
         }
         $fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
-        $sql = $head.$fields.$body.$tail;
+        $sql = "{$head}{$fields}{$body}{$tail}";
+        $prepared = "{$head}{$fields}{$body}{$prepared}";
 
-        return $sql;
+        return ['query' => $sql, 'prepared' => $prepared, 'data' => $values];
     }
 
     public function Update($params = null, $table, $pk = 'id') {

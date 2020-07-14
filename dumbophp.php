@@ -767,8 +767,12 @@ abstract class Core_General_Class extends ArrayObject {
             }
             return NULL;
         } elseif (preg_match('/Find_by_/', $ClassName)) {
-            $nustring = str_replace("Find_by_", '', $ClassName);
-            return $this->Find(array('conditions' => $nustring."='".$val[0]."'"));
+            $nustring = str_replace('Find_by_', '', $ClassName);
+            return $this->Find([
+                    'conditions' => [
+                        [$nustring, $val[0]]
+                    ]
+                ]);
         } else {
             return $ClassName($val, $this);
         }
@@ -822,6 +826,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     protected $pk                      = 'id';
     protected $escapeField             = array();
     protected $_fields                 = array();
+    protected $_preparedQuery = array();
     private $_paginatePrevChar  = '&lt;';
     private $_paginateNextChar  = '&gt;';
     private $_paginateFirstChar  = '|&lt;&lt;';
@@ -924,26 +929,27 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * Sets the active record.
      * @param string $query SQL query to fetch the data
      */
-    protected function getData($query) {
+    protected function getData($prepared, $data) {
         empty($GLOBALS['Connection']) && $this->__construct();
         $obj = clone $this;
         $obj->_fields = array();
         $obj->_dataAttributes = array();
         try {
-            $regs = $GLOBALS['Connection']->query($query);
+            $sh = $GLOBALS['Connection']->prepare($prepared);
+            $sh->execute($data);
         } catch (PDOException $e) {
-            throw new Exception("Failed to run {$query} due to: {$e->getMessage()}");
+            throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
 
-        $cols = $regs->columnCount();
+        $cols = $sh->columnCount();
         for ($i = 0; $i < $cols; $i++) {
-            $meta = $regs->getColumnMeta($i);
+            $meta = $sh->getColumnMeta($i);
             $obj->_set_columns($meta);
         }
-        $obj->_counter = $regs->rowCount();
-        $regs->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
-        $resultset = $regs->fetchAll();
-        $regs->closeCursor();
+        $obj->_counter = $sh->rowCount();
+        $sh->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
+        $resultset = $sh->fetchAll();
+        $sh->closeCursor();
         $obj->exchangeArray($resultset);
         if ($obj->_counter === 0) {
             $obj->offsetSet(0, NULL);
@@ -987,9 +993,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         }
 
-        $this->_sqlQuery = $GLOBALS['driver']->Select($params, $this->_ObjTable);
+        $prepared = $GLOBALS['driver']->Select($params, $this->_ObjTable, $this->pk);
+        $this->_sqlQuery = $prepared['query'];
 
-        $x = $this->getData($this->_sqlQuery);
+        $x = $this->getData($prepared['prepared'], $prepared['data']);
         if (sizeof($x->after_find) > 0) {
             foreach ($x->after_find as $functiontoRun) {
                 $x->{$functiontoRun}();
