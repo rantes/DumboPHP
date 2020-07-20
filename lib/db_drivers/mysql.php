@@ -54,27 +54,31 @@ class mysqlDriver {
                             foreach($this->_params['conditions'] as $conn => $condition) {
                                 is_numeric($conn) or ($connector = strtoupper($conn));
                                 if(sizeof($condition) > 2) {
-                                    $operator = $condition[1];
+                                    $operator = strtoupper($condition[1]);
                                     unset($condition[1]);
                                 }
                                 $field = array_shift($condition);
                                 $prepared .= " {$connector} {$field} {$operator} ";
                                 $conditions .= " {$connector} {$field} {$operator} ";
 
-                                if(preg_match('@BETWEEN@i', $connector) === 1) {
+                                if(preg_match('@BETWEEN@i', $operator) === 1) {
                                     $conditions .= "{$condition[0]} AND {$condition[1]}";
                                     $prepared .= '? AND ?';
                                     $values[] = $condition[0];
                                     $values[] = $condition[1];
-                                } elseif(preg_match('@IN@i', $connector) === 1) {
+                                } elseif(preg_match('@IN@i', $operator) === 1) {
                                     $conditions .= '( ';
+                                    $prepared .= '( ';
+                                    $condition = $condition[0];
                                     while(null !== ($item = array_shift($condition))) {
                                         $conditions .= "{$item},";
                                         $prepared .= '?,';
                                         $values[] = $item;
                                     }
                                     $conditions = substr($conditions, 0, -1);
+                                    $prepared = substr($prepared, 0, -1);
                                     $conditions .= ')';
+                                    $prepared .= ')';
                                 } else {
                                     $value = array_shift($condition);
                                     $conditions .= "'{$value}'";
