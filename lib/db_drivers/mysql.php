@@ -52,6 +52,7 @@ class mysqlDriver {
                             $prepared = $tail = "{$tail} AND {$this->_params['conditions']}";
                         } elseif(is_array($this->_params['conditions'])){
                             foreach($this->_params['conditions'] as $conn => $condition) {
+                                $operator = '=';
                                 is_numeric($conn) or ($connector = strtoupper($conn));
                                 if(sizeof($condition) > 2) {
                                     $operator = strtoupper($condition[1]);
