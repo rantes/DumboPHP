@@ -64,22 +64,22 @@ class FieldObject {
   }
 
   public function getArray() {
-    return array(
-            'field' => $this->name,
-            'type'=>$this->dbTypes[$this->type][0],
-            'null' => $this->isNull,
-            'limit' => $this->dbTypes[$this->type][1],
-            'default' => $this->dbTypes[$this->type][2]
-          );
+    return [
+        'field' => $this->name,
+        'type'=>$this->dbTypes[$this->type][0],
+        'null' => $this->isNull,
+        'limit' => $this->dbTypes[$this->type][1],
+        'default' => $this->dbTypes[$this->type][2]
+    ];
   }
 
   public function __toString() {
     $arr = $this->getArray();
 
-    $str = "array('field'=>'{$arr['field']}', 'type'=>'{$arr['type']}', 'null'=>'{$arr['null']}'";
+    $str = "['field'=>'{$arr['field']}', 'type'=>'{$arr['type']}', 'null'=>'{$arr['null']}'";
     empty($arr['limit']) or ($str .= ", 'limit'=>'{$arr['limit']}'");
     empty($arr['default']) or ($str .= ", 'default'=>'{$arr['default']}'");
-    $str .= ')';
+    $str .= ']';
 
     return $str;
   }
@@ -99,15 +99,15 @@ class DumboGeneratorClass {
   }
 
   public function showError($errorMessage) {
-      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
+      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
   }
 
   public function showMessage($errorMessage) {
-      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
+      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'green') . "\n");
   }
 
   public function showNotice($errorMessage) {
-      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
+      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'blue', 'yellow') . "\n");
   }
 
   public function setNames($name) {
@@ -131,11 +131,11 @@ class DumboGeneratorClass {
 
     $fileContent = <<<DUMBOPHP
 <?php
-  class $this->camelized extends ActiveRecord {
+class $this->camelized extends ActiveRecord {
     function _init_() {
 
     }
-  }
+ }
 ?>
 DUMBOPHP;
 
@@ -155,10 +155,10 @@ DUMBOPHP;
 
     $fileContent = <<<DUMBOPHP
 <?php
-  class {$this->camelized}Controller extends Page {
+class {$this->camelized}Controller extends Page {
     public \$layout = 'layout';
     {{content}}
-  }
+}
 ?>
 DUMBOPHP;
 
@@ -169,34 +169,34 @@ DUMBOPHP;
     public \$noTemplate = array('create','delete');
 
     public function indexAction() {
-      \$this->data = \$this->{$this->camelized}->Find();
+        \$this->data = \$this->{$this->camelized}->Find();
     }
 
     public function addeditAction() {
-      if (isset(\$this->params['id'])):
-        \$this->data = \$this->{$this->camelized}->Find(\$this->params['id']);
-      else:
-        \$this->data = \$this->{$this->camelized}->Niu();
-      endif;
+        if (isset(\$this->params['id'])):
+            \$this->data = \$this->{$this->camelized}->Find(\$this->params['id']);
+        else:
+            \$this->data = \$this->{$this->camelized}->Niu();
+        endif;
     }
 
     public function deleteAction() {
-      if (isset(\$this->params['id'])):
-        \$this->data = \$this->{$this->camelized}->Delete(\$this->params['id']);
-      endif;
+        if (isset(\$this->params['id'])):
+            \$this->data = \$this->{$this->camelized}->Delete(\$this->params['id']);
+        endif;
 
-      header('Location: '.INST_URI.'{$this->singularized}/index/');
-      exit;
+        header('Location: '.INST_URI.'{$this->singularized}/index/');
+        exit;
     }
 
     public function createAction() {
-      if (isset(\$_POST['$this->singularized'])):
-        \$obj = \$this->{$this->camelized}->Niu(\$_POST['$this->singularized']);
-        \$obj->Save() or die(\$obj->_error);
-      endif;
+        if (isset(\$_POST['$this->singularized'])):
+            \$obj = \$this->{$this->camelized}->Niu(\$_POST['$this->singularized']);
+            \$obj->Save() or die(\$obj->_error);
+        endif;
 
-      header('Location: '.INST_URI.'{$this->singularized}/index/');
-      exit;
+        header('Location: '.INST_URI.'{$this->singularized}/index/');
+        exit;
     }
 DUMBOPHP;
     } elseif(sizeof($params) > 1) {
@@ -228,19 +228,19 @@ DUMBOPHP;
     is_dir($path) or mkdir($path);
 
     if ($isScaffold) {
-      require_once INST_PATH.'app/models/'.$this->singularized.'.php';
-      $model = new $this->camelized();
+        require_once INST_PATH.'app/models/'.$this->singularized.'.php';
+        $model = new $this->camelized();
 
-      $this->fields = $model->getRawFields();
-      $columnNames = '';
-      $dataRow = '';
-      $formContent = '';
-      foreach($this->fields as $field){
-        $columnNames .= "\t\t\t\t\t<th>{$field}</th>\n";
-        $dataRow .= "\t\t\t\t\t<td><?=\$row->{$field};?></td>\n\t\t\t\t\t";
-        $formContent .= ($field !== 'id')? "\t\t\t\t<label>{$field} :</label>\n" : '';
-        $formContent .= "\t\t\t\t<?=\$this->data->input_for(array('{$field}'));?>\n";
-      }
+        $this->fields = $model->getRawFields();
+        $columnNames = '';
+        $dataRow = '';
+        $formContent = '';
+        foreach($this->fields as $field){
+            $columnNames .= "                    <th>{$field}</th>\n";
+            $dataRow .= "                    <td><?=\$row->{$field};?></td>\n";
+            $formContent .= ($field !== 'id')? "                <label>{$field} :</label>\n" : '';
+            $formContent .= "                <?=\$this->data->input_for(array('{$field}'));?>\n";
+        }
 
       $file = 'index.phtml';
 
@@ -319,24 +319,25 @@ DUMBOPHP;
 
     $fileContent = <<<DUMBOPHP
 <?php
-  class Create{$this->camelized} extends Migrations {
+class Create{$this->camelized} extends Migrations {
     function _init_() {
-          \$this->_fields = array(
+          \$this->_fields = [
               {{fields}}
-          );
+          ];
     }
 
     function up() {
-      \$this->Create_Table();
+        \$this->Create_Table();
     }
 
     function down() {
-      \$this->Drop_Table();
+        \$this->Drop_Table();
     }
-  }
+}
 ?>
+
 DUMBOPHP;
-    $fieldsString = implode(",\n\t\t\t\t", $this->fields);
+    $fieldsString = implode(",\n                ", $this->fields);
     $fileContent = str_replace('{{fields}}', $fieldsString, $fileContent);
 
     file_put_contents("{$path}{$file}", $fileContent);
@@ -366,11 +367,11 @@ DUMBOPHP;
 
     $fileContent = <<<DUMBOPHP
 <?php
-  class Seed extends Page {
+class Seed extends Page {
     function sow() {
 
     }
-  }
+}
 ?>
 DUMBOPHP;
 
