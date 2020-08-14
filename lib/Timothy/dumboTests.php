@@ -1,7 +1,7 @@
 <?php
 /**
  *
- * @author rantes <rantes.javier@gmail.com> http://rantes.info
+ * @author rantes <rantes.javier@gmail.com> https://latuteca.com
  *
  */
 class dumboTests extends Page {
@@ -20,6 +20,11 @@ class dumboTests extends Page {
     }
     public function _init_() {}
     public function _end_() {}
+    /**
+     * Attempts to run migration reset action over the given tabbles
+     * for model testing purposes
+     * @param array $tables
+     */
     public function _migrateTables($tables = []) {
         $migrationsPath = INST_PATH.'migrations/';
         foreach ($tables as $table) {
@@ -59,7 +64,7 @@ class dumboTests extends Page {
     }
     /**
      * Logs the process of each test
-     * @param unknown $text
+     * @param string $text
      */
     private function _log($text) {
         $date = date('d-m-Y H:i:s');

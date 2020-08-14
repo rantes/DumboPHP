@@ -17,7 +17,8 @@ class dumboShell{
         'test'
     ];
     private $_options = [
-        'env' => ''
+        'env' => ['value' => '', 'cast' => 'text'],
+        'halt' => ['value' => false, 'cast' => 'boolean']
     ];
     private $command = null;
     private $systemFolder = '/etc/';
@@ -44,10 +45,27 @@ class dumboShell{
     }
 
     private function _parseOptions() {
+        $trueFalse = ['true' => true, 'false' => false];
         foreach($this->arguments as $i => $arg) {
             preg_match('@\-\-([a-zA-Z0-9]+)\=([a-z0-9_]+)@im', $arg, $match);
             if (sizeof($match) === 3) {
-                isset($this->_options[$match[1]]) && ($this->_options[$match[1]] = $match[2]);
+                if(isset($this->_options[$match[1]])){
+                    switch($this->_options[$match[1]]['cast']) {
+                        case 'numeric':
+                            $match[2] = (integer)$match[2];
+                        break;
+                        case 'boolean':
+                            $match[2] = $trueFalse[strtolower($match[2])];
+                        break;
+                        case 'string':
+                            $match[2] = (string)$match[2];
+                        break;
+                        default:
+                            throw new Exception("Value not allowed for {$match[1]}");
+                        break;
+                    }
+                    $this->_options[$match[1]]['value'] = $match[2];
+                }
                 $this->arguments[$i] = null;
                 unset($this->arguments[$i]);
             }
@@ -164,9 +182,13 @@ Commands:
     test [all|<unitTest>,<unitTest>,<unitTest>]
          executes Unit test file(s).
 
+Options:
+
+    --env=enviroment        Sets a particular enviroment for the execution
+    --halt=[true|false]     Halt the script on error
+
 DUMBO;
         fwrite(STDOUT, $text . "\n");
-        //echo $text;
     }
 
     private function _copyInstallFiles() {
@@ -256,7 +278,7 @@ DUMBO;
         }
 
         require_once __DIR__.'/lib/generator.php';
-        $generator = new DumboGeneratorClass();
+        $generator = new DumboGeneratorClass($this->_options['env']['value']);
 
         switch ($this->arguments[0]) {
             case 'scaffold':
@@ -298,6 +320,8 @@ DUMBO;
 
         require_once './config/host.php';
         require_once 'dumbophp.php';
+
+        empty($this->_options['env']['value']) || ($GLOBALS['env'] = $this->_options['env']['value']);
 
         switch ($this->arguments[0]) {
             case 'scaffold':
@@ -365,6 +389,8 @@ DUMBO;
 
         require_once './config/host.php';
         require 'dumbophp.php';
+
+        empty($this->_options['env']['value']) || ($GLOBALS['env'] = $this->_options['env']['value']);
 
         $modelsPath = INST_PATH.'app/models/';
         $models = array();
@@ -447,7 +473,7 @@ DUMBO;
                 }
             }
         endif;
-        $testLaunch = new testDispatcher($this->arguments);
+        $testLaunch = new testDispatcher($this->arguments, $this->_options['halt']['value']);
         foreach ($this->arguments as $test) {
             $testLaunch->run($test);
         }
@@ -467,7 +493,7 @@ DUMBO;
 
         ($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
 
-        empty($this->_options['env']) || ($GLOBALS['env'] = $this->_options['env']);
+        empty($this->_options['env']['value']) || ($GLOBALS['env'] = $this->_options['env']['value']);
         $migrationsPath = INST_PATH.'migrations/';
 
         if($this->arguments[0] === 'sow') {

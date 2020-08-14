@@ -30,106 +30,107 @@ class FieldObject {
               'decimal' => array('FLOAT','','')
             );
 
-  public function __construct($field) {
-    $args = explode(':', $field);
-    $argsSize = sizeof($args);
-    $matches = [];
+    public function __construct($field) {
+        $args = explode(':', $field);
+        $argsSize = sizeof($args);
+        $matches = [];
 
-    ($argsSize < 2) and die('Error on Building: Invalid field definition.'.PHP_EOL);
-    if(preg_match('/\{([0-9]+)\}/is', $args[1], $matches) === 1) {
-      empty($matches[1]) and die("Error on Building: Limit size for the field '{$args[0]}' is not valid.".PHP_EOL);
-      $toRemove = strlen($matches[0]) * -1;
-      $args[1] = substr($args[1], 0, $toRemove);
-      $this->dbTypes[$args[1]][1] = $matches[1];
-    }
-
-    in_array($args[1], $this->types) or die("Error on Building: Data type for the field '{$args[0]}', is not valid.".PHP_EOL);
-
-    $this->name = $args[0];
-    $this->type = $args[1];
-
-    if($argsSize > 2) {
-      in_array('null', $args) and ($this->isNull = 'true');
-      in_array('default', $args) and die("Default flag given but value is missing for field '{$args[0]}'.".PHP_EOL);
-
-      for ($i=1; $i < $argsSize; $i++) {
-        if(preg_match('/default\{(.+)\}/', $args[$i], $matches) === 1) {
-          empty($matches[1]) and die("Error on Building: Default value for the field '{$args[0]}' is not valid.".PHP_EOL);
-          $this->dbTypes[$args[1]][2] = $matches[1];
-          break;
+        ($argsSize < 2) and die('Error on Building: Invalid field definition.'.PHP_EOL);
+        if(preg_match('/\{([0-9]+)\}/is', $args[1], $matches) === 1) {
+        empty($matches[1]) and die("Error on Building: Limit size for the field '{$args[0]}' is not valid.".PHP_EOL);
+        $toRemove = strlen($matches[0]) * -1;
+        $args[1] = substr($args[1], 0, $toRemove);
+        $this->dbTypes[$args[1]][1] = $matches[1];
         }
-      }
+
+        in_array($args[1], $this->types) or die("Error on Building: Data type for the field '{$args[0]}', is not valid.".PHP_EOL);
+
+        $this->name = $args[0];
+        $this->type = $args[1];
+
+        if($argsSize > 2) {
+        in_array('null', $args) and ($this->isNull = 'true');
+        in_array('default', $args) and die("Default flag given but value is missing for field '{$args[0]}'.".PHP_EOL);
+
+        for ($i=1; $i < $argsSize; $i++) {
+            if(preg_match('/default\{(.+)\}/', $args[$i], $matches) === 1) {
+            empty($matches[1]) and die("Error on Building: Default value for the field '{$args[0]}' is not valid.".PHP_EOL);
+            $this->dbTypes[$args[1]][2] = $matches[1];
+            break;
+            }
+        }
+        }
+
     }
 
-  }
+    public function getArray() {
+        return [
+            'field' => $this->name,
+            'type'=>$this->dbTypes[$this->type][0],
+            'null' => $this->isNull,
+            'limit' => $this->dbTypes[$this->type][1],
+            'default' => $this->dbTypes[$this->type][2]
+        ];
+    }
 
-  public function getArray() {
-    return [
-        'field' => $this->name,
-        'type'=>$this->dbTypes[$this->type][0],
-        'null' => $this->isNull,
-        'limit' => $this->dbTypes[$this->type][1],
-        'default' => $this->dbTypes[$this->type][2]
-    ];
-  }
+    public function __toString() {
+        $arr = $this->getArray();
 
-  public function __toString() {
-    $arr = $this->getArray();
+        $str = "['field'=>'{$arr['field']}', 'type'=>'{$arr['type']}', 'null'=>'{$arr['null']}'";
+        empty($arr['limit']) or ($str .= ", 'limit'=>'{$arr['limit']}'");
+        empty($arr['default']) or ($str .= ", 'default'=>'{$arr['default']}'");
+        $str .= ']';
 
-    $str = "['field'=>'{$arr['field']}', 'type'=>'{$arr['type']}', 'null'=>'{$arr['null']}'";
-    empty($arr['limit']) or ($str .= ", 'limit'=>'{$arr['limit']}'");
-    empty($arr['default']) or ($str .= ", 'default'=>'{$arr['default']}'");
-    $str .= ']';
-
-    return $str;
-  }
+        return $str;
+    }
 }
 
 class DumboGeneratorClass {
 
-  public $args = null;
-  public $tblName = '';
-  public $camelized = '';
-  public $singularized = '';
-  private $fields = array();
-  private $colors = null;
+    public $args = null;
+    public $tblName = '';
+    public $camelized = '';
+    public $singularized = '';
+    private $fields = array();
+    private $colors = null;
 
-  public function __construct() {
-      $this->colors = new Colors();
-  }
+    public function __construct($env = '') {
+        empty($env) || ($GLOBALS['env'] = $env);
+        $this->colors = new Colors();
+    }
 
-  public function showError($errorMessage) {
-      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
-  }
+    public function showError($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
+    }
 
-  public function showMessage($errorMessage) {
-      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'green') . "\n");
-  }
+    public function showMessage($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'green') . "\n");
+    }
 
-  public function showNotice($errorMessage) {
-      fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'blue', 'yellow') . "\n");
-  }
+    public function showNotice($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'blue', 'yellow') . "\n");
+    }
 
-  public function setNames($name) {
-    $this->tblName = $name;
-    $this->singularized = Singulars($this->tblName);
-    $this->camelized = Camelize($this->singularized);
+    public function setNames($name) {
+        $this->tblName = $name;
+        $this->singularized = Singulars($this->tblName);
+        $this->camelized = Camelize($this->singularized);
 
-    return true;
-  }
+        return true;
+    }
 
-  public function model(&$params) {
-    $this->showMessage('Building: Creating model...');
+    public function model(&$params) {
+        $this->showMessage('Building: Creating model...');
 
-    (!empty($params[1]) and $params[1] === 'no-migration') or $this->migration($params);
-    empty($this->tblName) and $this->setNames($params[0]);
+        (!empty($params[1]) and $params[1] === 'no-migration') or $this->migration($params);
+        empty($this->tblName) and $this->setNames($params[0]);
 
-    $file = $this->singularized.'.php';
-    $path = INST_PATH.'app/models/';
+        $file = $this->singularized.'.php';
+        $path = INST_PATH.'app/models/';
 
-    file_exists($path.$file) and $this->showError('Error on Building: Model already exists.') and die();
+        file_exists($path.$file) and $this->showError('Error on Building: Model already exists.') and die();
 
-    $fileContent = <<<DUMBOPHP
+        $fileContent = <<<DUMBOPHP
 <?php
 class $this->camelized extends ActiveRecord {
     function _init_() {
@@ -139,21 +140,21 @@ class $this->camelized extends ActiveRecord {
 ?>
 DUMBOPHP;
 
-    file_put_contents("{$path}{$file}", $fileContent);
-    $this->showNotice("Model created at: {$path}{$file}");
+        file_put_contents("{$path}{$file}", $fileContent);
+        $this->showNotice("Model created at: {$path}{$file}");
 
-    return true;
-  }
+        return true;
+    }
 
-  public function controller($params, $isScaffold = false) {
-    echo 'Building: Creating controller...',PHP_EOL;
+    public function controller($params, $isScaffold = false) {
+        echo 'Building: Creating controller...',PHP_EOL;
 
-    empty($this->tblName) and $this->setNames($params[0]);
+        empty($this->tblName) and $this->setNames($params[0]);
 
-    $file = $this->singularized.'_controller.php';
-    $path = INST_PATH.'app/controllers/';
+        $file = $this->singularized.'_controller.php';
+        $path = INST_PATH.'app/controllers/';
 
-    $fileContent = <<<DUMBOPHP
+        $fileContent = <<<DUMBOPHP
 <?php
 class {$this->camelized}Controller extends Page {
     public \$layout = 'layout';
@@ -162,10 +163,10 @@ class {$this->camelized}Controller extends Page {
 ?>
 DUMBOPHP;
 
-    $content = '';
+        $content = '';
 
-    if ($isScaffold) {
-      $content = <<<DUMBOPHP
+        if ($isScaffold) {
+        $content = <<<DUMBOPHP
     public \$noTemplate = array('create','delete');
 
     public function indexAction() {
@@ -199,52 +200,52 @@ DUMBOPHP;
         exit;
     }
 DUMBOPHP;
-    } elseif(sizeof($params) > 1) {
-      for ($i=1; $i < sizeof($params); $i++) {
-        if (!empty($params[$i])) {
-          $content .= <<<DUMBOPHP
+        } elseif(sizeof($params) > 1) {
+        for ($i=1; $i < sizeof($params); $i++) {
+            if (!empty($params[$i])) {
+            $content .= <<<DUMBOPHP
 
     public function {$params[$i]}Action() {
 
     }
 DUMBOPHP;
+                }
+            }
         }
-      }
+
+        $fileContent = str_replace('{{content}}', $content, $fileContent);
+        file_put_contents("{$path}{$file}", $fileContent);
+        $this->showNotice("Controller created at: {$path}{$file}");
+
+        $this->views($params, $isScaffold);
     }
 
-    $fileContent = str_replace('{{content}}', $content, $fileContent);
-    file_put_contents("{$path}{$file}", $fileContent);
-    $this->showNotice("Controller created at: {$path}{$file}");
+    public function views($params, $isScaffold) {
+        $this->showMessage('Building: Creating views...');
 
-    $this->views($params, $isScaffold);
-  }
+        empty($this->tblName) and $this->setNames($params[0]);
 
-  public function views($params, $isScaffold) {
-    $this->showMessage('Building: Creating views...');
+        $path = INST_PATH.'app/views/'.$this->singularized.'/';
+        is_dir($path) or mkdir($path);
 
-    empty($this->tblName) and $this->setNames($params[0]);
+        if ($isScaffold) {
+            require_once INST_PATH.'app/models/'.$this->singularized.'.php';
+            $model = new $this->camelized();
 
-    $path = INST_PATH.'app/views/'.$this->singularized.'/';
-    is_dir($path) or mkdir($path);
+            $this->fields = $model->getRawFields();
+            $columnNames = '';
+            $dataRow = '';
+            $formContent = '';
+            foreach($this->fields as $field){
+                $columnNames .= "                    <th>{$field}</th>\n";
+                $dataRow .= "                    <td><?=\$row->{$field};?></td>\n";
+                $formContent .= ($field !== 'id')? "                <label>{$field} :</label>\n" : '';
+                $formContent .= "                <?=\$this->data->input_for(array('{$field}'));?>\n";
+            }
 
-    if ($isScaffold) {
-        require_once INST_PATH.'app/models/'.$this->singularized.'.php';
-        $model = new $this->camelized();
+        $file = 'index.phtml';
 
-        $this->fields = $model->getRawFields();
-        $columnNames = '';
-        $dataRow = '';
-        $formContent = '';
-        foreach($this->fields as $field){
-            $columnNames .= "                    <th>{$field}</th>\n";
-            $dataRow .= "                    <td><?=\$row->{$field};?></td>\n";
-            $formContent .= ($field !== 'id')? "                <label>{$field} :</label>\n" : '';
-            $formContent .= "                <?=\$this->data->input_for(array('{$field}'));?>\n";
-        }
-
-      $file = 'index.phtml';
-
-      $fileContent = <<<DUMBOPHP
+        $fileContent = <<<DUMBOPHP
       <div>
         <div>
           <table>
@@ -271,12 +272,12 @@ DUMBOPHP;
       </div>
 DUMBOPHP;
 
-      file_put_contents("{$path}{$file}", $fileContent);
-      $this->showNotice("View created at: {$path}{$file}");
+        file_put_contents("{$path}{$file}", $fileContent);
+        $this->showNotice("View created at: {$path}{$file}");
 
-      $file = 'addedit.phtml';
+        $file = 'addedit.phtml';
 
-      $fileContent = <<<DUMBOPHP
+        $fileContent = <<<DUMBOPHP
   <div>
     <div>
       <?=\$this->data->form_for(array('action'=>INST_URI.'{$this->singularized}/create/'));?>
@@ -286,38 +287,38 @@ $formContent
     </div>
   </div>
 DUMBOPHP;
-      file_put_contents("{$path}{$file}", $fileContent);
-      $this->showNotice("View created at: {$path}{$file}");
-    } elseif(sizeof($params) > 1) {
-      for ($i=1; $i < sizeof($params); $i++) {
-        if (!empty($params[$i])) {
-          $file = "{$params[$i]}.phtml";
-          file_put_contents("{$path}{$file}", '');
-          $this->showNotice("View created at: {$path}{$file}");
+        file_put_contents("{$path}{$file}", $fileContent);
+        $this->showNotice("View created at: {$path}{$file}");
+        } elseif(sizeof($params) > 1) {
+        for ($i=1; $i < sizeof($params); $i++) {
+            if (!empty($params[$i])) {
+            $file = "{$params[$i]}.phtml";
+            file_put_contents("{$path}{$file}", '');
+            $this->showNotice("View created at: {$path}{$file}");
+            }
         }
-      }
-    } else {
-        $this->showNotice("No view created.");
-    }
-  }
-
-  public function migration($params) {
-      $this->showMessage('Building: Creating migration...');
-
-    empty($params[1]) and die('Error on Building: fields params are mandatory.'.PHP_EOL);
-
-    for ($i=1; $i < sizeof($params); $i++) {
-      $this->fields[] = new FieldObject($params[$i]);
+        } else {
+            $this->showNotice("No view created.");
+        }
     }
 
-    empty($this->tblName) and $this->setNames($params[0]);
+    public function migration($params) {
+        $this->showMessage('Building: Creating migration...');
 
-    $path = INST_PATH.'migrations/';
-    $file = "create_{$this->tblName}.php";
+        empty($params[1]) and die('Error on Building: fields params are mandatory.'.PHP_EOL);
 
-    file_exists($path.$file) and die('Error on Building: Migration already exists.'.PHP_EOL);
+        for ($i=1; $i < sizeof($params); $i++) {
+        $this->fields[] = new FieldObject($params[$i]);
+        }
 
-    $fileContent = <<<DUMBOPHP
+        empty($this->tblName) and $this->setNames($params[0]);
+
+        $path = INST_PATH.'migrations/';
+        $file = "create_{$this->tblName}.php";
+
+        file_exists($path.$file) and die('Error on Building: Migration already exists.'.PHP_EOL);
+
+        $fileContent = <<<DUMBOPHP
 <?php
 class Create{$this->camelized} extends Migrations {
     function _init_() {
@@ -337,35 +338,35 @@ class Create{$this->camelized} extends Migrations {
 ?>
 
 DUMBOPHP;
-    $fieldsString = implode(",\n                ", $this->fields);
-    $fileContent = str_replace('{{fields}}', $fieldsString, $fileContent);
+        $fieldsString = implode(",\n                ", $this->fields);
+        $fileContent = str_replace('{{fields}}', $fieldsString, $fileContent);
 
-    file_put_contents("{$path}{$file}", $fileContent);
-    $this->showNotice("Migration created at: {$path}{$file}");
-    $this->showMessage('Building: Running migration...');
-    require_once $path.$file;
-    $class = "Create{$this->camelized}";
-    $obj = new $class();
-    $obj->up();
-    $this->showNotice("Migration executed.");
+        file_put_contents("{$path}{$file}", $fileContent);
+        $this->showNotice("Migration created at: {$path}{$file}");
+        $this->showMessage('Building: Running migration...');
+        require_once $path.$file;
+        $class = "Create{$this->camelized}";
+        $obj = new $class();
+        $obj->up();
+        $this->showNotice("Migration executed.");
 
-    return true;
-  }
+        return true;
+    }
 
-  public function scaffold($params) {
-    $this->model($params);
-    $this->controller($params, true);
-  }
+    public function scaffold($params) {
+        $this->model($params);
+        $this->controller($params, true);
+    }
 
-  public function seed() {
-    $this->showMessage('Building: Creating seed...');
+    public function seed() {
+        $this->showMessage('Building: Creating seed...');
 
-    $path = INST_PATH.'migrations/';
-    $file = 'seeds.php';
+        $path = INST_PATH.'migrations/';
+        $file = 'seeds.php';
 
-    file_exists($path.$file) and die('Error on Building: Seed file already exists.'.PHP_EOL);
+        file_exists($path.$file) and die('Error on Building: Seed file already exists.'.PHP_EOL);
 
-    $fileContent = <<<DUMBOPHP
+        $fileContent = <<<DUMBOPHP
 <?php
 class Seed extends Page {
     function sow() {
@@ -375,11 +376,11 @@ class Seed extends Page {
 ?>
 DUMBOPHP;
 
-    file_put_contents("{$path}{$file}", $fileContent);
-    $this->showNotice("Seed file created at: {$path}{$file}");
+        file_put_contents("{$path}{$file}", $fileContent);
+        $this->showNotice("Seed file created at: {$path}{$file}");
 
-    return true;
-  }
+        return true;
+    }
 }
 
 ?>
