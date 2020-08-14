@@ -28,25 +28,33 @@ class testDispatcher {
     function run($test) {
         $test = (string) $test;
         $actions = [];
-        $methods = get_class_methods($this->{$test});
-        foreach ($methods as $method):
-            preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
-            if (sizeof($match) === 1):
-                $actions[] = $method;
-            endif;
-        endforeach;
 
-        $this->{$test}->_init_();
-        foreach ($actions as $action):
-            $this->{$test}->beforeEach();
-            $this->{$test}->{$action}();
-            $this->_failed = ($this->_failed || $this->{$test}->_failed > 0);
-            if ($this->_halt && $this->_failed):
-                exit(1);
-            endif;
-        endforeach;
-        $this->{$test}->_end_();
-        $this->{$test}->_summary();
+        try {
+            $methods = get_class_methods($this->{$test});
+            foreach ($methods as $method):
+                preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
+                if (sizeof($match) === 1):
+                    $actions[] = $method;
+                endif;
+            endforeach;
+    
+            $this->{$test}->_init_();
+            foreach ($actions as $action):
+                $this->{$test}->beforeEach();
+                $this->{$test}->{$action}();
+                $this->_failed = ($this->_failed || $this->{$test}->_failed > 0);
+                if ($this->_halt && $this->_failed):
+                    exit(1);
+                endif;
+            endforeach;
+            $this->{$test}->_end_();
+            $this->{$test}->_summary();
+        } catch (Exception $e) {
+            $this->_failed = true;
+            var_dump($e->getMessage());
+            var_dump($e->getTrace());
+            exit(1);
+        }
     }
     /**
      * At the end of all tests will display results and return exit code (0: ok, 1: fail)
