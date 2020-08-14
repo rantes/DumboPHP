@@ -643,7 +643,6 @@ class Connection extends PDO {
             empty($this->_settings['password']) and $this->_settings['password'] = null;
             parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
             $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         } catch (PDOException $e) {
             die('Error to connect to database due to: '.$e->getMessage());
         } catch (Exception $e) {
