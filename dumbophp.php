@@ -987,16 +987,19 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $sh->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
         $resultset = $sh->fetchAll();
-
-        $cols = $sh->columnCount();
-        for ($i = 0; $i < $cols; $i++) {
-            $meta = $sh->getColumnMeta($i);
-            $obj->_set_columns($meta);
-        }
-
         $obj->_counter = $GLOBALS['Connection']->engine === 'sqlite' ? sizeof($resultset) : $sh->rowCount();
+
         $sh->closeCursor();
         $obj->exchangeArray($resultset);
+
+        if ($obj->_counter > 0) {
+            $cols = $sh->columnCount();
+            for ($i = 0; $i < $cols; $i++) {
+                $meta = $sh->getColumnMeta($i);
+                $obj->_set_columns($meta);
+            }
+        }
+
         if ($obj->_counter === 0) {
             $obj->offsetSet(0, NULL);
             $obj[0] = NULL;
