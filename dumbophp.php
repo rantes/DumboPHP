@@ -989,9 +989,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $resultset = $sh->fetchAll();
         $obj->_counter = $GLOBALS['Connection']->engine === 'sqlite' ? sizeof($resultset) : $sh->rowCount();
 
-        $sh->closeCursor();
-        $obj->exchangeArray($resultset);
-
         if ($obj->_counter > 0) {
             $cols = $sh->columnCount();
             for ($i = 0; $i < $cols; $i++) {
@@ -999,6 +996,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $obj->_set_columns($meta);
             }
         }
+
+        $sh->closeCursor();
+        $obj->exchangeArray($resultset);
+
 
         if ($obj->_counter === 0) {
             $obj->offsetSet(0, NULL);
