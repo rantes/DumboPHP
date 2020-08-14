@@ -877,7 +877,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     public function _init_() {}
 
-    public final function __construct() {
+    public final function __construct($fields = null) {
         $name = get_class($this);
         
         if (empty($GLOBALS['models'][$name])) {
@@ -903,7 +903,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $GLOBALS['driver'] = new $driver();
         }
 
-        $this->_setInitialCols();
+        if(empty($fields)) {
+            $this->_setInitialCols();
+        } else {
+            $this->_fields = $fields;
+        }
         $this->_error = new Errors;
         $this->_init_();
         $this->_counter = 0;
@@ -984,16 +988,24 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
 
-        $cols = $sh->columnCount();
-        for ($i = 0; $i < $cols; $i++) {
-            $meta = $sh->getColumnMeta($i);
-            $obj->_set_columns($meta);
+        try {
+            $cols = $sh->columnCount();
+            for ($i = 0; $i < $cols; $i++) {
+                $meta = $sh->getColumnMeta($i);
+                $obj->_set_columns($meta);
+            }
+        } catch (Exception $e) {
+            foreach($this->_fields as $field => $cast) {
+                $obj->_set_columns([
+                    'native_type' => 'VAR_STRING',
+                    'name' => $field
+                ]);
+            }
         }
 
-        $sh->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
+        $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($obj));
         $resultset = $sh->fetchAll();
         $obj->_counter = $GLOBALS['Connection']->engine === 'sqlite' ? sizeof($resultset) : $sh->rowCount();
-
 
         $sh->closeCursor();
         $obj->exchangeArray($resultset);
@@ -1024,7 +1036,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             }
         }
-
         return $obj;
     }
     /**
