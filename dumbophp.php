@@ -643,7 +643,6 @@ class Connection extends PDO {
             empty($this->_settings['password']) and $this->_settings['password'] = null;
             parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
             $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         } catch (PDOException $e) {
             die('Error to connect to database due to: '.$e->getMessage());
         } catch (Exception $e) {
@@ -985,17 +984,16 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
 
+        $cols = $sh->columnCount();
+        for ($i = 0; $i < $cols; $i++) {
+            $meta = $sh->getColumnMeta($i);
+            $obj->_set_columns($meta);
+        }
+
         $sh->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
         $resultset = $sh->fetchAll();
         $obj->_counter = $GLOBALS['Connection']->engine === 'sqlite' ? sizeof($resultset) : $sh->rowCount();
 
-        if ($obj->_counter > 0) {
-            $cols = $sh->columnCount();
-            for ($i = 0; $i < $cols; $i++) {
-                $meta = $sh->getColumnMeta($i);
-                $obj->_set_columns($meta);
-            }
-        }
 
         $sh->closeCursor();
         $obj->exchangeArray($resultset);
