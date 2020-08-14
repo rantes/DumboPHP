@@ -1083,10 +1083,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     }
     private function _set_columns($meta) {
         (empty($meta['native_type']) || ($meta['native_type'] === 'null')) && ($meta['native_type'] = 'VAR_STRING');
-        $this->_fields[$meta['name']] = $GLOBALS['PDOCASTS'][$meta['native_type']];
-        $this->{$meta['name']} = '';
-        $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
-        $this->_dataAttributes[$meta['name']]['cast'] = $this->_fields[$meta['name']];
+        if(!empty($meta['name'])) {
+            $this->_fields[$meta['name']] = $GLOBALS['PDOCASTS'][$meta['native_type']];
+            $this->{$meta['name']} = '';
+            $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
+            $this->_dataAttributes[$meta['name']]['cast'] = $this->_fields[$meta['name']];
+        }
     }
     private function _setValues(array $values) {
         if (empty($values)) {
