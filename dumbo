@@ -6,16 +6,19 @@ if (file_exists('./config/host.php')) {
 }
 
 class dumboShell{
-    private $commands = array(
-                'create',
-                'run',
-                'init',
-                'db',
-                'generate',
-                'destroy',
-                'migration',
-                'test'
-            );
+    private $commands = [
+        'create',
+        'run',
+        'init',
+        'db',
+        'generate',
+        'destroy',
+        'migration',
+        'test'
+    ];
+    private $_options = [
+        'env' => ''
+    ];
     private $command = null;
     private $systemFolder = '/etc/';
     private $dumboSource = 'dumbophp/src';
@@ -40,6 +43,17 @@ class dumboShell{
         $this->colors = new Colors();
     }
 
+    private function _parseOptions() {
+        foreach($this->arguments as $i => $arg) {
+            preg_match('@\-\-([a-zA-Z0-9]+)\=([a-z0-9_]+)@im', $arg, $match);
+            if (sizeof($match) === 3) {
+                isset($this->_options[$match[1]]) && ($this->_options[$match[1]] = $match[2]);
+                $this->arguments[$i] = null;
+                unset($this->arguments[$i]);
+            }
+        }
+    }
+
     public function showError($errorMessage) {
         fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
     }
@@ -53,9 +67,9 @@ class dumboShell{
     }
 
     public function validateApacheConf() {
-        $modsRequired = array(
-                            'mod_rewrite'
-                        );
+        $modsRequired = [
+            'mod_rewrite'
+        ];
     }
 
     public function run($argv) {
@@ -67,6 +81,7 @@ class dumboShell{
         array_shift($argv);
         $this->command = array_shift($argv);
         $this->arguments = $argv;
+        $this->_parseOptions();
 
         if(in_array($this->command, $this->commands)){
             switch($this->command) {
@@ -452,6 +467,7 @@ DUMBO;
 
         ($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
 
+        empty($this->_options['env']) || ($GLOBALS['env'] = $this->_options['env']);
         $migrationsPath = INST_PATH.'migrations/';
 
         if($this->arguments[0] === 'sow') {

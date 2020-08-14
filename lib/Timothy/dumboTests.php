@@ -1,142 +1,4 @@
 <?php
-class mockObject {
-    public $data = [];
-    public $className = '';
-
-    public function columnCount() {
-        return empty($this->data[0]) ? 0 : sizeof($this->data[0]);
-    }
-
-    public function rowCount() {
-        return sizeof($this->data);
-    }
-
-    public function setFetchMode($any, $class) {
-        if (!empty($any)) $this->className = $class;
-    }
-
-    public function getColumnMeta($index) {
-        $i = 0;
-        foreach ($this->data[0] as $key => $value) {
-            if ($index === $i) {
-                return ['name' => $key];
-            }
-            $i++;
-        }
-    }
-
-    public function counter() {
-        return sizeof($this->data);
-    }
-
-    public function closeCursor() { return true; }
-
-    public function fetchAll() {
-        $temp = [];
-
-        foreach ($this->data as $reg) {
-            $a = new $this->className();
-            foreach ($reg as $index => $value) {
-                $a->{$index} = $value;
-            }
-            $temp[] = $a;
-        }
-
-        return $temp;
-    }
-}
-
-class preparedMockQuery {
-    public function execute() {
-        return true;
-    }
-}
-
-class mockConnection {
-    public $mockData = [];
-    public $engine = 'mysql';
-    private $_mockTables = null;
-
-    public function __construct(array $tables = []) {
-        $this->_mockTables =  new stdClass();
-
-        if (!empty($tables)) {
-            foreach($tables as $table) {
-                if(file_exists(INST_PATH."migrations/create_{$table}.php")) {
-                    require_once INST_PATH."migrations/create_{$table}.php";
-                    $class = 'Create'.Camelize(Singulars($table));
-                    $obj = new $class();
-                    $this->_mockTables->{$table} = [];
-                    $fields = [];
-
-                    foreach($obj->_fields as $field) {
-                        $fields[$field['field']] = '';
-                    }
-                    $this->_mockTables->{$table}[] = $fields;
-                } else {
-                    throw new Exception("Migration file for {$table} does not exists.");
-                }
-
-            }
-        }
-        // $migrationsPath = INST_PATH.'migrations/';
-        // $migrationsDir = dir($migrationsPath);
-        // while (($file = $migrationsDir->read()) != FALSE) {
-        //     if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
-        //         require_once $migrationsPath.$matches[0];
-        //         $class = 'Create'.Camelize(Singulars($matches[1]));
-        //         $obj = new $class();
-        //         $obj->{$this->arguments[0]}();
-        //     }
-        // }
-    }
-
-    // private function _buildTables(array $migrations) {
-
-    // }
-
-    public function query($query) {
-        // preg_match('@^insert|update|delete|create|select@i', $query, $matches);
-        // $action = strtolower($matches[0]);
-        // $obj = null;
-        // switch ($action) {
-        //     case 'select':
-        //         preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
-        //         $obj = new mockObject();
-        //         $obj->data = $this->mockData[$matches[1]];
-        //     break;
-        //     case 'insert':
-                preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
-                $obj = new mockObject();
-                $obj->data = empty($this->mockData[$matches[1]]) ? [] : $this->mockData[$matches[1]];
-        //     break;
-        // }
-        return $obj;
-    }
-
-    public function getColumnFields($query) {
-        preg_match('@from ([a-z0-9_]+)@im', $query, $matches);
-        $fields = [];
-
-        foreach($this->_mockTables->{$matches[1]}[0] as $field => $value) {
-            $fields[] = ['Field' => $field, 'Cast' => false, 'Type' => 'string'];
-        }
-
-        return $fields;
-    }
-
-    public function prepare() {
-        return new preparedMockQuery();
-    }
-
-    public function lastInsertId() {
-        return 1;
-    }
-
-    public function errorInfo() {
-        return [];
-    }
-}
 /**
  *
  * @author rantes <rantes.javier@gmail.com> http://rantes.info
@@ -148,16 +10,27 @@ class dumboTests extends Page {
     private $_colors = null;
     private $_colorsPalete = ['red', 'green'];
     private $_textOutputs = ['Failed', 'Passed'];
-    public $mockedData = [];
     public $testName = '';
 
     public function __construct() {
+        $GLOBALS['env'] = 'test';
         require_once 'lib/colorClass.php';
         $this->_colors = new Colors();
         $this->testName = get_class($this);
     }
     public function _init_() {}
     public function _end_() {}
+    public function _migrateTables($tables = []) {
+        $migrationsPath = INST_PATH.'migrations/';
+        foreach ($tables as $table) {
+            $file = "{$migrationsPath}create_{$table}.php";
+            file_exists($file) or die('Migration file '.$table.', does not exists.'.PHP_EOL);
+            require_once $file;
+            $class = 'Create'.Camelize(Singulars($table));
+            $obj = new $class();
+            $obj->reset();
+        }
+    }
     /**
      * Output for an error message
      * @param string $errorMessage
@@ -318,10 +191,6 @@ DUMBO;
     public function __destruct() {
         exit(0 + !!$this->_failed);
     }
-
-    // public function mockModel($model) {
-
-    // }
 
     public function beforeEach() {}
 

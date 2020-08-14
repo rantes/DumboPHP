@@ -8,7 +8,7 @@ class sqliteDriver {
     public $pk = 'id';
 
     public function getColumns($table) {
-        return "SELECT sql FROM sqlite_master WHERE name = '{$table}'";
+        return "PRAGMA table_info({$table})";
     }
 
     public function Select($params = null, $table, $pk = 'id') {
@@ -216,11 +216,7 @@ class sqliteDriver {
      */
     public function validateField($table, $field) {
         $query =<<<DUMBO
-SELECT COUNT(COLUMN_NAME) AS counter
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE table_name = '{$table}'
-    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
-    AND column_name = '{$field}';
+PRAGMA table_info({$table})
 DUMBO;
         return $query;
     }
@@ -280,7 +276,7 @@ DUMBO;
         $query = '';
 
         if (!$this->ValidateIndex($table, $name)) {
-            "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
+            $query = "CREATE INDEX {$name} ON {$table} ({$fields})";
         }
 
         return $query;
@@ -293,12 +289,13 @@ DUMBO;
      */
     public function ValidateIndex($table, $index) {
         $query = <<<DUMBO
-SELECT COUNT(INDEX_NAME) AS indexes FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}' AND index_name = '{$index}'
+SELECT COUNT(name) AS indexes FROM sqlite_master WHERE type = 'index' AND tbl_name = '{$table}' AND name = '{$index}';
 DUMBO;
 
         $res = $GLOBALS['Connection']->query($query);
         $res->setFetchMode(PDO::FETCH_ASSOC);
         $c = $res->fetchAll();
+
         return 0 + $c[0]['indexes'];
     }
     /**
@@ -312,7 +309,7 @@ DUMBO;
         $x = $this->ValidateIndex($table, $field);
 
         if (!$x) {
-            $query = "ALTER TABLE `{$table}` ADD INDEX (`{$field}`)";
+        $query = "CREATE INDEX {$field} ON {$table} ({$field})";
         }
 
         return $query;
@@ -346,12 +343,9 @@ DUMBO;
      */
     public function RemoveIndex($table, $index) {
         $query = '';
-        if ($this->validateIndex($table, $index) > 0) {
-            $query = "ALTER TABLE `{$table}` DROP INDEX `{$index}`";
-        }
+        $query = "DROP INDEX IF EXISTS `{$index}`";
 
         return $query;
     }
 }
-
 ?>

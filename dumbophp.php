@@ -322,6 +322,8 @@ $GLOBALS['PDOCASTS'] = [
     'DOUBLE' => false,
     'FLOAT' => true,
     'BIGINT' => true,
+    'INT' => true,
+    'INTEGER' => true,
     'LONGLONG' => true,
     'LONG' => true,
     'NEWDECIMAL' => false,
@@ -331,6 +333,25 @@ $GLOBALS['PDOCASTS'] = [
     'TIMESTAMP' => true,
     'TINY' => true,
     'VAR_STRING' => false,
+    'blob' => false,
+    'medium_blob' => false,
+    'long_blob' => false,
+    'datetime' => false,
+    'date' => false,
+    'double' => false,
+    'float' => true,
+    'bigint' => true,
+    'int' => true,
+    'integer' => true,
+    'longlong' => true,
+    'long' => true,
+    'newdecimal' => false,
+    'short' => true,
+    'string' => false,
+    'time' => false,
+    'timestamp' => true,
+    'tiny' => true,
+    'var_string' => false,
 ];
 /**
  * Turns a singular word into its plural
@@ -622,6 +643,7 @@ class Connection extends PDO {
             empty($this->_settings['password']) and $this->_settings['password'] = null;
             parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
             $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         } catch (PDOException $e) {
             die('Error to connect to database due to: '.$e->getMessage());
         } catch (Exception $e) {
@@ -643,10 +665,12 @@ class Connection extends PDO {
             $ret = [];
 
             while(null !== ($res = array_shift($resultset1))) {
-                $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+                $rtype = $res['type'] ?? $res['Type'];
+                $rname = $res['name'] ?? $res['Field'];
+                $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $rtype));
                 $ret[] = [
                     'Cast' => in_array($type, $numerics),
-                    'Field' => $res['Field'],
+                    'Field' => $rname,
                     'Type' => $type,
                     'Value' => null
                 ];
@@ -664,10 +688,29 @@ class Connection extends PDO {
      * @param [string] $query
      * @return integer
      */
-    public function validateField($query) {
+    public function validateField($query, $field = '') {
+        $count = 0;
         $res = $this->query($query);
         $res->setFetchMode(PDO::FETCH_ASSOC);
-        return 0 + $res->fetchAll()[0]['counter'];
+        $result = $res->fetchAll();
+
+        switch ($this->engine) {
+            case 'sqlite':
+            case 'sqlite2':
+            case 'sqlite3':
+                while(null !== ($reg = array_shift($result))) {
+                    if ($reg['name'] === $field) {
+                        $count = 1;
+                        break;
+                    }
+                }
+            break;
+            default:
+                $count = (integer)$result[0]['counter'];
+            break;
+        }
+        
+        return $count;
     }
 }
 /**
@@ -930,25 +973,25 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param string $query SQL query to fetch the data
      */
     protected function getData($prepared, $data) {
-        empty($GLOBALS['Connection']) && $this->__construct();
+        // empty($GLOBALS['Connection']) && $this->__construct();
         $obj = clone $this;
         $obj->_fields = array();
         $obj->_dataAttributes = array();
+
         try {
             $sh = $GLOBALS['Connection']->prepare($prepared);
             $sh->execute($data);
         } catch (PDOException $e) {
             throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
-
         $cols = $sh->columnCount();
         for ($i = 0; $i < $cols; $i++) {
             $meta = $sh->getColumnMeta($i);
             $obj->_set_columns($meta);
         }
-        $obj->_counter = $sh->rowCount();
         $sh->setFetchMode(PDO::FETCH_CLASS, get_class($obj));
         $resultset = $sh->fetchAll();
+        $obj->_counter = $GLOBALS['Connection']->engine === 'sqlite' ? sizeof($resultset) : $sh->rowCount();
         $sh->closeCursor();
         $obj->exchangeArray($resultset);
         if ($obj->_counter === 0) {
@@ -985,23 +1028,23 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return ActiveRecord
      */
     public function Find($params = NULL) {
-        empty($GLOBALS['driver']) && $this->__construct();
+        // empty($GLOBALS['driver']) && $this->__construct();
 
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
                 $this->{$functiontoRun}();
             }
         }
-
         $prepared = $GLOBALS['driver']->Select($params, $this->_ObjTable, $this->pk);
         $this->_sqlQuery = $prepared['query'];
-
         $x = $this->getData($prepared['prepared'], $prepared['data']);
+
         if (sizeof($x->after_find) > 0) {
             foreach ($x->after_find as $functiontoRun) {
                 $x->{$functiontoRun}();
             }
         }
+
         return $x;
     }
     /**
@@ -1032,7 +1075,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
     }
     private function _set_columns($meta) {
-        isset($meta['native_type']) or ($meta['native_type'] = 'VAR_STRING');
+        (empty($meta['native_type']) || ($meta['native_type'] === 'null')) && ($meta['native_type'] = 'VAR_STRING');
         $this->_fields[$meta['name']] = $GLOBALS['PDOCASTS'][$meta['native_type']];
         $this->{$meta['name']} = '';
         $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
@@ -1276,6 +1319,70 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return true;
     }
     /**
+     * Attempts to insert directly to the table, one register at once
+     *
+     * @return boolean
+     */
+    public function Insert() {
+        defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
+        AUTO_AUDITS && !($this->updated_at = 0) && !($this->created_at = 0);
+        $fields = array_keys($this->_fields);
+
+        foreach($this->before_save as $functiontoRun) {
+            $this->{$functiontoRun}();
+            if ($this->_error->isActived()) return false;
+        }
+
+        foreach ($this->before_insert as $functiontoRun) {
+            $this->{$functiontoRun}();
+            if ($this->_error->isActived()) return false;
+        }
+
+        $this->_ValidateOnSave();
+        if ($this->_error->isActived()) return false;
+
+        AUTO_AUDITS && ($this->created_at = time());
+        $data = [];
+
+        while (null !== ($field = array_shift($fields))) {
+            isset($this->{$field}) && ($data[$field] = $this->{$field});
+        }
+        $prepared = $GLOBALS['driver']->Insert($data, $this->_ObjTable);
+
+        $this->_sqlQuery = $prepared['query'];
+        
+        try {
+            $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+            if (!$sh->execute($prepared['prepared'])) {
+                $e = $GLOBALS['Connection']->errorInfo();
+                $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
+                return FALSE;
+            }
+
+            $this->{$this->pk} = (integer)$GLOBALS['Connection']->lastInsertId();
+            if (sizeof($this->after_insert) > 0) {
+                foreach ($this->after_insert as $functiontoRun) {
+                    $this->{$functiontoRun}();
+                    if ($this->_error->isActived()) return false;
+                }
+            }
+        } catch (PDOException $e) {
+            echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
+            return FALSE;
+        }
+
+        $this->_counter === 0 && ($this->_counter = 1) && $this->offsetSet(0, $this);
+
+        if (sizeof($this->after_save) > 0) {
+            foreach ($this->after_save as $functiontoRun) {
+                $this->{$functiontoRun}();
+                if ($this->_error->isActived()) return false;
+            }
+        }
+
+        return true;
+    }
+    /**
      * Handles the delete register in database
      * @param array|numeric $conditions can be an array of IDs or just a single ID
      * @return boolean
@@ -1376,9 +1483,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             foreach ($fields as $field) {
                 $buffer = 'NULL'.PHP_EOL;
                 if (isset($this->{$field})) {
-                    ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
-                    var_dump($this->{$field});
-                    $buffer = ob_get_clean();
+                    $buffer = print_r($this->{$field}, true);
                 }
                 for ($j = 0; $j < $i+1; $j++) {
                     $listProperties .= "\t";
@@ -2076,7 +2181,9 @@ abstract class Migrations extends Core_General_Class {
     protected function Add_Column(array $params) {
         $this->connect();
         $query = $GLOBALS['driver']->validateField($this->_table, $params['field']);
-        if ($GLOBALS['Connection']->validateField($query) < 1) {
+        $res = $GLOBALS['Connection']->validateField($query, $params['field']);
+
+        if ($res < 1) {
             $query = $GLOBALS['driver']->AddColumn($this->_table, $params);
             $this->_runQuery($query);
         }
@@ -2117,7 +2224,21 @@ abstract class Migrations extends Core_General_Class {
 
         empty($query) || $this->_runQuery($query);
     }
+    /**
+     * Attempts to remove a single index in the table
+     * @param string $index
+     */
+    protected function Remove_Index($index) {
+        $this->connect();
+        $query = $GLOBALS['driver']->RemoveIndex($this->_table, $index);
 
+        empty($query) || $this->_runQuery($query);
+    }
+    /**
+     * Attempts to remove all indexes in table
+     *
+     * @return void
+     */
     protected function Remove_All_indexes() {
         $this->connect();
         $query = $GLOBALS['driver']->GetAllIndexes($this->_table);
