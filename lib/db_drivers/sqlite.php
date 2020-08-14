@@ -348,4 +348,7 @@ DUMBO;
         return $query;
     }
 }
+
+class sqlite2Driver extends sqliteDriver {}
+class sqlite3Driver extends sqliteDriver {}
 ?>
