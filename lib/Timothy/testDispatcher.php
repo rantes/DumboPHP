@@ -1,6 +1,7 @@
 <?php
 class testDispatcher {
     private $_testsPath = 'tests/';
+    private $_failed = false;
     /**
      *
      * @param array $tests
@@ -19,7 +20,6 @@ class testDispatcher {
     function run($test) {
         $test = (string) $test;
         $actions = [];
-        fwrite(STDOUT, "\nRunning tests on {$test}\n");
         $methods = get_class_methods($this->{$test});
         foreach ($methods as $method):
             preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
@@ -30,16 +30,24 @@ class testDispatcher {
 
         $this->{$test}->_init_();
         foreach ($actions as $action):
-            fwrite(STDOUT, "\nRunning test: {$action}\n");
             $this->{$test}->beforeEach();
             $this->{$test}->{$action}();
+            $this->_failed = ($this->_failed || $this->{$test}->_failed > 0);
+            if ($this->_failed):
+                exit(1);
+            endif;
         endforeach;
-        $this->{$test}->_summary();
         $this->{$test}->_end_();
+        $this->{$test}->_summary();
     }
 
     public function __destruct() {
-        fwrite(STDOUT, "\n");
-        fwrite(STDOUT, file_get_contents(INST_PATH.'tests.log'));
+        if ($this->_failed) {
+            fwrite(STDERR, "\nRESULT: FAILED\n");
+            echo file_get_contents(INST_PATH.'tests.log');
+        } else {
+            fwrite(STDOUT, "\nRESULT: PASS\n");
+        }
+        exit((integer)$this->_failed);
     }
 }

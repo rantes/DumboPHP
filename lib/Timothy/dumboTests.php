@@ -5,8 +5,8 @@
  *
  */
 class dumboTests extends Page {
-    private $_failed = 0;
-    private $_passed = 0;
+    public $_failed = 0;
+    public $_passed = 0;
     private $_colors = null;
     private $_colorsPalete = ['red', 'green'];
     private $_textOutputs = ['Failed', 'Passed'];
@@ -28,7 +28,9 @@ class dumboTests extends Page {
             require_once $file;
             $class = 'Create'.Camelize(Singulars($table));
             $obj = new $class();
+            ob_start();
             $obj->reset();
+            ob_get_clean();
         }
     }
     /**
@@ -78,6 +80,7 @@ class dumboTests extends Page {
 ERROR Failed to {$additional}, on {$track[1]['file']} at line {$track[1]['line']}.
 DUMBO;
         $this->_log($output);
+        echo "\n{$output}\n";
         return true;
     }
 
@@ -183,13 +186,10 @@ DUMBO;
         $text = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
         $result = $this->_colors->getColoredString($text, $this->_colorsPalete[!$this->_failed]);
         $this->_log($result);
-        fwrite(STDOUT, "\n\n{$this->testName}: {$result}\n");
-        fwrite(STDOUT, "Tests Success: {$this->_passed}\n");
-        fwrite(STDOUT, "Tests failed: {$this->_failed}\n");
     }
 
     public function __destruct() {
-        exit(0 + !!$this->_failed);
+        // exit(0 + !!$this->_failed);
     }
 
     public function beforeEach() {}

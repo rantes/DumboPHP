@@ -973,7 +973,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param string $query SQL query to fetch the data
      */
     protected function getData($prepared, $data) {
-        // empty($GLOBALS['Connection']) && $this->__construct();
+        (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
         $obj = clone $this;
         $obj->_fields = array();
         $obj->_dataAttributes = array();
@@ -1028,7 +1028,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return ActiveRecord
      */
     public function Find($params = NULL) {
-        // empty($GLOBALS['driver']) && $this->__construct();
+        (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
 
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
@@ -2104,7 +2104,7 @@ abstract class Migrations extends Core_General_Class {
     }
 
     private final function _runQuery($query) {
-        fwrite(STDOUT, 'Running query: '.$query . PHP_EOL);
+        echo 'Running query: ', $query, PHP_EOL;
         if ($GLOBALS['Connection']->exec($query) === false) {
             fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);
         }
