@@ -1200,12 +1200,16 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         if (empty($field['field'])) {throw new Exception('Field key must be defined in array.');}
 
                         empty($field['message']) || ($message = $field['message']);
-                        $field = $field['field'];
+                        $field['field'];
                     }
-                    if (!empty($this->{$field})) {
+                    if (!empty($this->{$field['field']})) {
                         $obj1 = new $this;
-                        $resultset = $obj1->Find(array('fields' => $field, 'conditions' => "`{$field}`='" .$this->{$field} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"));
-                        $resultset->counter() > 0 && $this->_error->add(['field' => $field, 'message' => $message]);
+                        $pk = empty($this->{$this->pk}) ? 0 : $this->{$this->pk};
+                        $resultset = $obj1->Find([
+                            'fields' => $field['field'], 
+                            'conditions' => "`{$field['field']}`='" .$this->{$field['field']} ."' AND `{$this->pk}`<>'{$pk}'"
+                        ]);
+                        $resultset->counter() > 0 && $this->_error->add(['field' => $field['field'], 'message' => $message]);
                     }
                 }
             }
