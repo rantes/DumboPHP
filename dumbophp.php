@@ -1373,7 +1373,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $this->_sqlQuery = $prepared['query'];
         
         try {
-            $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
+            $sh = $GLOBALS['Connection']->prepare($prepared['query']);
             if (!$sh->execute($prepared['prepared'])) {
                 $e = $GLOBALS['Connection']->errorInfo();
                 $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
@@ -1389,6 +1389,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         } catch (PDOException $e) {
             echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
+            var_dump($prepared['prepared']);
             return FALSE;
         }
 
