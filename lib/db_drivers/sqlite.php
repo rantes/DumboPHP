@@ -52,9 +52,10 @@ class sqliteDriver {
                             $prepared = $tail = "{$tail} AND {$this->_params['conditions']}";
                         } elseif(is_array($this->_params['conditions'])){
                             foreach($this->_params['conditions'] as $conn => $condition) {
+                                $operator = '=';
                                 is_numeric($conn) or ($connector = strtoupper($conn));
                                 if(sizeof($condition) > 2) {
-                                    $operator = $condition[1];
+                                    $operator = strtoupper($condition[1]);
                                     unset($condition[1]);
                                 }
                                 $field = array_shift($condition);
