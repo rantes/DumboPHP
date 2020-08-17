@@ -10,14 +10,14 @@ class testDispatcher {
     function __construct(array $tests, $halt = false) {
         defined('INST_PATH') or define('INST_PATH', './');
         file_put_contents(INST_PATH.'tests.log', '');
-        fwrite(STDOUT, 'The very things that hold you down are going to lift you up!' . "\n");
+        echo 'The very things that hold you down are going to lift you up!', "\n";
 
         $this->_halt = $halt;
 
-        foreach ($tests as $test):
+        while (null !== ($test = array_shift($tests))) {
             include_once $this->_testsPath.$test.'.php';
             $this->{$test} = new $test();
-        endforeach;
+        }
     }
     /**
      * Just execute a test
@@ -31,25 +31,26 @@ class testDispatcher {
 
         try {
             $methods = get_class_methods($this->{$test});
-            foreach ($methods as $method):
+            while (null !== ($method = array_shift($methods))) {
                 preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
-                if (sizeof($match) === 1):
-                    $actions[] = $method;
-                endif;
-            endforeach;
-    
-            $this->{$test}->_init_();
-            foreach ($actions as $action):
-                $this->{$test}->beforeEach();
-                $this->{$test}->{$action}();
-                $this->_failed = ($this->_failed || $this->{$test}->_failed > 0);
+                (sizeof($match) === 1) && ($actions[] = $method);
+            }
+            $test = $this->{$test};
+            $GLOBALS['env'] = 'test';
+            $test->_init_();
+
+            while (null !== ($action = array_shift($actions))) {
+                $test->beforeEach();
+                $test->{$action}();
+                $this->_failed = ($this->_failed || $test->_failed > 0);
                 if ($this->_halt && $this->_failed):
                     exit(1);
                 endif;
-            endforeach;
-            $this->{$test}->_end_();
-            $this->{$test}->_summary();
-        } catch (Exception $e) {
+            }
+
+            $test->_end_();
+            $test->_summary();
+        } catch (Throwable $e) {
             $this->_failed = true;
             var_dump($e->getMessage());
             var_dump($e->getTrace());

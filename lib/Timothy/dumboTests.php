@@ -13,6 +13,7 @@ class dumboTests extends Page {
     public $testName = '';
 
     public function __construct() {
+        parent::__construct();
         $GLOBALS['env'] = 'test';
         require_once 'lib/colorClass.php';
         $this->_colors = new Colors();
@@ -43,14 +44,16 @@ class dumboTests extends Page {
      * @param string $errorMessage
      */
     private function _showError($errorMessage) {
-        return fwrite(STDERR, "\n{$errorMessage}\n");
+        echo "\n{$errorMessage}\n";
+        return true;
     }
     /**
      * Output for a standard message
      * @param string $errorMessage
      */
     private function _showMessage($message) {
-        return fwrite(STDOUT, "\n{$message}\n");
+        echo "\n{$message}\n";
+        return true;
     }
     /**
      * Displays the progress of each test: P - passed. F - failed.
@@ -59,7 +62,7 @@ class dumboTests extends Page {
     private function _progress($passed) {
         $text = $passed ? 'P' : 'F';
 
-        fwrite(STDOUT, $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]));
+        echo $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]);
         return true;
     }
     /**
@@ -94,8 +97,8 @@ DUMBO;
      * @param any $param1
      * @param any $param2
      */
-    public function assertEquals($param1, $param2, $message = false) {
-        $message || ($message = 'Assert if <' . gettype($param1) . '> ' . var_export($param1, true) . ' is equals to <' . gettype($param2) . '> ' . var_export($param2, true));
+    public function assertEquals($param1, $param2, $message = null) {
+        $message = $message ?? 'Assert if <' . gettype($param1) . '> ' . var_export($param1, true) . ' is equals to <' . gettype($param2) . '> ' . var_export($param2, true);
         $passed = $param1 === $param2;
         $this->_passed += $passed;
         $this->_progress($passed);
@@ -108,13 +111,26 @@ DUMBO;
      * @param any $value
      * @param string $message
      */
-    public function assertTrue($value, $message = false) {
-        $message || ($message = 'Assert if <' . gettype($value) . '> ' . $value . ' is true ');
+    public function assertTrue($value, $message = null) {
+        $message = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is true ';
         $passed = $value === true;
         $this->_passed += $passed;
         $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
         !$passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . $value) && $this->_triggerError('Asserts True');
+    }
+    /**
+     * Asserts if the Value is false.
+     * @param any $value
+     * @param string $message
+     */
+    public function assertFalse($value, $message = null) {
+        $message = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is false ';
+        $passed = $value === false;
+        $this->_passed += $passed;
+        $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_progress($passed);
+        !$passed && $this->_log('Expectig `false` but found <' . gettype($value) . '> ' . $value) && $this->_triggerError('Asserts False');
     }
 
     /**
@@ -122,7 +138,7 @@ DUMBO;
      * @param ActiveRecord $model
      * @param array $fields
      */
-    public function assertHasFields(ActiveRecord $model, $message = '') {
+    public function assertHasFields(ActiveRecord $model) {
         $table = $model->_TableName();
         require_once INST_PATH."migrations/create_{$table}.php";
         $migrationName = 'Create'.Camelize(Singulars($table));
@@ -145,7 +161,7 @@ DUMBO;
      * @param ActiveRecord $model
      * @param array $fields
      */
-    public function assertHasFieldTypes(ActiveRecord $model, $message = '') {
+    public function assertHasFieldTypes(ActiveRecord $model) {
         $table = $model->_TableName();
         require_once INST_PATH."migrations/create_{$table}.php";
         $migrationName = 'Create'.Camelize(Singulars($table));
@@ -217,7 +233,7 @@ DUMBO;
      * @param string $message
      * @return void
      */
-    public function assertMethodHasBeenCalled($method, $message = '') {
+    public function assertMethodHasBeenCalled($method, $message = null) {
         // $backtrace = debug_backtrace();
         // var_dump($backtrace);
 
