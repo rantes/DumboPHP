@@ -220,6 +220,7 @@ DUMBO;
 
         $actions = array(
             'Creating file system: Main .htaccess' => array($this->dumboSource.'/main.htaccess', $this->fullPathTarget.'/.htaccess'),
+            'Creating file system: Main .htaccess' => array($this->dumboSource.'/.env.example', $this->fullPathTarget.'/.env.example'),
             'Creating file system: Webroot .htaccess' => array($this->dumboSource.'/webroot.htaccess', $this->fullPathTarget.'/app/webroot/.htaccess'),
             'Creating file system: favicon' => array($this->dumboSource.'/favicon.ico', $this->fullPathTarget.'/app/webroot/favicon.ico'),
             'Creating file system: config/db' => array($this->dumboSource.'/db_settings.php', $this->fullPathTarget.'/config/db_settings.php'),
@@ -455,12 +456,6 @@ DUMBO;
     }
 
     private function runTestScript() {
-        // set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '.')));
-        // if (file_exists('./config/host.php')) {
-        //     require_once './config/host.php';
-        //     set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . 'vendor', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp')));
-        // }
-
         require_once 'dumbophp.php';
         require_once 'lib/Timothy/dumboTests.php';
         require_once 'lib/Timothy/testDispatcher.php';

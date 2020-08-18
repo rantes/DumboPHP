@@ -592,12 +592,33 @@ function GetInput($type, &$obj = NULL) {
     return 'text';
 }
 /**
+ * Will handle the system config values
+ */
+trait DumboSysConfig {
+    /** stores the env config values */
+    private $__sys_conf_values__ = [];
+    /**
+     * Retrieves a config value if not exists, returns a default value given
+     *
+     * @param string $key
+     * @param [any] $default
+     * @return [any]
+     */
+    private function _sysConfig(string $key, $default = null) {
+        empty($this->__sys_conf_values__) && ($this->__sys_conf_values__ = parse_ini_file(INST_PATH.'.env'));
+        $rval = $this->__sys_conf_values__[$key] ?? $default;
+
+        return $rval;
+    }
+}
+/**
  * Handles the database connet
  * @author rantes
  * @package Core
  *
  */
 class Connection extends PDO {
+    use DumboSysConfig;
     public $_settings = null;
     public $engine = null;
 
@@ -767,7 +788,18 @@ class Errors {
         return in_array($code, $this->errCodes());
     }
 }
+/**
+ * Dumbo Core
+ */
 abstract class Core_General_Class extends ArrayObject {
+    use DumboSysConfig;
+    /**
+     * Magic method to handle the ORM
+     *
+     * @param string $ClassName
+     * @param [string] $val
+     * @return void
+     */
     public function __call($ClassName, $val = NULL) {
         $field         = Singulars(strtolower($ClassName));
         $classFromCall = Camelize($ClassName);
@@ -1195,8 +1227,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
-                    isset($this->{$field}) && empty($matches) && $this->_error->add(['field' => $field, 'message' => $message]);
+                    if (!empty($this->{$field})) {
+                        preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
+                        empty($matches) && $this->_error->add(['field' => $field, 'message' => $message]);
+                    }
                 }
             }
             if (!empty($this->validate['numeric'])) {
@@ -2211,12 +2245,12 @@ abstract class Migrations extends Core_General_Class {
         }
 
     }
-/**
- * Add index to the table
- * @param array $params Array with the index attributes
- * @throws Exception Each attribute is mandatory
- * @todo Change to new driver structure
- */
+    /**
+     * Add index to the table
+     * @param array $params Array with the index attributes
+     * @throws Exception Each attribute is mandatory
+     * @todo Change to new driver structure
+     */
     protected function Add_Index(array $params) {
         $this->connect();
 
@@ -2323,6 +2357,7 @@ abstract class Migrations extends Core_General_Class {
 }
 
 class index {
+    use DumboSysConfig;
     public function __construct() {
         if (!empty($_GET['url'])) {
             $_GET['url'][0] === '/' && ($_GET['url'] = substr($_GET['url'], 1));
