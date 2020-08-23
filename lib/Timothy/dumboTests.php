@@ -21,8 +21,15 @@ class dumboTests extends Page {
     }
     public function _init_() {}
     public function _end_() {}
+    public function _runAction(string $action) {
+        $_GET['url'] = $action;
+        ob_start();
+        $index = new Index();
+        ob_get_clean();
+        return $index->page;
+    }
     /**
-     * Attempts to run migration reset action over the given tabbles
+     * Attempts to run migration reset action over the given tables
      * for model testing purposes
      * @param array $tables
      */

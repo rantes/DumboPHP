@@ -2358,6 +2358,7 @@ abstract class Migrations extends Core_General_Class {
 
 class index {
     use DumboSysConfig;
+    public $page = null;
     public function __construct() {
         if (!empty($_GET['url'])) {
             $_GET['url'][0] === '/' && ($_GET['url'] = substr($_GET['url'], 1));
@@ -2438,75 +2439,75 @@ class index {
         if ($canGo) {
             $classPage = Camelize($controller)."Controller";
             class_exists($classPage) || require_once ($path.$controllerFile);
-            $page = new $classPage();
-            $page->params($params);
+            $this->page = new $classPage();
+            $this->page->params($params);
             //loads of helpers
-            if (isset($page->helper) and sizeof($page->helper) > 0) {
-                $page->LoadHelper($page->helper);
+            if (isset($this->page->helper) and sizeof($this->page->helper) > 0) {
+                $this->page->LoadHelper($this->page->helper);
             }
             //before filter, executed before the action execution
-            if (method_exists($page, "before_filter")) {
+            if (method_exists($this->page, "before_filter")) {
                 $actionsToExclude = $controllersToExclude = array();
-                if (!empty($page->excepts_before_filter) && is_array($page->excepts_before_filter)) {
-                    if (!empty($page->excepts_before_filter['actions']) && is_string($page->excepts_before_filter['actions'])) {
-                        $actionsToExclude = explode(',', $page->excepts_before_filter['actions']);
+                if (!empty($this->page->excepts_before_filter) && is_array($this->page->excepts_before_filter)) {
+                    if (!empty($this->page->excepts_before_filter['actions']) && is_string($this->page->excepts_before_filter['actions'])) {
+                        $actionsToExclude = explode(',', $this->page->excepts_before_filter['actions']);
                         foreach ($actionsToExclude as $index => $act) {
                             $actionsToExclude[$index] = trim($act);
                         }
                     }
-                    if (!empty($page->excepts_before_filter['controllers']) && is_string($page->excepts_before_filter['controllers'])) {
-                        $controllersToExclude = explode(',', $page->excepts_before_filter['controllers']);
+                    if (!empty($this->page->excepts_before_filter['controllers']) && is_string($this->page->excepts_before_filter['controllers'])) {
+                        $controllersToExclude = explode(',', $this->page->excepts_before_filter['controllers']);
                         foreach ($controllersToExclude as $index => $cont) {
                             $controllersToExclude[$index] = trim($cont);
                         }
                     }
                 }
                 if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
-                    $page->before_filter();
+                    $this->page->before_filter();
                 }
             }
-            if (method_exists($page, $action."Action")) {
-                !$page->PreventLoad() && $page->{$action."Action"}();
+            if (method_exists($this->page, $action."Action")) {
+                !$this->page->PreventLoad() && $this->page->{$action."Action"}();
                 //before render, executed after the action execution and before the data renderize
-                if (method_exists($page, "before_render")) {
+                if (method_exists($this->page, "before_render")) {
                     $actionsToExclude = $controllersToExclude = array();
-                    if (!empty($page->excepts_before_render) && is_array($page->excepts_before_render)) {
-                        if (!empty($page->excepts_before_render['actions']) && is_string($page->excepts_before_render['actions'])) {
-                            $actionsToExclude = explode(',', $page->excepts_before_render['actions']);
+                    if (!empty($this->page->excepts_before_render) && is_array($this->page->excepts_before_render)) {
+                        if (!empty($this->page->excepts_before_render['actions']) && is_string($this->page->excepts_before_render['actions'])) {
+                            $actionsToExclude = explode(',', $this->page->excepts_before_render['actions']);
                             foreach ($actionsToExclude as $index => $act) {
                                 $actionsToExclude[$index] = trim($act);
                             }
                         }
-                        if (!empty($page->excepts_before_render['controllers']) && is_string($page->excepts_before_render['controllers'])) {
-                            $controllersToExclude = explode(',', $page->excepts_before_render['controllers']);
+                        if (!empty($this->page->excepts_before_render['controllers']) && is_string($this->page->excepts_before_render['controllers'])) {
+                            $controllersToExclude = explode(',', $this->page->excepts_before_render['controllers']);
                             foreach ($controllersToExclude as $index => $cont) {
                                 $controllersToExclude[$index] = trim($cont);
                             }
                         }
                     }
                     if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
-                        $page->before_render();
+                        $this->page->before_render();
                     }
                 }
-                $page->display();
-                if (method_exists($page, "after_render")) {
+                $this->page->display();
+                if (method_exists($this->page, "after_render")) {
                     $actionsToExclude = $controllersToExclude = array();
-                    if (!empty($page->excepts_after_render) && is_array($page->excepts_after_render)) {
-                        if (!empty($page->excepts_after_render['actions']) && is_string($page->excepts_after_render['actions'])) {
-                            $actionsToExclude = explode(',', $page->excepts_after_render['actions']);
+                    if (!empty($this->page->excepts_after_render) && is_array($this->page->excepts_after_render)) {
+                        if (!empty($this->page->excepts_after_render['actions']) && is_string($this->page->excepts_after_render['actions'])) {
+                            $actionsToExclude = explode(',', $this->page->excepts_after_render['actions']);
                             foreach ($actionsToExclude as $index => $act) {
                                 $actionsToExclude[$index] = trim($act);
                             }
                         }
-                        if (!empty($page->excepts_after_render['controllers']) && is_string($page->excepts_after_render['controllers'])) {
-                            $controllersToExclude = explode(',', $page->excepts_after_render['controllers']);
+                        if (!empty($this->page->excepts_after_render['controllers']) && is_string($this->page->excepts_after_render['controllers'])) {
+                            $controllersToExclude = explode(',', $this->page->excepts_after_render['controllers']);
                             foreach ($controllersToExclude as $index => $cont) {
                                 $controllersToExclude[$index] = trim($cont);
                             }
                         }
                     }
                     if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
-                        $page->after_render();
+                        $this->page->after_render();
                     }
                 }
             } else {
