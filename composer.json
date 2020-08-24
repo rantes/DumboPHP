@@ -9,11 +9,18 @@
         {
             "name": "Javier Serrano",
             "email": "rantes.javier@gmail.com",
-            "homepage": "http://rantes.info",
+            "homepage": "https://github.com/rantes/",
             "role": "Developer"
         }
     ],
     "require": {
-        "php": ">=5.2.0"
+        "php": ">=7.2.0",
+        "ext-pdo": "*",
+        "ext-json": "*"
+    },
+    "scripts": {
+        "post-root-package-install": [
+            "cp dumbo ../../"
+        ]
     }
 }
