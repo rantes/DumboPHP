@@ -4,6 +4,10 @@
     "description": "PHP Framework project built with MVC architecture, OOP paradigm and full ORM (native, not vendor).",
     "keywords": ["php","framework","oop","orm","mvc","active","record"],
     "homepage": "https://github.com/rantes/DumboPHP",
+    "support": {
+        "issues": "https://github.com/rantes/DumboPHP/issues",
+        "source": "https://github.com/rantes/DumboPHP"
+    },
     "license": "MIT",
     "authors": [
         {
@@ -14,13 +18,15 @@
         }
     ],
     "require": {
-        "php": ">=7.2.0",
+        "php": "^7.3.0",
         "ext-pdo": "*",
         "ext-json": "*"
     },
     "scripts": {
         "post-root-package-install": [
-            "cp dumbo ../../"
+            "php -r \"rename('dumbo', '../../../dumbo')\""
         ]
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
