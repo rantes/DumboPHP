@@ -1,18 +1,19 @@
 <?php
 class testDispatcher {
-    private $_testsPath = 'tests/';
+    private $_testsPath = '';
     private $_failed = false;
     private $_halt = false;
     /**
      *
      * @param array $tests
      */
-    function __construct(array $tests, $halt = false) {
+    function __construct(array $tests, $path = 'tests/', $halt = false) {
         defined('INST_PATH') or define('INST_PATH', './');
         file_put_contents(INST_PATH.'tests.log', '');
         echo 'The very things that hold you down are going to lift you up!', "\n";
 
         $this->_halt = $halt;
+        $this->_testsPath = $path;
 
         while (null !== ($test = array_shift($tests))) {
             include_once $this->_testsPath.$test.'.php';

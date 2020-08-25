@@ -28,9 +28,10 @@ class dumboShell{
         'test'
     ];
     private $_options = [
-        'env' => ['value' => '', 'cast' => 'text'],
+        'env' => ['value' => null, 'cast' => 'string'],
         'halt' => ['value' => false, 'cast' => 'boolean'],
-        'standalone' => ['value' => true, 'cast' => 'boolean']
+        'standalone' => ['value' => true, 'cast' => 'boolean'],
+        'dir' => ['value' => null, 'cast' => 'string']
     ];
     private $command = null;
     private $systemFolder = '/etc/';
@@ -59,7 +60,7 @@ class dumboShell{
     private function _parseOptions() {
         $trueFalse = ['true' => true, 'false' => false];
         foreach($this->arguments as $i => $arg) {
-            preg_match('@\-\-([a-zA-Z0-9]+)\=([a-z0-9_]+)@im', $arg, $match);
+            preg_match('@\-\-([a-zA-Z0-9]+)\=([a-z0-9_\/]+)@im', $arg, $match);
             if (sizeof($match) === 3) {
                 if(isset($this->_options[$match[1]])){
                     switch($this->_options[$match[1]]['cast']) {
@@ -70,13 +71,13 @@ class dumboShell{
                             $match[2] = $trueFalse[strtolower($match[2])];
                         break;
                         case 'string':
-                            $match[2] = (string)$match[2];
+                            $match[2] = trim((string)$match[2]);
                         break;
                         default:
                             throw new Exception("Value not allowed for {$match[1]}");
                         break;
                     }
-                    $this->_options[$match[1]]['value'] = $match[2];
+                    $this->_options[$match[1]]['value'] = strlen($match[2]) > 0 ? $match[2] : null;
                 }
                 $this->arguments[$i] = null;
                 unset($this->arguments[$i]);
@@ -191,7 +192,7 @@ Commands:
     run [controller/action] [<param=val> <paramn=valn>]
         executes a controller/action. index/index as default.
 
-    test [all|<unitTest>,<unitTest>,<unitTest>]
+    test [all|<unitTest>,<unitTest>,<unitTest>] [--dir=dir/to/run]
          executes Unit test file(s).
 
 Options:
@@ -472,16 +473,19 @@ DUMBO;
         require_once 'dumbophp.php';
         require_once 'lib/Timothy/dumboTests.php';
         require_once 'lib/Timothy/testDispatcher.php';
-        if (in_array('all', $this->arguments)):
-            $testsDir = dir('tests/');
+        $path = $this->_options['dir']['value'] ?? 'tests/';
+        $path = realpath($path);
+        substr($path, -1) !== '/' && ($path.='/');
+        if (in_array('all', $this->arguments)) {
+            $testsDir = dir($path) or die('unknown path: '.$path);
             $this->arguments = [];
             while (($file = $testsDir->read()) !== FALSE) {
                 if($file != '.' and $file != '..' and preg_match('/(.+)\.php/', $file, $matches) === 1) {
                     $this->arguments[] = substr($file, 0, -4);
                 }
             }
-        endif;
-        $testLaunch = new testDispatcher($this->arguments, $this->_options['halt']['value']);
+        }
+        $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
         while (null !== ($test = array_shift($this->arguments))) {
             $testLaunch->run($test);
         }
