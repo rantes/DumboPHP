@@ -23,7 +23,7 @@
         "ext-json": "*"
     },
     "scripts": {
-        "post-root-package-install": [
+        "post-update-cmd": [
             "php -r \"$target=dirname(realpath('./../../')).'dumbo'; rename('dumbo', $target); chmod($target, 0775);\""
         ]
     },
