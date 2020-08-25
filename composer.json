@@ -24,10 +24,16 @@
     },
     "scripts": {
         "post-package-install": [
-            "php -r \"$target=dirname(realpath('./../../')).'dumbo'; rename('dumbo', $target); chmod($target, 0775);\""
+            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
         ],
         "post-package-update": [
-            "php -r \"$target=dirname(realpath('./../../')).'dumbo'; rename('dumbo', $target); chmod($target, 0775);\""
+            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
+        ],
+        "post-autoload-dump": [
+            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
+        ],
+        "post-update-cmd": [
+            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
         ]
     },
     "minimum-stability": "dev",

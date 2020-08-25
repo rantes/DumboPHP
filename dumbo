@@ -2,18 +2,19 @@
 <?php
 if (file_exists('./config/host.php')) {
     require_once './config/host.php';
-    set_include_path(
-        INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
-        INST_PATH.'vendor'.PATH_SEPARATOR.
-        INST_PATH.PATH_SEPARATOR.
-        get_include_path().PATH_SEPARATOR.
-        PEAR_EXTENSION_DIR.PATH_SEPARATOR.
-        '/etc/dumbophp'.PATH_SEPARATOR.
-        '/windows/system32/dumbophp'.PATH_SEPARATOR.
-        '/windows/dumbophp'.PATH_SEPARATOR.
-        INST_PATH.'DumboPHP'
-    );
 }
+defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
+set_include_path(
+    INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'vendor'.PATH_SEPARATOR.
+    INST_PATH.PATH_SEPARATOR.
+    get_include_path().PATH_SEPARATOR.
+    PEAR_EXTENSION_DIR.PATH_SEPARATOR.
+    '/etc/dumbophp'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp'.PATH_SEPARATOR.
+    '/windows/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'DumboPHP'
+);
 
 class dumboShell{
     private $commands = [
@@ -28,7 +29,8 @@ class dumboShell{
     ];
     private $_options = [
         'env' => ['value' => '', 'cast' => 'text'],
-        'halt' => ['value' => false, 'cast' => 'boolean']
+        'halt' => ['value' => false, 'cast' => 'boolean'],
+        'standalone' => ['value' => true, 'cast' => 'boolean']
     ];
     private $command = null;
     private $systemFolder = '/etc/';
@@ -171,7 +173,7 @@ Commands:
     create <project-name>
         Creates a new site. Param: site name.
 
-    init [standalone]
+    init [--standalone=[true|false]]
         Initializes the project to use DumboPHP.
 
     generate [scaffold|controller|model|seed] <name>
@@ -202,7 +204,8 @@ DUMBO;
     }
 
     private function _copyInstallFiles() {
-        $d = dir($this->arguments[0]);
+        $target = $this->arguments[0] ?? '.';
+        $d = dir($target);
         $this->fullPathTarget = realpath($d->path);
         $d->close();
 
@@ -219,8 +222,7 @@ DUMBO;
             'Creating directory: '.$this->fullPathTarget.'/app/webroot/js' =>'/app/webroot/js',
             'Creating directory: '.$this->fullPathTarget.'/app/webroot/plugins' =>'/app/webroot/plugins',
             'Creating directory: '.$this->fullPathTarget.'/config' =>'/config',
-            'Creating directory: '.$this->fullPathTarget.'/migrations' =>'/migrations',
-            'Creating directory: '.$this->fullPathTarget.'/vendor' =>'/vendor'
+            'Creating directory: '.$this->fullPathTarget.'/migrations' =>'/migrations'
         );
 
         foreach($actions as $copy => $action){
@@ -246,7 +248,7 @@ DUMBO;
             copy($action[0], $action[1]) or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
         }
 
-        if(isset($this->options['standalone'])) {
+        if(!empty($this->options['standalone'])) {
             $this->showMessage('Building standalone site.');
             copy($this->dumboSource.'/dumbophp.php',$this->fullPathTarget.'/dumbophp.php') or die($this->showError('Error on building: Cannot write on destination folder. Exiting.'));
         }
@@ -266,6 +268,7 @@ DUMBO;
     }
 
     private function createSite() {
+        empty($this->arguments[0]) && die($this->showError('Error: Creation aborted. Project name must be provided.'));
         $this->showNotice('Creating site named: "'.$this->arguments[0].'"');
         if(!file_exists($this->arguments[0])) {
             mkdir($this->arguments[0]);
