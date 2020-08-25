@@ -24,7 +24,7 @@
     },
     "scripts": {
         "post-root-package-install": [
-            "php -r \"rename('dumbo', '../../../dumbo')\""
+            "php -r \"$target=dirname(realpath('./../../')).'dumbo'; rename('dumbo', $target); chmod($target, 0775);\""
         ]
     },
     "minimum-stability": "dev",

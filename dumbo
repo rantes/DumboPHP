@@ -2,7 +2,17 @@
 <?php
 if (file_exists('./config/host.php')) {
     require_once './config/host.php';
-    set_include_path(implode(PATH_SEPARATOR, array(INST_PATH . '/vendors', INST_PATH , get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', 'C:\windows\system32\dumbophp', 'C:\windows\dumbophp', INST_PATH.'/DumboPHP')));
+    set_include_path(
+        INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+        INST_PATH.'vendor'.PATH_SEPARATOR.
+        INST_PATH.PATH_SEPARATOR.
+        get_include_path().PATH_SEPARATOR.
+        PEAR_EXTENSION_DIR.PATH_SEPARATOR.
+        '/etc/dumbophp'.PATH_SEPARATOR.
+        '/windows/system32/dumbophp'.PATH_SEPARATOR.
+        '/windows/dumbophp'.PATH_SEPARATOR.
+        INST_PATH.'DumboPHP'
+    );
 }
 
 class dumboShell{
