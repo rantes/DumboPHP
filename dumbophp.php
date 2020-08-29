@@ -604,7 +604,7 @@ trait DumboSysConfig {
      * @param [any] $default
      * @return [any]
      */
-    private function _sysConfig(string $key, $default = null) {
+    public function _sysConfig(string $key, $default = null) {
         empty($this->__sys_conf_values__) && ($this->__sys_conf_values__ = parse_ini_file(INST_PATH.'.env'));
         $rval = $this->__sys_conf_values__[$key] ?? $default;
 
@@ -911,7 +911,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
     public final function __construct($fields = null) {
         $name = get_class($this);
-        
+
         if (empty($GLOBALS['models'][$name])) {
             $className       = unCamelize($name);
             $words           = explode("_", $className);
