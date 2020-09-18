@@ -3,13 +3,15 @@ class testDispatcher {
     private $_testsPath = '';
     private $_failed = false;
     private $_halt = false;
+    private $_logPath = '/tmp/';
+    private $_logFile = 'dumbotests.log';
     /**
      *
      * @param array $tests
      */
-    function __construct(array $tests, $path = 'tests/', $halt = false) {
-        defined('INST_PATH') or define('INST_PATH', './');
-        file_put_contents(INST_PATH.'tests.log', '');
+    function __construct(array $tests, $path = 'tests/', $halt = false, $logPath = '/tmp/') {
+        $this->_logPath = $logPath;
+        file_put_contents("{$this->_logPath}{$this->_logFile}", '');
         echo 'The very things that hold you down are going to lift you up!', "\n";
 
         $this->_halt = $halt;
@@ -17,7 +19,7 @@ class testDispatcher {
 
         while (null !== ($test = array_shift($tests))) {
             include_once $this->_testsPath.$test.'.php';
-            $this->{$test} = new $test();
+            $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
         }
     }
     /**
@@ -65,7 +67,7 @@ class testDispatcher {
     public function __destruct() {
         if ($this->_failed) {
             echo "\nRESULT: FAILED\nLOG:\n\n";
-            echo file_get_contents(INST_PATH.'tests.log');
+            echo file_get_contents("{$this->_logPath}{$this->_logFile}");
             echo "\n\nRESULT: FAILED\n";
         } else {
             echo "\nRESULT: PASS\n";

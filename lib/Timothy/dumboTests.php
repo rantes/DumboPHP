@@ -10,11 +10,13 @@ class dumboTests extends Page {
     private $_colors = null;
     private $_colorsPalete = ['red', 'green'];
     private $_textOutputs = ['Failed', 'Passed'];
+    private $_logFile = '/tmp/dumbotests.log';
     public $testName = '';
 
-    public function __construct() {
+    public function __construct($logFile) {
         parent::__construct();
         $GLOBALS['env'] = 'test';
+        $this->_logFile = $logFile;
         require_once 'lib/colorClass.php';
         $this->_colors = new Colors();
         $this->testName = get_class($this);
@@ -80,7 +82,7 @@ class dumboTests extends Page {
         $date = date('d-m-Y H:i:s');
         $message = "[{$date}]: $text \n";
 
-        file_put_contents(INST_PATH.'tests.log', $message, FILE_APPEND);
+        file_put_contents($this->_logFile, $message, FILE_APPEND);
         return true;
     }
     /**
