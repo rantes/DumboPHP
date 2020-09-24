@@ -628,36 +628,30 @@ class Connection extends PDO {
 
         try {
             require INST_PATH.'config/db_settings.php';
+            if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
             $this->_settings = $databases[$GLOBALS['env']];
             $this->engine = $this->_settings['driver'];
 
             switch ($this->engine) {
                 case 'firebird':
-                    $dsn = 'firebird:dbname='.$this->_settings['host'].'/'.$this->_settings['port'].':'.$this->_settings['schema'];
+                    $dsn = "'firebird:dbname={$this->_settings['host']}/{$this->_settings['port']}:{$this->_settings['schema']}";
                 break;
                 case 'sqlite':
                 case 'sqlite2':
                 case 'sqlite3':
-                    if($this->_settings['schema'] === 'memory'){
-                        $dsn = $this->engine.'::memory:';
-                    } else {
-                        $dsn = $this->engine.':'.$this->_settings['schema'];
-                    }
+                    $dsn = "{$this->engine}:{$this->_settings['schema']}";
+                    $this->_settings['schema'] === 'memory' and ($dsn = "{$this->engine}::memory:");
                 break;
                 default:
+                    empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
+                    empty($this->_settings['port']) or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
 
-                    if (!empty($this->_settings['unix_socket'])) {
-                        $host = ':unix_socket=' . $this->_settings['unix_socket'];
-                    }
+                    $charset = $dialect = '';
 
-                    if (!empty($this->_settings['port'])) {
-                        $host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port'];
-                    }
+                    empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
+                    empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
 
-                    $dsn = $this->engine . $host .
-                    ';dbname=' . $this->_settings['schema'] .
-                    ((!empty($this->_settings['dialect'])) ? (';dialect=' . $this->_settings['dialect']) : '') .
-                    ((!empty($this->_settings['charset'])) ? (';charset=' . $this->_settings['charset']) : '');
+                    $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}";
                 break;
             }
             empty($this->_settings['username']) and $this->_settings['username'] = null;

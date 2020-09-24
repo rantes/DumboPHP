@@ -16,9 +16,8 @@ class testDispatcher {
 
         $this->_halt = $halt;
         $this->_testsPath = $path;
-
         while (null !== ($test = array_shift($tests))) {
-            include_once $this->_testsPath.$test.'.php';
+            require_once "{$this->_testsPath}{$test}.php";
             $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
         }
     }
