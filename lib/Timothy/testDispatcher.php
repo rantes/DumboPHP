@@ -54,8 +54,7 @@ class testDispatcher {
             $test->_summary();
         } catch (Throwable $e) {
             $this->_failed = true;
-            var_dump($e->getMessage());
-            var_dump($e->getTrace());
+            echo (string)$e;
             exit(1);
         }
     }

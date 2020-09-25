@@ -626,43 +626,37 @@ class Connection extends PDO {
         empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
         $databases = array();
 
-        try {
-            require INST_PATH.'config/db_settings.php';
-            if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
-            $this->_settings = $databases[$GLOBALS['env']];
-            $this->engine = $this->_settings['driver'];
+        require INST_PATH.'config/db_settings.php';
+        if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
+        $this->_settings = $databases[$GLOBALS['env']];
+        $this->engine = $this->_settings['driver'];
 
-            switch ($this->engine) {
-                case 'firebird':
-                    $dsn = "'firebird:dbname={$this->_settings['host']}/{$this->_settings['port']}:{$this->_settings['schema']}";
-                break;
-                case 'sqlite':
-                case 'sqlite2':
-                case 'sqlite3':
-                    $dsn = "{$this->engine}:{$this->_settings['schema']}";
-                    $this->_settings['schema'] === 'memory' and ($dsn = "{$this->engine}::memory:");
-                break;
-                default:
-                    empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
-                    empty($this->_settings['port']) or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
+        switch ($this->engine) {
+            case 'firebird':
+                $dsn = "'firebird:dbname={$this->_settings['host']}/{$this->_settings['port']}:{$this->_settings['schema']}";
+            break;
+            case 'sqlite':
+            case 'sqlite2':
+            case 'sqlite3':
+                $dsn = "{$this->engine}:{$this->_settings['schema']}";
+                $this->_settings['schema'] === 'memory' and ($dsn = "{$this->engine}::memory:");
+            break;
+            default:
+                empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
+                empty($this->_settings['port']) or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
 
-                    $charset = $dialect = '';
+                $charset = $dialect = '';
 
-                    empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
-                    empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
+                empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
+                empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
 
-                    $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}";
-                break;
-            }
-            empty($this->_settings['username']) and $this->_settings['username'] = null;
-            empty($this->_settings['password']) and $this->_settings['password'] = null;
-            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
-            $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
-            die('Error to connect to database due to: '.$e->getMessage());
-        } catch (Exception $e) {
-            die('Internal error: '.$e->getMessage());
+                $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}";
+            break;
         }
+        empty($this->_settings['username']) and $this->_settings['username'] = null;
+        empty($this->_settings['password']) and $this->_settings['password'] = null;
+        parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
+        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
     /**
      * Regarding the espcific dirver query, get the fields info from a table
