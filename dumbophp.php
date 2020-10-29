@@ -1094,7 +1094,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             exit;
         } else {
             $this->_sqlQuery = $query;
-            $x = $this->getData($query);
+            $x = $this->getData($query, []);
             return $x;
         }
     }
