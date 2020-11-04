@@ -6,11 +6,15 @@ class mysqlDriver {
     private $_params = null;
     public $tableName = null;
     public $pk = 'id';
-
+    /**
+     * 
+     */
     public function getColumns($table) {
         return "SHOW COLUMNS FROM {$table}";
     }
-
+    /**
+     * 
+     */
     public function Select($params = null, $table, $pk = 'id') {
         $this->_params = $params;
 
@@ -208,7 +212,9 @@ class mysqlDriver {
 
         return $query;
     }
-
+    /**
+     * 
+     */
     public function DropTable($table) {
         return "DROP TABLE IF EXISTS `{$table}`";
     }
@@ -356,6 +362,14 @@ DUMBO;
         }
 
         return $query;
+    }
+    /**
+     * Sets the proper query for count the rows result from a query
+     * @param string query The query to count the results
+     * @return string query Builded query to run on DB
+     */
+    public function RowCountOnQuery($query) {
+        return "SELECT COUNT(*) AS `rows` FROM ($query) AS countedTable";
     }
 }
 

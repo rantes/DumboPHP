@@ -352,6 +352,14 @@ DUMBO;
 
         return $query;
     }
+    /**
+     * Sets the proper query for count the rows result from a query
+     * @param string query The query to count the results
+     * @return string query Builded query to run on DB
+     */
+    public function RowCountOnQuery($query) {
+        return "SELECT COUNT(*) AS `rows` FROM ($query) AS countedTable";
+    }
 }
 
 class sqlite2Driver extends sqliteDriver {}
