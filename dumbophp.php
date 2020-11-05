@@ -448,20 +448,6 @@ function Camelize($params, &$obj = NULL) {
     return $newName;
 }
 /**
- * Turns an Active Record resulset object into a comma separated list
- * @param array $arr
- * @param object $obj
- * @return string
- * @deprecated
- */
-function ToList($arr, $obj = NULL) {
-    if (isset($obj) and is_object($obj) and get_parent_class($obj) == 'ActiveRecord') {
-        $arr = $obj->getArray();
-    }
-
-    return imploder(',', $arr);
-}
-/**
  * Set a CamelizedString back to uncamelized_string
  * @param array|string $params
  * @param object $obj
@@ -512,21 +498,6 @@ function cleanToSEO($params, &$obj = NULL) {
     $string = preg_replace('/[\s]+/', '-', $string);
     $string = preg_replace('/[^a-zA-Z0-9-]/', '', $string);
     return $string;
-}
-/**
- * Equivalent to htmlentities
- * @deprecated
- * @param string $string
- * @return string
- */
-function cleanASCII($string) {
-    $specialChars = array("/\xc0/", "/\xc1/", "/\xc2/", "/\xc3/", "/\xc4/", "/\xc5/", "/\xc6/", "/\xc7/", "/\xc8/", "/\xc9/", "/\xca/", "/\xcb/", "/\xcc/", "/\xcd/", "/\xce/", "/\xcf/", "/\xd0/", "/\xd1/",
-        "/\xd2/", "/\xd3/", "/\xd4/", "/\xd5/", "/\xd6/", "/\xd7/", "/\xd8/", "/\xd9/", "/\xda/", "/\xdb/", "/\xdc/", "/\xdd/", "/\xde/", "/\xdf/", "/\xe0/", "/\xe1/", "/\xe2/", "/\xe3/", "/\xe4/", "/\xe5/", "/\xe6/",
-        "/\xe7/", "/\xe8/", "/\xe9/", "/\xea/", "/\xeb/", "/\xec/", "/\xed/", "/\xee/", "/\xef/", "/\xf0/", "/\xf1/", "/\xf2/", "/\xf3/", "/\xf4/", "/\xf5/", "/\xf6/", "/\xf7/", "/\xf8/", "/\xf9/", "/\xfa/", "/\xfb/", "/\xfc/", "/\xfd/", "/\xfe/", "/\xff/");
-    $normalChars = array('&Agrave;', '&Aacute;', '&Acirc;', '&Atilde;', '&Auml;', '&Aring', '&AElig;', '&Ccedil;', '&Egrave;', '&Eacute;', '&Ecirc;', '&Euml;', '&Igrave;', '&Iacute;', '&Icirc;', '&Iuml;', '&ETH;', '&Ntilde;',
-        '&Ograve;', '&Oacute;', '&Ocirc;', '&Otilde;', '&Ouml;', '&Oslash;', 'U', 'U', 'U', 'U', 'Y', 'B', 'Ss', '&agrave;', '&aacute;', '&acirc;', '&atilde;', '&auml;', '&aring', '&aElig;', '&ccedil;', '&egrave;', '&eacute;', '&ecirc;', '&euml;', '&igrave;', '&iacute;', '&icirc;', '&iuml;', '&eth;', '&ntilde;',
-        '&ograve;', '&oacute;', '&ocirc;', '&otilde;', '&ouml;', '&oslash;', 'u', 'u', 'u', 'u', 'y', 'b', 'y');
-    return preg_replace($specialChars, $normalChars, $string);
 }
 /**
  * Generates random alpha-numeric string
