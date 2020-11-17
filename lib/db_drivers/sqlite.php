@@ -182,7 +182,7 @@ class sqliteDriver {
         }elseif(!empty($conditions['conditions']) && is_string($conditions['conditions'])){
             $query .= 'WHERE '.$conditions['conditions'];
         } else {
-            throw new Exception("Invalid conditions for delete.", 1);
+            throw new Exception('Invalid conditions for delete.', 1);
         }
 
         return $query;
@@ -190,21 +190,23 @@ class sqliteDriver {
 
     public function CreateTable($table, $fields) {
         $query = "CREATE TABLE IF NOT EXISTS `{$table}` (";
-        foreach ($fields as $field) {
-            if ($field['type'] == 'VARCHAR' && empty($field['limit'])) {
-                $field['limit'] = 250;
-            }
+        $queryFields = [];
+        while (null !== ($field = array_shift($fields))) {
+            if (empty($field['field']) || empty($field['type'])) throw new Exception('Field and type values are mandatory.', 1);
+            $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
+            
+            empty($field['primary']) || ($field['type'] = 'INTEGER PRIMARY KEY');
+            empty($field['autoincrement']) || ($field['type'] = "{$field['type']} AUTOINCREMENT");
+            $limit = empty($field['limit']) ? '' : "({$field['limit']})";
+            $notNull = (empty($field['null']) || $field['null'] === 'false') ? ' NOT NULL' : '';
+            $default = isset($field['default']) ? " DEFAULT '{$field['default']}'" : '';
+            $comment = isset($field['comment']) ? " COMMENT '{$field['comment']}'" : '';
 
-            $query .= (!empty($field['field']) && !empty($field['type']))?"`".$field['field']."` ".$field['type']:NULL;
-            $query .= (!empty($field['limit']))?" (".$field['limit'].")":NULL;
-            $query .= (empty($field['null']) || $field['null'] === 'false')?" NOT NULL":NULL;
-            $query .= (isset($field['default']))?" DEFAULT '".$field['default']."'":NULL;
-            $query .= (!empty($field['comment']))?" COMMENT '".$field['comment']."'":NULL;
-            $query .= " ,";
+            $queryFields[] = "`{$field['field']}` {$field['type']}{$limit}{$notNull}{$default}{$comment}";
         }
 
-        $query = substr($query, 0, -2);
-        $query .= ");";
+        $query .= implode(',', $queryFields);
+        $query = "{$query});";
 
         return $query;
     }

@@ -10,15 +10,21 @@ class testDispatcher {
      * @param array $tests
      */
     function __construct(array $tests, $path = 'tests/', $halt = false, $logPath = '/tmp/') {
-        $this->_logPath = $logPath;
-        file_put_contents("{$this->_logPath}{$this->_logFile}", '');
-        echo 'The very things that hold you down are going to lift you up!', "\n";
-
-        $this->_halt = $halt;
-        $this->_testsPath = $path;
-        while (null !== ($test = array_shift($tests))) {
-            require_once "{$this->_testsPath}{$test}.php";
-            $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
+        try {
+            $this->_logPath = $logPath;
+            file_put_contents("{$this->_logPath}{$this->_logFile}", '');
+            echo 'The very things that hold you down are going to lift you up!', "\n";
+    
+            $this->_halt = $halt;
+            $this->_testsPath = $path;
+            while (null !== ($test = array_shift($tests))) {
+                require_once "{$this->_testsPath}{$test}.php";
+                $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
+            }
+        } catch (Throwable $e) {
+            $this->_failed = true;
+            echo (string)$e;
+            exit(1);
         }
     }
     /**
