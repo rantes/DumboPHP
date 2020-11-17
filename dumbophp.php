@@ -1790,6 +1790,126 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $str .= $tail;
         return $str;
     }
+
+    /**
+     * Creates an input depending on the type of field
+     * @deprecated
+     * @param array $params
+     * @throws Exception
+     * @return NULL|string
+     */
+    public function input_for($params) {
+        $stringi = '<input';
+        $stringt = '<textarea';
+        $strings = '<select';
+        $name    = '';
+        $html    = '';
+        $type    = '';
+        $input   = '';
+        if (!empty($params) or !empty($params[0]) or isset($params['field'])) {
+            if (is_array($params)) {
+                $field = isset($params['field'])?$params['field']:$params[0];
+            } else {
+                $field = $params;
+            }
+            if (empty($params['name']) or !is_array($params)) {
+                $name = Singulars(strtolower($this->_ObjTable)).'['.$field.']';
+            } else {
+                $name = $params['name'];
+            }
+            if (is_array($params) and !empty($params['html']) and is_array($params['html'])) {
+                foreach ($params['html'] as $element => $value) {
+                    $html .= $element.'="'.$value.'" ';
+                }
+            }
+            $html = trim($html);
+            if (strlen($html) > 0):
+            $html = ' '.$html;
+            endif;
+            if (is_array($params) and !empty($params['type']) and is_string($params['type'])) {
+                $type = $params['type'];
+            } else {
+                $nattype = $this->_nativeType($field);
+                switch ($nattype) {
+                    case 'INTEGER':
+                    case 'LONG':
+                    case 'STRING':
+                    case 'INT':
+                    case 'BIGINT':
+                    case 'VAR_CHAR':
+                    case 'VARCHAR':
+                    case 'FLOAT':
+                    case 'VAR_STRING';
+                        $type = 'text';
+                        break;
+                    case 'BLOB':
+                    case 'TEXT':
+                        $type = 'textarea';
+                        break;
+                }
+            }
+            if ($field === 'id') {
+                $type = 'hidden';
+            }
+
+            switch ($type) {
+                case 'text':
+                case 'hidden':
+                    $input = "{$stringi} type=\"{$type}\" name=\"{$name}\"{$html} value=\"{$this->{$field}}\" />";
+                    break;
+                case 'checkbox':
+                    $checked = $this->{$field} ? ' checked="checked"' : '';
+                    $input = "{$stringi} type=\"{$type}\" name=\"{$name}\"{$html} value=\"\"$checked />";
+                break;
+                case 'textarea':
+                    $input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field}.'</textarea>';
+                    break;
+                case 'select':
+                    $cont = !empty($params['first'])?'<option value="">'.$params['first'].'</option>':'';
+                    foreach ($params['list'] as $value => $option) {
+                        $default = '';
+                        if ($this->{$field } == $value) {
+                            $default = 'selected="selected"';
+                        }
+
+                        $cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
+                    }
+                    $input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
+                break;
+            }
+        } else {
+            throw new Exception("Must to give the field to input.");
+            return null;
+        }
+        return $input;
+    }
+    /**
+     * @deprecated
+     * @param string $params
+     * @return html
+     */
+    public function form_for($params) {
+        $string = '<form';
+        $method = 'post';
+        $action = '#';
+        $name   = '';
+        $id     = '';
+        $html   = '';
+        $name   = singulars(strtolower($this->_ObjTable));
+        $action = !empty($params['action'])?$params['action']:INST_URI.strtolower($this->_ObjTable);
+        if (!empty($params['html']) and is_array($params['html'])) {
+            foreach ($params['html'] as $element => $value) {
+                $html .= $element.'="'.$value.'" ';
+            }
+        }
+        $html = trim($html);
+        if (strlen($html) > 0) {
+            $html = " {$html}";
+        }
+
+        $string .= ' method="'.$method.'" action="'.$action.'" name="'.$name.'"'.$html.'>';
+        return $string;
+    }
 }
 class Vendor {
     private $_path = '';
