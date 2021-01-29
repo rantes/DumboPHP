@@ -1,5 +1,5 @@
 <?php
-class Colors {
+class DumboShellColors {
     private $foreground_colors = array();
     private $background_colors = array();
 

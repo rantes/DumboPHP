@@ -4,7 +4,7 @@ file_exists('./config/host.php') or die('Generator must be executed at the top l
 
 require_once './config/host.php';
 require_once 'dumbophp.php';
-require_once 'colorClass.php';
+require_once 'DumboShellColors.php';
 
 class FieldObject {
 
@@ -96,7 +96,7 @@ class DumboGeneratorClass {
 
     public function __construct($env = '') {
         empty($env) || ($GLOBALS['env'] = $env);
-        $this->colors = new Colors();
+        $this->colors = new DumboShellColors();
     }
 
     public function showError($errorMessage) {

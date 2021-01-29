@@ -27,7 +27,7 @@ if (!function_exists('getallheaders')) {
      * @return string[string] The HTTP header key/value pairs.
      */
     function getallheaders() {
-        $headers = array();
+        $headers = [];
         $copy_server = array(
             'CONTENT_TYPE'   => 'Content-Type',
             'CONTENT_LENGTH' => 'Content-Length',
@@ -90,8 +90,8 @@ function uuidV4() {
  *
  */
 final class IrregularNouns {
-    public $singular = array();
-    public $plural   = array();
+    public $singular = [];
+    public $plural   = [];
     /**
      * Fills the singular and plural arrays with the irregular nouns
      */
@@ -595,7 +595,7 @@ class Connection extends PDO {
 
     function __construct() {
         empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
-        $databases = array();
+        $databases = [];
 
         require INST_PATH.'config/db_settings.php';
         if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
@@ -699,7 +699,7 @@ class Connection extends PDO {
  */
 class Errors {
     private $actived  = FALSE;
-    private $messages = array();
+    private $messages = [];
     private $counter  = 0;
     public function add($params) {
         if ($params === NULL or !is_array($params)):
@@ -728,7 +728,7 @@ class Errors {
         return $this->actived;
     }
     public function errCodes() {
-        $errorsCodes = array();
+        $errorsCodes = [];
         foreach ($this->messages as $field => $messages) {
             foreach ($messages as $message) {
                 $errorCodes[] = $message['code'];
@@ -737,7 +737,7 @@ class Errors {
         return $errorCodes;
     }
     public function errFields() {
-        $errorFields = array();
+        $errorFields = [];
         foreach ($this->messages as $field => $messages) {
             $errorFields[] = $field;
         }
@@ -763,7 +763,7 @@ abstract class Core_General_Class extends ArrayObject {
         $field         = Singulars(strtolower($ClassName));
         $classFromCall = Camelize($ClassName);
         $conditions    = '';
-        $params        = array();
+        $params        = [];
         if (file_exists(INST_PATH.'app/models/'.$field.'.php')) {
             $way = 'down';
             if (!empty($val[0])) {
@@ -811,7 +811,7 @@ abstract class Core_General_Class extends ArrayObject {
         }
     }
 }
-$GLOBALS['models'] = array();
+$GLOBALS['models'] = [];
 $driver = null;
 /**
  * Class for Active Record design
@@ -837,29 +837,29 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
-    public $has_many                = array();
-    public $has_one                 = array();
-    public $belongs_to              = array();
-    public $has_many_and_belongs_to = array();
-    public $validate                = array();
+    public $has_many                = [];
+    public $has_one                 = [];
+    public $belongs_to              = [];
+    public $has_many_and_belongs_to = [];
+    public $validate                = [];
     public $disableCast = true;
-    protected $before_insert           = array();
-    protected $after_insert            = array();
-    protected $before_update           = array();
-    protected $after_update            = array();
-    protected $before_find             = array();
-    protected $after_find              = array();
-    protected $before_save             = array();
-    protected $after_save              = array();
-    protected $before_delete           = array();
-    protected $after_delete            = array();
+    protected $before_insert           = [];
+    protected $after_insert            = [];
+    protected $before_update           = [];
+    protected $after_update            = [];
+    protected $before_find             = [];
+    protected $after_find              = [];
+    protected $before_save             = [];
+    protected $after_save              = [];
+    protected $before_delete           = [];
+    protected $after_delete            = [];
     protected $dependents              = '';
-    protected $_dataAttributes         = array();
+    protected $_dataAttributes         = [];
     protected $_params                 = array('fields' => '*', 'conditions' => '');
     protected $pk                      = 'id';
-    protected $escapeField             = array();
-    protected $_fields                 = array();
-    protected $_preparedQuery = array();
+    protected $escapeField             = [];
+    protected $_fields                 = [];
+    protected $_preparedQuery = [];
     private $_paginatePrevChar  = '&lt;';
     private $_paginateNextChar  = '&gt;';
     private $_paginateFirstChar  = '|&lt;&lt;';
@@ -969,8 +969,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     protected function getData($prepared, $data) {
         (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
         $obj = clone $this;
-        $obj->_fields = array();
-        $obj->_dataAttributes = array();
+        $obj->_fields = [];
+        $obj->_dataAttributes = [];
 
         try {
             $sh = $GLOBALS['Connection']->prepare($prepared);
@@ -1404,7 +1404,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function Delete($conditions = NULL) {
         if ($this->_counter > 1) {
-            $conditions = array();
+            $conditions = [];
             foreach ($this as $ele) {
                 $conditions[] = $ele->{$this->pk};
             }
@@ -1530,7 +1530,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return array
      */
     public function getArray() {
-        $arraux = array();
+        $arraux = [];
         $fields = array_keys($this->_fields);
 
         if ($this->_counter > 0) {
@@ -1943,26 +1943,26 @@ class Vendor {
  *
  */
 abstract class Page extends Core_General_Class {
-    public $excepts_before_filter    = array();
+    public $exceptsBeforeFilter = [];
     public $Vendor = null;
-    protected $layout                = "";
-    protected $render                = NULL;
-    protected $flash                 = "";
-    protected $yield                 = "";
-    protected $params                = array();
-    protected $metaDescription       = '';
-    protected $pageTitle             = '';
-    protected $controller            = '';
-    protected $action                = '';
-    public $_outputContent        = '';
-    protected $excepts_after_filter  = array();
-    protected $excepts_after_render  = array();
-    protected $excepts_before_render = array();
-    protected $_exposeContent        = true;
-    protected $_data_                = array();
+    protected $layout = '';
+    protected $render = NULL;
+    protected $flash = '';
+    protected $yield = '';
+    protected $params = [];
+    protected $metaDescription = '';
+    protected $pageTitle = '';
+    protected $controller = '';
+    protected $action = '';
+    public $_outputContent = '';
+    protected $excepts_after_filter  = [];
+    protected $excepts_after_render  = [];
+    protected $excepts_before_render = [];
+    protected $_exposeContent = true;
+    protected $_data_ = [];
     protected $outputHtml = true;
-    private $_respondToAJAX          = '';
-    private $_canrespondtoajax       = false;
+    private $_respondToAJAX   = '';
+    private $_canrespondtoajax= false;
     private $_preventLoad = false;
 
     public function __construct() {
@@ -2152,7 +2152,7 @@ abstract class Migrations extends Core_General_Class {
     }
 
     public function getFields() {
-        $fields = array();
+        $fields = [];
 
         for ($i = 0; $i < sizeof($this->_fields); $i++) {
             $fields[] = $this->_fields[$i]['field'];
@@ -2328,7 +2328,7 @@ class index {
             if (empty($value)) unset($request[$key]);
         }
 
-        $params = array();
+        $params = [];
 
         if (sizeof($request) === 1 and !strstr($request[0], "=") and is_numeric($request[0])) {
             $params['id'] = $request[0];
@@ -2396,16 +2396,16 @@ class index {
             }
             //before filter, executed before the action execution
             if (method_exists($this->page, "before_filter")) {
-                $actionsToExclude = $controllersToExclude = array();
-                if (!empty($this->page->excepts_before_filter) && is_array($this->page->excepts_before_filter)) {
-                    if (!empty($this->page->excepts_before_filter['actions']) && is_string($this->page->excepts_before_filter['actions'])) {
-                        $actionsToExclude = explode(',', $this->page->excepts_before_filter['actions']);
+                $actionsToExclude = $controllersToExclude = [];
+                if (!empty($this->page->exceptsBeforeFilter) && is_array($this->page->exceptsBeforeFilter)) {
+                    if (!empty($this->page->exceptsBeforeFilter['actions']) && is_string($this->page->exceptsBeforeFilter['actions'])) {
+                        $actionsToExclude = explode(',', $this->page->exceptsBeforeFilter['actions']);
                         foreach ($actionsToExclude as $index => $act) {
                             $actionsToExclude[$index] = trim($act);
                         }
                     }
-                    if (!empty($this->page->excepts_before_filter['controllers']) && is_string($this->page->excepts_before_filter['controllers'])) {
-                        $controllersToExclude = explode(',', $this->page->excepts_before_filter['controllers']);
+                    if (!empty($this->page->exceptsBeforeFilter['controllers']) && is_string($this->page->exceptsBeforeFilter['controllers'])) {
+                        $controllersToExclude = explode(',', $this->page->exceptsBeforeFilter['controllers']);
                         foreach ($controllersToExclude as $index => $cont) {
                             $controllersToExclude[$index] = trim($cont);
                         }
@@ -2419,7 +2419,7 @@ class index {
                 !$this->page->PreventLoad() && $this->page->{$action."Action"}();
                 //before render, executed after the action execution and before the data renderize
                 if (method_exists($this->page, "before_render")) {
-                    $actionsToExclude = $controllersToExclude = array();
+                    $actionsToExclude = $controllersToExclude = [];
                     if (!empty($this->page->excepts_before_render) && is_array($this->page->excepts_before_render)) {
                         if (!empty($this->page->excepts_before_render['actions']) && is_string($this->page->excepts_before_render['actions'])) {
                             $actionsToExclude = explode(',', $this->page->excepts_before_render['actions']);
@@ -2440,7 +2440,7 @@ class index {
                 }
                 $this->page->display();
                 if (method_exists($this->page, "after_render")) {
-                    $actionsToExclude = $controllersToExclude = array();
+                    $actionsToExclude = $controllersToExclude = [];
                     if (!empty($this->page->excepts_after_render) && is_array($this->page->excepts_after_render)) {
                         if (!empty($this->page->excepts_after_render['actions']) && is_string($this->page->excepts_after_render['actions'])) {
                             $actionsToExclude = explode(',', $this->page->excepts_after_render['actions']);

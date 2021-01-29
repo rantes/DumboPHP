@@ -53,8 +53,8 @@ class dumboShell{
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             $this->systemFolder = 'C:/Windows';
         }
-        require_once 'lib/colorClass.php';
-        $this->colors = new Colors();
+        require_once 'lib/DumboShellColors.php';
+        $this->colors = new DumboShellColors();
     }
 
     private function _parseOptions() {

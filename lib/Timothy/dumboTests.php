@@ -17,8 +17,8 @@ class dumboTests extends Page {
         parent::__construct();
         $GLOBALS['env'] = 'test';
         $this->_logFile = $logFile;
-        require_once 'lib/colorClass.php';
-        $this->_colors = new Colors();
+        require_once 'lib/DumboShellColors.php';
+        $this->_colors = new DumboShellColors();
         $this->testName = get_class($this);
     }
     public function _init_() {}
