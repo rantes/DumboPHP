@@ -5,13 +5,14 @@
  *
  */
 class dumboTests extends Page {
+    public $assertions = 0;
+    public $testName = '';
     public $_failed = 0;
     public $_passed = 0;
     private $_colors = null;
     private $_colorsPalete = ['red', 'green'];
     private $_textOutputs = ['Failed', 'Passed'];
     private $_logFile = '/tmp/dumbotests.log';
-    public $testName = '';
 
     public function __construct($logFile) {
         parent::__construct();
@@ -21,8 +22,11 @@ class dumboTests extends Page {
         $this->_colors = new DumboShellColors();
         $this->testName = get_class($this);
     }
+
     public function _init_() {}
+
     public function _end_() {}
+
     public function _runAction(string $action) {
         $_GET['url'] = $action;
         ob_start();
@@ -107,6 +111,7 @@ DUMBO;
      * @param any $param2
      */
     public function assertEquals($param1, $param2, $message = null) {
+        $this->assertions++;
         $message = $message ?? 'Assert if <' . gettype($param1) . '> ' . var_export($param1, true) . ' is equals to <' . gettype($param2) . '> ' . var_export($param2, true);
         $passed = $param1 === $param2;
         $this->_passed += $passed;
@@ -121,12 +126,14 @@ DUMBO;
      * @param string $message
      */
     public function assertTrue($value, $message = null) {
+        $this->assertions++;
         $message = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is true ';
-        $passed = $value === true;
+        $passed = $value === (boolean)true;
         $this->_passed += $passed;
         $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
-        !$passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . $value) && $this->_triggerError('Asserts True');
+        $trueFalse = ['False','True'];
+        !$passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . (is_bool($value) ? $trueFalse[$value] : $value)) && $this->_triggerError('Asserts True');
     }
     /**
      * Asserts if the Value is false.
@@ -134,12 +141,14 @@ DUMBO;
      * @param string $message
      */
     public function assertFalse($value, $message = null) {
+        $this->assertions++;
         $message = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is false ';
-        $passed = $value === false;
+        $passed = $value === (boolean)false;
         $this->_passed += $passed;
         $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
-        !$passed && $this->_log('Expectig `false` but found <' . gettype($value) . '> ' . $value) && $this->_triggerError('Asserts False');
+        $trueFalse = ['False','True'];
+        !$passed && $this->_log('Expectig `false` but found <' . gettype($value) . '> ' . (is_bool($value) ? $trueFalse[$value] : $value)) && $this->_triggerError('Asserts False');
     }
 
     /**
@@ -148,6 +157,7 @@ DUMBO;
      * @param array $fields
      */
     public function assertHasFields(ActiveRecord $model) {
+        $this->assertions++;
         $table = $model->_TableName();
         require_once INST_PATH."migrations/create_{$table}.php";
         $migrationName = 'Create'.Camelize(Singulars($table));
@@ -171,6 +181,7 @@ DUMBO;
      * @param array $fields
      */
     public function assertHasFieldTypes(ActiveRecord $model) {
+        $this->assertions++;
         $table = $model->_TableName();
         require_once INST_PATH."migrations/create_{$table}.php";
         $migrationName = 'Create'.Camelize(Singulars($table));

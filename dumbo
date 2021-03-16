@@ -31,7 +31,8 @@ class dumboShell{
         'env' => ['value' => null, 'cast' => 'string'],
         'halt' => ['value' => false, 'cast' => 'boolean'],
         'standalone' => ['value' => true, 'cast' => 'boolean'],
-        'dir' => ['value' => null, 'cast' => 'string']
+        'dir' => ['value' => null, 'cast' => 'string'],
+        'watch' => ['value' => false, 'cast' => 'boolean']
     ];
     private $command = null;
     private $systemFolder = '/etc/';
@@ -60,7 +61,7 @@ class dumboShell{
     private function _parseOptions() {
         $trueFalse = ['true' => true, 'false' => false];
         foreach($this->arguments as $i => $arg) {
-            preg_match('@\-\-([a-zA-Z0-9]+)\=([a-z0-9_\/]+)@im', $arg, $match);
+            preg_match('@\-\-([a-zA-Z0-9]+)\=([a-z0-9\-\_\/]+)[\s]*@im', $arg, $match);
             if (sizeof($match) === 3) {
                 if(isset($this->_options[$match[1]])){
                     switch($this->_options[$match[1]]['cast']) {
@@ -199,6 +200,7 @@ Options:
 
     --env=enviroment        Sets a particular enviroment for the execution
     --halt=[true|false]     Halt the script on error
+    --watch                 Set a demon to watch files (used in tests)
 
 DUMBO;
         fwrite(STDOUT, $text . "\n");
@@ -470,10 +472,9 @@ DUMBO;
     }
 
     private function runTestScript() {
-        require_once 'dumbophp.php';
-        require_once 'lib/Timothy/dumboTests.php';
-        require_once 'lib/Timothy/testDispatcher.php';
+        $this->showNotice('Preparing tests...');
         $path = $this->_options['dir']['value'] ?? 'tests/';
+        $watch = $this->_options['watch']['value'] ?? false;
         $path = realpath($path);
         substr($path, -1) !== '/' && ($path.='/');
         if (in_array('all', $this->arguments)) {
@@ -485,10 +486,48 @@ DUMBO;
                 }
             }
         }
-        $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
-        while (null !== ($test = array_shift($this->arguments))) {
-            $testLaunch->run($test);
+        if($watch){
+            $files = [];
+            foreach($this->arguments as $file):
+                $fullpath = "{$path}{$file}.php";
+                $stats = stat($fullpath);
+                $files[] = ['path'=> $fullpath, 'mtime' => $stats['mtime']];
+            endforeach;
+            $this->showNotice("\nWatching files...");
+            while(true) {
+                foreach($files as  $index => $file) {
+                    $stats = stat($file['path']);
+                    if($stats['mtime'] > 0 and $file['mtime'] !== $stats['mtime']){
+                        $this->showNotice("File changed {$file['path']}");
+                        $files[$index]['mtime'] = $stats['mtime'];
+                        $tests = implode(' ', $this->arguments);
+                        system("dumbo test {$tests} --dir={$path}");
+                        $this->showNotice("\nWatching files...");
+                    }
+                }
+            }
+        } else {
+            $this->_runTests($path);
         }
+    }
+
+    private function _runTests($path) {
+        require_once 'dumbophp.php';
+        require_once 'lib/Timothy/dumboTests.php';
+        require_once 'lib/Timothy/testDispatcher.php';
+
+        $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
+        $this->showNotice('Runing tests...');
+        $start = microtime(true);
+        $testCounter = 0;
+        $tests = $this->arguments;
+        while (null !== ($test = array_shift($tests))) {
+            $testLaunch->run($test);
+            $testCounter++;
+        }
+        $took = microtime(true) - $start;
+        $this->showNotice("\nFinished tests. Ran {$testLaunch->assertions} assertions in {$testCounter} tests. Finished in: {$took} seconds.");
+        $testLaunch = null;
     }
 
     private function migrationScripts() {

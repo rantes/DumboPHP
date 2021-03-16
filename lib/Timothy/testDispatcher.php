@@ -1,5 +1,6 @@
 <?php
 class testDispatcher {
+    public $assertions = 0;
     private $_testsPath = '';
     private $_failed = false;
     private $_halt = false;
@@ -18,7 +19,7 @@ class testDispatcher {
             $this->_halt = $halt;
             $this->_testsPath = $path;
             while (null !== ($test = array_shift($tests))) {
-                require_once "{$this->_testsPath}{$test}.php";
+                require "{$this->_testsPath}{$test}.php";
                 $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
             }
         } catch (Throwable $e) {
@@ -55,6 +56,7 @@ class testDispatcher {
                     exit(1);
                 endif;
             }
+            $this->assertions += $test->assertions;
 
             $test->_end_();
             $test->_summary();
@@ -73,9 +75,9 @@ class testDispatcher {
             echo "\nRESULT: FAILED\nLOG:\n\n";
             echo file_get_contents("{$this->_logPath}{$this->_logFile}");
             echo "\n\nRESULT: FAILED\n";
+            exit((integer)$this->_failed);
         } else {
             echo "\nRESULT: PASS\n";
         }
-        exit((integer)$this->_failed);
     }
 }

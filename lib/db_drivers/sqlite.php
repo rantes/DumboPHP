@@ -147,13 +147,11 @@ class sqliteDriver {
         return array('query'=>$query, 'prepared'=>$prepared);
     }
 
-    public function Insert($params, $table, $replace = false) {
+    public function Insert($params, $table) {
         $prepared = array();
         $fields = '';
         $values = '';
         $action = 'INSERT';
-
-        $replace && ($action = 'REPLACE');
 
         $query = "{$action} INTO `{$table}` ";
         foreach($params as $field => $value){
@@ -195,7 +193,7 @@ class sqliteDriver {
             if (empty($field['field']) || empty($field['type'])) throw new Exception('Field and type values are mandatory.', 1);
             $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
             
-            empty($field['primary']) || ($field['type'] = 'INTEGER PRIMARY KEY');
+            empty($field['primary']) || ($field['type'] = "{$field['type']} PRIMARY KEY");
             empty($field['autoincrement']) || ($field['type'] = "{$field['type']} AUTOINCREMENT");
             $limit = empty($field['limit']) ? '' : "({$field['limit']})";
             $notNull = (empty($field['null']) || $field['null'] === 'false') ? ' NOT NULL' : '';
