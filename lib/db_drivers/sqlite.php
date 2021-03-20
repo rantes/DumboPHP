@@ -189,9 +189,14 @@ class sqliteDriver {
     public function CreateTable($table, $fields) {
         $query = "CREATE TABLE IF NOT EXISTS `{$table}` (";
         $queryFields = [];
+        $parsed = [
+            'INT' => 'INTEGER',
+            'BIGINT' => 'INTEGER'
+        ];
         while (null !== ($field = array_shift($fields))) {
             if (empty($field['field']) || empty($field['type'])) throw new Exception('Field and type values are mandatory.', 1);
             $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
+            array_key_exists($field['type'], $parsed) and ($field['type'] = $parsed[$field['type']]);
             
             empty($field['primary']) || ($field['type'] = "{$field['type']} PRIMARY KEY");
             empty($field['autoincrement']) || ($field['type'] = "{$field['type']} AUTOINCREMENT");
