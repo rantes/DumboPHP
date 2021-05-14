@@ -14,7 +14,7 @@ class testDispatcher {
         try {
             $this->_logPath = $logPath;
             file_put_contents("{$this->_logPath}{$this->_logFile}", '');
-            echo 'The very things that hold you down are going to lift you up!', "\n";
+            fwrite(STDOUT, "The very things that hold you down are going to lift you up!\n");
     
             $this->_halt = $halt;
             $this->_testsPath = $path;
@@ -24,7 +24,7 @@ class testDispatcher {
             }
         } catch (Throwable $e) {
             $this->_failed = true;
-            echo (string)$e;
+            fwrite(STDERR, (string)$e);
             exit(1);
         }
     }
@@ -62,7 +62,7 @@ class testDispatcher {
             $test->_summary();
         } catch (Throwable $e) {
             $this->_failed = true;
-            echo (string)$e;
+            fwrite(STDERR, (string)$e);
             exit(1);
         }
     }

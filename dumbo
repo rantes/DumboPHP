@@ -41,8 +41,8 @@ class dumboShell{
     private $dumboLibs = 'dumbophp/lib';
     private $binPath = '/usr/bin';
     private $fullPathTarget = '';
-    private $arguments = array();
-    private $params = array();
+    private $arguments = [];
+    private $params = [];
     private $colors = null;
 
     public function __construct() {

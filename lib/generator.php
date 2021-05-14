@@ -93,10 +93,12 @@ class DumboGeneratorClass {
     public $singularized = '';
     private $fields = array();
     private $colors = null;
+    private $_scaffoldFolder = '';
 
     public function __construct($env = '') {
         empty($env) || ($GLOBALS['env'] = $env);
         $this->colors = new DumboShellColors();
+        $this->_scaffolFolder = INST_PATH.'scaffold/';
     }
 
     public function showError($errorMessage) {
@@ -130,15 +132,20 @@ class DumboGeneratorClass {
 
         file_exists($path.$file) and $this->showError('Error on Building: Model already exists.') and die();
 
-        $fileContent = <<<DUMBOPHP
+        if(file_exists("{$this->_scaffolFolder}model.tpl")):
+            $fileContent = file_get_contents("{$this->_scaffolFolder}model.tpl");
+            $fileContent = str_replace('{{model}}', $this->camelized, $fileContent);
+        else:
+            $fileContent = <<<DUMBOPHP
 <?php
 class $this->camelized extends ActiveRecord {
     function _init_() {
 
     }
  }
-?>
+
 DUMBOPHP;
+            endif;
 
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Model created at: {$path}{$file}");
@@ -154,14 +161,19 @@ DUMBOPHP;
         $file = $this->singularized.'_controller.php';
         $path = INST_PATH.'app/controllers/';
 
-        $fileContent = <<<DUMBOPHP
+        if(file_exists("{$this->_scaffolFolder}controller.tpl")):
+            $fileContent = file_get_contents("{$this->_scaffolFolder}controller.tpl");
+            $fileContent = str_replace('{{controller}}', "{$this->camelized}Controller", $fileContent);
+        else:
+            $fileContent = <<<DUMBOPHP
 <?php
 class {$this->camelized}Controller extends Page {
     public \$layout = 'layout';
     {{content}}
 }
-?>
+
 DUMBOPHP;
+        endif;
 
         $content = '';
 
@@ -245,7 +257,14 @@ DUMBOPHP;
 
         $file = 'index.phtml';
 
-        $fileContent = <<<DUMBOPHP
+        if(file_exists("{$this->_scaffolFolder}list_view.tpl")):
+            $fileContent = file_get_contents("{$this->_scaffolFolder}list_view.tpl");
+            $fileContent = str_replace('{{controller}}', "{$this->singularized}", $fileContent);
+            $fileContent = str_replace('{{column_names}}', $columnNames, $fileContent);
+            $fileContent = str_replace('{{data}}', $dataRow, $fileContent);
+        else:
+
+            $fileContent = <<<DUMBOPHP
       <div>
         <div>
           <table>
@@ -271,6 +290,7 @@ DUMBOPHP;
         <a href="<?=INST_URI;?>{$this->singularized}/addedit/">Add new...</a>
       </div>
 DUMBOPHP;
+        endif;
 
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("View created at: {$path}{$file}");
@@ -335,7 +355,6 @@ class Create{$this->camelized} extends Migrations {
         \$this->Drop_Table();
     }
 }
-?>
 
 DUMBOPHP;
         $fieldsString = implode(",\n                ", $this->fields);
@@ -373,7 +392,7 @@ class Seed extends Page {
 
     }
 }
-?>
+
 DUMBOPHP;
 
         file_put_contents("{$path}{$file}", $fileContent);

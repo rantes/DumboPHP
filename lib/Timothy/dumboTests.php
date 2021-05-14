@@ -29,10 +29,22 @@ class dumboTests extends Page {
     public function _end_() {}
 
     public function _runAction(string $action) {
-        $_GET['url'] = $action;
+        $_GET = [];
+        $action = explode('?', $action);
+        $_GET['url'] = $action[0];
+        if(!empty($action[1])):
+            $params = explode('&', $action[1]);
+            while(null !== ($param = array_shift($params))):
+                $param = explode('=', $param);
+                $_GET[$param[0]] = $param[1];
+            endwhile;
+        endif;
+        session_status() === PHP_SESSION_DISABLED and ($_SESSION = []);
+        isset($_SESSION) or (session_status() === PHP_SESSION_NONE) and session_start();
         ob_start();
-        $index = new Index();
-        ob_get_clean();
+        $index = new index();
+        $buf = ob_get_clean();
+        $index->page->_rawOutput = $buf;
         return $index->page;
     }
     /**
@@ -58,7 +70,7 @@ class dumboTests extends Page {
      * @param string $errorMessage
      */
     private function _showError($errorMessage) {
-        echo "\n{$errorMessage}\n";
+        fwrite(STDERR, "\n{$errorMessage}\n");
         return true;
     }
     /**
@@ -66,7 +78,7 @@ class dumboTests extends Page {
      * @param string $errorMessage
      */
     private function _showMessage($message) {
-        echo "\n{$message}\n";
+        fwrite(STDOUT, "\n{$errorMessage}\n");
         return true;
     }
     /**
@@ -76,7 +88,7 @@ class dumboTests extends Page {
     private function _progress($passed) {
         $text = $passed ? 'P' : 'F';
 
-        echo $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]);
+        fwrite(STDOUT, $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]));
         return true;
     }
     /**
@@ -102,7 +114,7 @@ class dumboTests extends Page {
 ERROR Failed to {$additional}, on {$track[1]['file']} at line {$track[1]['line']}.
 DUMBO;
         $this->_log($output);
-        echo "\n{$output}\n";
+        fwrite(STDOUT, "\n{$output}\n");
         return true;
     }
 
@@ -280,7 +292,7 @@ DUMBO;
     public function invokeMethod(&$object, $methodName, array $parameters = []) {
         $reflection = new ReflectionClass(get_class($object));
         $method = $reflection->getMethod($methodName);
-        $method->setAccessible(true);
+        $method->isPublic() or $method->setAccessible(true);
 
         return $method->invokeArgs($object, $parameters);
     }
