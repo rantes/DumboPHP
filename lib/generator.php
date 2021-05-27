@@ -98,7 +98,7 @@ class DumboGeneratorClass {
     public function __construct($env = '') {
         empty($env) || ($GLOBALS['env'] = $env);
         $this->colors = new DumboShellColors();
-        $this->_scaffolFolder = INST_PATH.'scaffold/';
+        $this->_scaffoldFolder = INST_PATH.'scaffold/';
     }
 
     public function showError($errorMessage) {
@@ -132,8 +132,8 @@ class DumboGeneratorClass {
 
         file_exists($path.$file) and $this->showError('Error on Building: Model already exists.') and die();
 
-        if(file_exists("{$this->_scaffolFolder}model.tpl")):
-            $fileContent = file_get_contents("{$this->_scaffolFolder}model.tpl");
+        if(file_exists("{$this->_scaffoldFolder}model.tpl")):
+            $fileContent = file_get_contents("{$this->_scaffoldFolder}model.tpl");
             $fileContent = str_replace('{{model}}', $this->camelized, $fileContent);
         else:
             $fileContent = <<<DUMBOPHP
@@ -154,15 +154,15 @@ DUMBOPHP;
     }
 
     public function controller($params, $isScaffold = false) {
-        echo 'Building: Creating controller...',PHP_EOL;
+        $this->showMessage('Building: Creating controller...');
 
         empty($this->tblName) and $this->setNames($params[0]);
 
         $file = $this->singularized.'_controller.php';
         $path = INST_PATH.'app/controllers/';
 
-        if(file_exists("{$this->_scaffolFolder}controller.tpl")):
-            $fileContent = file_get_contents("{$this->_scaffolFolder}controller.tpl");
+        if(file_exists("{$this->_scaffoldFolder}controller.tpl")):
+            $fileContent = file_get_contents("{$this->_scaffoldFolder}controller.tpl");
             $fileContent = str_replace('{{controller}}', "{$this->camelized}Controller", $fileContent);
         else:
             $fileContent = <<<DUMBOPHP
@@ -257,8 +257,8 @@ DUMBOPHP;
 
         $file = 'index.phtml';
 
-        if(file_exists("{$this->_scaffolFolder}list_view.tpl")):
-            $fileContent = file_get_contents("{$this->_scaffolFolder}list_view.tpl");
+        if(file_exists("{$this->_scaffoldFolder}list_view.tpl")):
+            $fileContent = file_get_contents("{$this->_scaffoldFolder}list_view.tpl");
             $fileContent = str_replace('{{controller}}', "{$this->singularized}", $fileContent);
             $fileContent = str_replace('{{column_names}}', $columnNames, $fileContent);
             $fileContent = str_replace('{{data}}', $dataRow, $fileContent);
