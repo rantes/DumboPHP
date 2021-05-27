@@ -332,6 +332,7 @@ $GLOBALS['PDOCASTS'] = [
     'TIME' => false,
     'TIMESTAMP' => true,
     'TINY' => true,
+    'VAR_CHAR' => false,
     'VAR_STRING' => false,
     'blob' => false,
     'medium_blob' => false,
@@ -351,6 +352,7 @@ $GLOBALS['PDOCASTS'] = [
     'time' => false,
     'timestamp' => true,
     'tiny' => true,
+    'var_char' => false,
     'var_string' => false,
 ];
 /**
@@ -637,6 +639,30 @@ class Connection extends PDO {
      */
     public function getColumnFields($query) {
         $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER'];
+        $norm = [
+            'BLOB' => 'BLOB',
+            'MEDIUM_BLOB' => 'MEDIUM_BLOB',
+            'LONG_BLOB' => 'LONG_BLOB',
+            'DATETIME' => 'DATETIME',
+            'DATE' => 'DATE',
+            'DOUBLE' => 'DOUBLE',
+            'FLOAT' => 'FLOAT',
+            'BIGINT' => 'BIGINT',
+            'INT' => 'INTEGER',
+            'INTEGER' => 'INTEGER',
+            'LONGLONG' => 'LONGLONG',
+            'LONG' => 'LONG',
+            'MEDIUMTEXT' => 'MEDIUMTEXT',
+            'NEWDECIMAL' => 'NEWDECIMAL',
+            'SHORT' => 'SHORT',
+            'STRING' => 'STRING',
+            'TIME' => 'TIME',
+            'TIMESTAMP' => 'TIMESTAMP',
+            'TINY' => 'TINY',
+            'VAR_CHAR' => 'VAR_CHAR',
+            'VARCHAR' => 'VARCHAR',
+            'VAR_STRING' => 'VAR_STRING'
+        ];
         try {
             $result1 = $this->query($query);
             $result1->setFetchMode(PDO::FETCH_ASSOC);
@@ -650,7 +676,7 @@ class Connection extends PDO {
                 $ret[] = [
                     'Cast' => in_array($type, $numerics),
                     'Field' => $rname,
-                    'Type' => $type,
+                    'Type' => $norm[$type],
                     'Value' => null
                 ];
             }
