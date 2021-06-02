@@ -656,6 +656,7 @@ class Connection extends PDO {
             'NEWDECIMAL' => 'NEWDECIMAL',
             'SHORT' => 'SHORT',
             'STRING' => 'STRING',
+            'TEXT' => 'TEXT',
             'TIME' => 'TIME',
             'TIMESTAMP' => 'TIMESTAMP',
             'TINY' => 'TINY',
