@@ -142,10 +142,10 @@ class $this->camelized extends ActiveRecord {
     function _init_() {
 
     }
- }
+}
 
 DUMBOPHP;
-            endif;
+        endif;
 
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Model created at: {$path}{$file}");
@@ -177,8 +177,8 @@ DUMBOPHP;
 
         $content = '';
 
-        if ($isScaffold) {
-        $content = <<<DUMBOPHP
+        if ($isScaffold):
+            $content = <<<DUMBOPHP
     public \$noTemplate = array('create','delete');
 
     public function indexAction() {
@@ -212,27 +212,23 @@ DUMBOPHP;
         exit;
     }
 DUMBOPHP;
-        } elseif(sizeof($params) > 1) {
-        for ($i=1; $i < sizeof($params); $i++) {
-            if (!empty($params[$i])) {
-            $content .= <<<DUMBOPHP
+        elseif(sizeof($params) > 1):
+            while(empty($param = array_shift($params))):
+                $content .= <<<DUMBOPHP
 
-    public function {$params[$i]}Action() {
+public function {$param}Action() {
 
-    }
+}
 DUMBOPHP;
-                }
-            }
-        }
+            endwhile;
+        endif;
 
         $fileContent = str_replace('{{content}}', $content, $fileContent);
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Controller created at: {$path}{$file}");
-
-        $this->views($params, $isScaffold);
     }
 
-    public function views($params, $isScaffold) {
+    public function views($params, $isScaffold = false) {
         $this->showMessage('Building: Creating views...');
 
         empty($this->tblName) and $this->setNames($params[0]);
@@ -327,11 +323,11 @@ DUMBOPHP;
 
         empty($params[1]) and die('Error on Building: fields params are mandatory.'.PHP_EOL);
 
-        for ($i=1; $i < sizeof($params); $i++) {
-        $this->fields[] = new FieldObject($params[$i]);
-        }
+        empty($this->tblName) and $this->setNames(array_shift($params));
 
-        empty($this->tblName) and $this->setNames($params[0]);
+        while(null !== ($param = array_shift($params))):
+            $this->fields[] = new FieldObject($param);
+        endwhile;
 
         $path = INST_PATH.'migrations/';
         $file = "create_{$this->tblName}.php";
@@ -342,9 +338,9 @@ DUMBOPHP;
 <?php
 class Create{$this->camelized} extends Migrations {
     function _init_() {
-          \$this->_fields = [
-              {{fields}}
-          ];
+        \$this->_fields = [
+            {{fields}}
+        ];
     }
 
     function up() {
@@ -375,6 +371,9 @@ DUMBOPHP;
     public function scaffold($params) {
         $this->model($params);
         $this->controller($params, true);
+        $this->views($params, true);
+
+        return true;
     }
 
     public function seed() {

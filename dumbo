@@ -305,6 +305,7 @@ DUMBO;
             case 'controller':
                 $this->showNotice('Creating controller: "'.$this->arguments[1].'".');
                 $generator->controller($this->params);
+                $generator->views($this->params);
             break;
             case 'model':
                 $this->showNotice('Creating model: "'.$this->arguments[1].'".');
