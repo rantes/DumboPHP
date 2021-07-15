@@ -15,7 +15,7 @@ class testDispatcher {
             $this->_logPath = $logPath;
             file_put_contents("{$this->_logPath}{$this->_logFile}", '');
             fwrite(STDOUT, "The very things that hold you down are going to lift you up!\n");
-    
+
             $this->_halt = $halt;
             $this->_testsPath = $path;
             while (null !== ($test = array_shift($tests))) {
@@ -52,6 +52,7 @@ class testDispatcher {
                 $test->beforeEach();
                 $test->{$action}();
                 $this->_failed = ($this->_failed || $test->_failed > 0);
+
                 if ($this->_halt && $this->_failed):
                     exit(1);
                 endif;

@@ -1,17 +1,14 @@
 <?php
 defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty($_SERVER['REMOTE_ADDR']));
 /**
- * This function is to handle transition to php7.4 since this will change the way you call imppolde
+ * This function is to handle transition to php7.4 since this will change the way you call implode
  * Will change on php7.4 official release
- * 
  */
 function imploder($glue = '', array $pieces ) {
     return (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70400) ? implode($glue, $pieces) : implode($pieces, $glue);
 }
 
-if (_IN_SHELL_ && !empty($argv)) {
-    parse_str(imploder('&', array_slice($argv, 1)), $_GET);
-}
+if (_IN_SHELL_ && !empty($argv)) parse_str(imploder('&', array_slice($argv, 1)), $_GET);
 
 for ($i = 1; $i <= 5; $i++) {
     for ($j = 0; $j < 100; $j++) {
@@ -1168,9 +1165,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return boolean
      */
     public function Update(array $params) {
-        if (empty($params['conditions']) || !is_string($params['conditions'])) 
+        if (empty($params['conditions']) || !is_string($params['conditions']))
             throw new Exception('The param conditions should not be empty and must be string.');
- 
+
         if (empty($params['data']) || !is_array($params['data']))
             throw new Exception('The param data should not be empty and must be array.');
 
@@ -1243,7 +1240,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     if (!empty($this->{$field['field']})) {
                         $obj1 = new $this;
                         $resultset = $obj1->Find([
-                            'fields' => $field['field'], 
+                            'fields' => $field['field'],
                             'conditions' => "`{$field['field']}`='" .$this->{$field['field']} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"
                         ]);
                         $resultset->counter() > 0 && $this->_error->add(['field' => $field['field'], 'message' => $message]);
@@ -1260,13 +1257,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         empty($field['message']) or ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    (($action === 'insert' 
-                        && !isset($this->{$field})) 
-                        || (empty($this->{$field}) 
-                        && isset($this->{$field}) 
-                        && !is_numeric($this->{$field}))) 
+                    (($action === 'insert'
+                        && !isset($this->{$field}))
+                        || (empty($this->{$field})
+                        && isset($this->{$field})
+                        && !is_numeric($this->{$field})))
                     && $this->_error->add([
-                        'field' => $field, 
+                        'field' => $field,
                         'message' => $message
                     ]);
                 }
@@ -1395,7 +1392,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $prepared = $GLOBALS['driver']->Insert($data, $this->_ObjTable);
 
         $this->_sqlQuery = $prepared['query'];
-        
+
         try {
             $sh = $GLOBALS['Connection']->prepare($prepared['query']);
             if (!$sh->execute($prepared['prepared'])) {
@@ -1703,17 +1700,17 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return (integer) $this->_counter;
     }
     public function first() {
-        return $this->_counter > 0?$this[0]:FALSE;
+        return $this->_counter > 0?$this[0]:false;
     }
     public function last() {
-        return $this->_counter > 0?$this[$this->counter()-1]:FALSE;
+        return $this->_counter > 0?$this[$this->counter()-1]:false;
     }
     public function _sqlQuery() {
         return $this->_sqlQuery;
     }
     public function _nativeType($field) {
         if (empty($this->_dataAttributes[$field]['native_type'])) {
-            return false;
+            return null;
         }
         return $this->_dataAttributes[$field]['native_type'];
     }
@@ -1823,96 +1820,81 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     }
 
     /**
-     * Creates an input depending on the type of field
-     * @deprecated
-     * @param array $params
+     * Creates an input depending on the type of field, will use a set of html elemnts defined
+     * Example: $model->input_for('id', ['type'=>'hidden', 'name'=>'model_id', 'class'=>'class']);
+     * @param array $attributes
      * @throws Exception
      * @return NULL|string
      */
-    public function input_for($params) {
-        $stringi = '<input';
-        $stringt = '<textarea';
-        $strings = '<select';
-        $name    = '';
-        $html    = '';
-        $type    = '';
-        $input   = '';
-        if (!empty($params) or !empty($params[0]) or isset($params['field'])) {
-            if (is_array($params)) {
-                $field = isset($params['field'])?$params['field']:$params[0];
-            } else {
-                $field = $params;
-            }
-            if (empty($params['name']) or !is_array($params)) {
-                $name = Singulars(strtolower($this->_ObjTable)).'['.$field.']';
-            } else {
-                $name = $params['name'];
-            }
-            if (is_array($params) and !empty($params['html']) and is_array($params['html'])) {
-                foreach ($params['html'] as $element => $value) {
-                    $html .= $element.'="'.$value.'" ';
-                }
-            }
-            $html = trim($html);
-            if (strlen($html) > 0):
-            $html = ' '.$html;
-            endif;
-            if (is_array($params) and !empty($params['type']) and is_string($params['type'])) {
-                $type = $params['type'];
-            } else {
-                $nattype = $this->_nativeType($field);
-                switch ($nattype) {
-                    case 'INTEGER':
-                    case 'LONG':
-                    case 'STRING':
-                    case 'INT':
-                    case 'BIGINT':
-                    case 'VAR_CHAR':
-                    case 'VARCHAR':
-                    case 'FLOAT':
-                    case 'VAR_STRING';
-                        $type = 'text';
-                        break;
-                    case 'BLOB':
-                    case 'TEXT':
-                        $type = 'textarea';
-                        break;
-                }
-            }
-            if ($field === 'id') {
-                $type = 'hidden';
-            }
+    public function input_for($field, array $attributes = [], array $list = []) {
+        $types = new stdClass();
+        $types->input = 'input';
+        $types->textarea = 'textarea';
+        $types->select = 'select';
 
-            switch ($type) {
-                case 'text':
-                case 'hidden':
-                    $input = "{$stringi} type=\"{$type}\" name=\"{$name}\"{$html} value=\"{$this->{$field}}\" />";
-                    break;
-                case 'checkbox':
-                    $checked = $this->{$field} ? ' checked="checked"' : '';
-                    $input = "{$stringi} type=\"{$type}\" name=\"{$name}\"{$html} value=\"\"$checked />";
-                break;
-                case 'textarea':
-                    $input = $stringt.' type="'.$type.'" name="'.$name.'"'.$html.'>'.$this->{$field}.'</textarea>';
-                    break;
-                case 'select':
-                    $cont = !empty($params['first'])?'<option value="">'.$params['first'].'</option>':'';
-                    foreach ($params['list'] as $value => $option) {
-                        $default = '';
-                        if ($this->{$field } == $value) {
-                            $default = 'selected="selected"';
-                        }
+        $_scaffoldFolder = INST_PATH.'scaffold/';
 
-                        $cont .= '<option value="'.$value.'"'.$default.'>'.$option.'</option>'.PHP_EOL;
-                    }
-                    $input = $strings.' name="'.$name.'"'.$html.'>'.$cont.'</select>';
+        if (empty($attributes['name'])) $attributes['name'] = Singulars(strtolower($this->_ObjTable)).'['.$field.']';
+        if (empty($attributes['value'])) $attributes['value'] = $this->{$field};
+
+        file_exists("{$_scaffoldFolder}/tags.json") and $types = json_decode(file_get_contents("{$_scaffoldFolder}/tags.json"));
+
+        if ($field === 'id' and empty($attributes['type'])) $attributes['type'] = 'hidden';
+        if (empty($attributes['type'])):
+            $type = strtoupper($this->_nativeType($field));
+            switch ($type):
+                case 'INTEGER':
+                case 'LONG':
+                case 'STRING':
+                case 'INT':
+                case 'BIGINT':
+                case 'VAR_CHAR':
+                case 'VARCHAR':
+                case 'FLOAT':
+                case 'VAR_STRING';
+                    $attributes['type'] = 'text';
+                    break;
+                case 'BLOB':
+                case 'TEXT':
+                    $attributes['type'] = 'textarea';
+                    break;
+            endswitch;
+        endif;
+
+        $doc = new DOMDocument('1.0');
+        $input = null;
+
+        switch ($attributes['type']):
+            case 'checkbox':
+                if (!empty($this->{$field}) and empty($attributes['checked'])) $attributes['checked'] = 'checked';
+            case 'text':
+            case 'hidden':
+                $input = $doc->createElement($types->input);
                 break;
-            }
-        } else {
-            throw new Exception("Must to give the field to input.");
-            return null;
-        }
-        return $input;
+            case 'textarea':
+                $input = $doc->createElement($types->textarea);
+                $input->appendChild($doc->createTextnode($this->{$field}));
+                break;
+            case 'select':
+                $input = $doc->createElement($types->textarea);
+                $option = null;
+
+                foreach ($params['list'] as $value => $option):
+                    $option = $doc->createElement('option');
+                    if ($this->{$field} == $value) $option->setAttribute('selected', 'selected');
+                    $option->setAttribute('value', $value);
+                    $option->appendChild($doc->createTextNode($option));
+                    $input->appendChild($option);
+                    $option = null;
+                endforeach;
+            break;
+        endswitch;
+        foreach($attributes as $attr => $value):
+            $input->setAttribute($attr, $value);
+        endforeach;
+
+        $doc->appendChild($input);
+        return $doc->saveHtml();
     }
     /**
      * @deprecated

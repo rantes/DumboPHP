@@ -120,8 +120,11 @@ class DumboGeneratorClass {
 
         return true;
     }
-
-    public function model(&$params) {
+    /**
+     * Will handle the model files generator.
+     * will attempt to create a migration then will set the table up in database.
+     */
+    public function model(array $params) {
         $this->showMessage('Building: Creating model...');
 
         (!empty($params[1]) and $params[1] === 'no-migration') or $this->migration($params);
@@ -236,34 +239,34 @@ DUMBOPHP;
         $path = INST_PATH.'app/views/'.$this->singularized.'/';
         is_dir($path) or mkdir($path);
 
-        if ($isScaffold) {
+        if ($isScaffold):
             require_once INST_PATH.'app/models/'.$this->singularized.'.php';
             $model = new $this->camelized();
+            $obj = $model->Find();
 
             $this->fields = $model->getRawFields();
             $columnNames = '';
             $dataRow = '';
             $formContent = '';
-            foreach($this->fields as $field){
-                $columnNames .= "                    <th>{$field}</th>\n";
-                $dataRow .= "                    <td><?=\$row->{$field};?></td>\n";
-                $formContent .= ($field !== 'id')? "                <label>{$field} :</label>\n" : '';
-                $formContent .= "                <?=\$this->data->input_for(array('{$field}'));?>\n";
-            }
+            foreach($this->fields as $field):
+                $columnNames .= "<th>{$field}</th>\n";
+                $dataRow .= "<td><?=\$row->{$field};?></td>\n";
+                $formContent .= $obj->input_for($field)."\n";
+            endforeach;
 
-        $file = 'index.phtml';
+            $file = 'index.phtml';
 
-        if(file_exists("{$this->_scaffoldFolder}list_view.tpl")):
-            $fileContent = file_get_contents("{$this->_scaffoldFolder}list_view.tpl");
-            $fileContent = str_replace('{{controller}}', "{$this->singularized}", $fileContent);
-            $fileContent = str_replace('{{column_names}}', $columnNames, $fileContent);
-            $fileContent = str_replace('{{data}}', $dataRow, $fileContent);
-        else:
+            if(file_exists("{$this->_scaffoldFolder}list_view.tpl")):
+                $fileContent = file_get_contents("{$this->_scaffoldFolder}list_view.tpl");
+                $fileContent = str_replace('{{controller}}', "{$this->singularized}", $fileContent);
+                $fileContent = str_replace('{{column_names}}', $columnNames, $fileContent);
+                $fileContent = str_replace('{{data}}', $dataRow, $fileContent);
+            else:
 
-            $fileContent = <<<DUMBOPHP
-      <div>
-        <div>
-          <table>
+                $fileContent = <<<DUMBOPHP
+<div>
+    <div>
+        <table>
             <thead>
             <tr>
               {$columnNames}
@@ -273,7 +276,7 @@ DUMBOPHP;
             <tbody>
             <? foreach(\$this->data as \$row): ?>
             <tr>
-              $dataRow
+              {$dataRow}
               <td>
                 <a href="<?=INST_URI;?>{$this->singularized}/delete/<?=\$row->id;?>">delete</a>
                 <a href="<?=INST_URI;?>{$this->singularized}/addedit/<?=\$row->id;?>">Edit</a>
@@ -281,41 +284,41 @@ DUMBOPHP;
             </tr>
             <? endforeach; ?>
             </tbody>
-          </table>
-        </div>
-        <a href="<?=INST_URI;?>{$this->singularized}/addedit/">Add new...</a>
-      </div>
-DUMBOPHP;
-        endif;
-
-        file_put_contents("{$path}{$file}", $fileContent);
-        $this->showNotice("View created at: {$path}{$file}");
-
-        $file = 'addedit.phtml';
-
-        $fileContent = <<<DUMBOPHP
-  <div>
-    <div>
-      <?=\$this->data->form_for(array('action'=>INST_URI.'{$this->singularized}/create/'));?>
-$formContent
-      <input name="submit" type="submit" id="submit" value="Submit" />
-      <?=end_form_for();?>
+        </table>
     </div>
-  </div>
+    <a href="<?=INST_URI;?>{$this->singularized}/addedit/">Add new...</a>
+</div>
 DUMBOPHP;
-        file_put_contents("{$path}{$file}", $fileContent);
-        $this->showNotice("View created at: {$path}{$file}");
-        } elseif(sizeof($params) > 1) {
-        for ($i=1; $i < sizeof($params); $i++) {
-            if (!empty($params[$i])) {
-            $file = "{$params[$i]}.phtml";
-            file_put_contents("{$path}{$file}", '');
+            endif;
+
+            file_put_contents("{$path}{$file}", $fileContent);
             $this->showNotice("View created at: {$path}{$file}");
+
+            $file = 'addedit.phtml';
+
+            $fileContent = <<<DUMBOPHP
+<div>
+    <div>
+        <form action="/{$this->singularized}/create/" name="{$this->singularized}">
+        $formContent
+        <input name="submit" type="submit" id="submit-{$this->singularized}" value="Submit" />
+        </form>
+    </div>
+</div>
+DUMBOPHP;
+            file_put_contents("{$path}{$file}", $fileContent);
+            $this->showNotice("View created at: {$path}{$file}");
+        elseif(sizeof($params) > 1):
+            for ($i=1; $i < sizeof($params); $i++) {
+                if (!empty($params[$i])) {
+                    $file = "{$params[$i]}.phtml";
+                    file_put_contents("{$path}{$file}", '');
+                    $this->showNotice("View created at: {$path}{$file}");
+                }
             }
-        }
-        } else {
+        else:
             $this->showNotice("No view created.");
-        }
+        endif;
     }
 
     public function migration($params) {

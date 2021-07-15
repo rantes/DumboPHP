@@ -363,11 +363,12 @@ DUMBO;
                     $dir = opendir($views);
                     while($file = readdir($dir)):
                            if ($file != "." && $file != ".."):
-                                $this->showNotice("Deleting controller: {$file}");
-                                is_dir("{$views}/{$file}") or unlink("{$views}/{$file}");
+                                $this->showNotice("Deleting view: {$file}");
+                                unlink("{$views}/{$file}");
                            endif;
                      endwhile;
                      closedir($dir);
+                     $this->showNotice("Deleting views folder: {$views}");
                      rmdir($views);
                 endif;
             break;
@@ -511,24 +512,45 @@ DUMBO;
             $this->_runTests($path);
         }
     }
-
+    
     private function _runTests($path) {
-        require_once 'dumbophp.php';
-        require_once 'lib/Timothy/dumboTests.php';
-        require_once 'lib/Timothy/testDispatcher.php';
+        // require_once 'dumbophp.php';
+        // require_once 'lib/Timothy/dumboTests.php';
+        // require_once 'lib/Timothy/testDispatcher.php';
+        
+        // $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
+        try {
+            // $this->_logPath = $logPath;
+            // file_put_contents("{$this->_logPath}{$this->_logFile}", '');
+            $this->showNotice("The very things that hold you down are going to lift you up!\n");
 
-        $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
-        $this->showNotice('Runing tests...');
-        $start = microtime(true);
-        $testCounter = 0;
-        $tests = $this->arguments;
-        while (null !== ($test = array_shift($tests))) {
-            $testLaunch->run($test);
-            $testCounter++;
+            // $this->_halt = $halt;
+            // $this->_testsPath = $path;
+            $currPath = dirname(__FILE__);
+            while (null !== ($test = array_shift($this->arguments))) {
+                // require "{$this->_testsPath}{$test}.php";
+                chdir(INST_PATH);
+                system("php -d xdebug.mode=coverage -d auto_prepend_file={$currPath}/lib/Timothy/xdebug_pre.php -d auto_append_file={$currPath}/lib/Timothy/xdebug_pos.php {$path}{$test}.php");
+
+                // $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
+            }
+        } catch (Throwable $e) {
+            $this->_failed = true;
+            fwrite(STDERR, (string)$e);
+            exit(1);
         }
-        $took = microtime(true) - $start;
-        $this->showNotice("\nFinished tests. Ran {$testLaunch->assertions} assertions in {$testCounter} tests. Finished in: {$took} seconds.");
-        $testLaunch = null;
+
+        // $this->showNotice('Runing tests...');
+        // $start = microtime(true);
+        // $testCounter = 0;
+        // $tests = $this->arguments;
+        // while (null !== ($test = array_shift($tests))) {
+        //     $testLaunch->run($test);
+        //     $testCounter++;
+        // }
+        // $took = microtime(true) - $start;
+        // $this->showNotice("\nFinished tests. Ran {$testLaunch->assertions} assertions in {$testCounter} tests. Finished in: {$took} seconds.");
+        // $testLaunch = null;
     }
 
     private function migrationScripts() {

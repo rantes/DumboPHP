@@ -12,9 +12,9 @@ class dumboTests extends Page {
     private $_colors = null;
     private $_colorsPalete = ['red', 'green'];
     private $_textOutputs = ['Failed', 'Passed'];
-    private $_logFile = INST_PATH.'tmp/dumbotests.log';
+    private $_logFile = '';
 
-    public function __construct($logFile) {
+    public function __construct($logFile = INST_PATH.'tmp/dumbotests.log') {
         parent::__construct();
         $GLOBALS['env'] = 'test';
         $this->_logFile = $logFile;
@@ -56,7 +56,7 @@ class dumboTests extends Page {
         $migrationsPath = INST_PATH.'migrations/';
         foreach ($tables as $table) {
             $file = "{$migrationsPath}create_{$table}.php";
-            file_exists($file) or die('Migration file '.$table.', does not exists.'.PHP_EOL);
+            file_exists($file) or die('Migration file '.$file.', does not exists.'.PHP_EOL);
             require_once $file;
             $class = 'Create'.Camelize(Singulars($table));
             $obj = new $class();
