@@ -15,7 +15,6 @@ try {
     $test->_init_();
 
     xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);
-    xdebug_start_trace(INST_PATH.'coverage.html', XDEBUG_TRACE_HTML);
     while (null !== ($action = array_shift($actions))) {
         $test->beforeEach();
         $test->{$action}();
@@ -26,8 +25,14 @@ try {
         // endif;
     }
     // $this->assertions += $test->assertions;
-    xdebug_stop_trace();
-    var_dump(array_keys(xdebug_get_code_coverage()));
+    $files = [];
+    $restult = xdebug_get_code_coverage();
+    foreach($restult as $entry => $lines):
+        if(preg_match('@dumbophp@i', $entry) !== 1):
+            $files[] = ['file' => $entry, 'lines' => $lines];
+            var_dump($entry);
+        endif;
+    endforeach;
 
     $test->_end_();
     $test->_summary();

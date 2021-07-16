@@ -28,6 +28,6 @@ xdebug_set_filter(
     [
         INST_PATH . 'app' . DIRECTORY_SEPARATOR . 'controllers',
         INST_PATH . 'app' . DIRECTORY_SEPARATOR . 'models',
-        INST_PATH . 'app' . DIRECTORY_SEPARATOR . 'helpers',
+        INST_PATH . 'app' . DIRECTORY_SEPARATOR . 'helpers'
     ]
 );
