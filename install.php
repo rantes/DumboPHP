@@ -85,11 +85,15 @@ while (false !== ($entry = $d->read())) {
 }
 $d->close();
 
-fwrite(STDOUT, 'Creating bin file.'.PHP_EOL);
+fwrite(STDOUT, 'Creating bin files.'.PHP_EOL);
 file_exists($binPath.'/dumbo') && unlink($binPath.'/dumbo');
+file_exists($binPath.'/dumboTest') && unlink($binPath.'/dumboTest');
 
 (IS_WIN && copy($dumboSystemPath.'/dumbo.bat', $binPath.'/dumbo.bat')) or symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
 IS_WIN or chmod($binPath.'/dumbo', 0775);
+
+symlink($dumboSystemPath.'/dumboTest', $binPath.'/dumboTest');
+chmod($binPath.'/dumboTest', 0775);
 
 fwrite(STDOUT, 'Install complete'.PHP_EOL);
 ?>

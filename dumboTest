@@ -1,0 +1,329 @@
+#!/usr/bin/php -d xdebug.mode=coverage
+<?php
+extension_loaded('sockets') or die('The XDebug extension must be installed.');
+defined('XDEBUG_FILTER_CODE_COVERAGE') or define('XDEBUG_FILTER_CODE_COVERAGE',0b100000000);
+defined('XDEBUG_PATH_INCLUDE') or define('XDEBUG_PATH_INCLUDE',0b000000001);
+defined('XDEBUG_PATH_EXCLUDE') or define('XDEBUG_PATH_EXCLUDE',0b000000010);
+defined('XDEBUG_CC_UNUSED') or define('XDEBUG_CC_UNUSED',0b000000001);
+defined('XDEBUG_CC_DEAD_CODE') or define('XDEBUG_CC_DEAD_CODE',0b000000010);
+defined('XDEBUG_TRACE_HTML') or define('XDEBUG_TRACE_HTML',0b000000100);
+
+if (file_exists('./config/host.php')):
+    require_once './config/host.php';
+endif;
+
+defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
+set_include_path(
+    '/etc/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'vendor'.PATH_SEPARATOR.
+    INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+    PEAR_EXTENSION_DIR.PATH_SEPARATOR.
+    '/windows/system32/dumbophp'.PATH_SEPARATOR.
+    '/windows/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'DumboPHP'
+);
+
+require_once 'lib/DumboShellColors.php';
+require_once 'dumbophp.php';
+require_once 'lib/Timothy/dumboTests.php';
+require_once 'lib/Timothy/testDispatcher.php';
+
+class dumboShell{
+    private $_options = [
+        'env' => ['value' => null, 'cast' => 'string'],
+        'halt' => ['value' => false, 'cast' => 'boolean'],
+        'dir' => ['value' => null, 'cast' => 'string'],
+        'watch' => ['value' => false, 'cast' => 'boolean']
+    ];
+    private $arguments = [];
+    private $params = [];
+    private $colors = null;
+
+    public function __construct() {
+        $GLOBALS['env'] = 'test';
+        $this->colors = new DumboShellColors();
+    }
+
+    private function _parseOptions() {
+        $trueFalse = ['true' => true, 'false' => false];
+        foreach($this->arguments as $i => $arg):
+            preg_match('@\-\-([a-zA-Z0-9]+)\=([a-z0-9\-\_\/]+)[\s]*@im', $arg, $match);
+            if (sizeof($match) === 3):
+                if(isset($this->_options[$match[1]])):
+                    switch($this->_options[$match[1]]['cast']):
+                        case 'numeric':
+                            $match[2] = (integer)$match[2];
+                        break;
+                        case 'boolean':
+                            $match[2] = $trueFalse[strtolower($match[2])];
+                        break;
+                        case 'string':
+                            $match[2] = trim((string)$match[2]);
+                        break;
+                        default:
+                            throw new Exception("Value not allowed for {$match[1]}");
+                        break;
+                    endswitch;
+                    $this->_options[$match[1]]['value'] = strlen($match[2]) > 0 ? $match[2] : null;
+                endif;
+                $this->arguments[$i] = null;
+                unset($this->arguments[$i]);
+            endif;
+        endforeach;
+    }
+
+    public function showError($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
+    }
+
+    public function showMessage($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
+    }
+
+    public function showNotice($errorMessage) {
+        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
+    }
+
+    public function run($argv) {
+        if(sizeof($argv) < 1):
+            $this->help();
+            $this->showError('Error: Option not valid.');
+            exit(1);
+        endif;
+
+        array_shift($argv);
+        $this->arguments = $argv;
+        $this->_parseOptions();
+        $this->runTestScript();
+    }
+
+    private function help() {
+        $text = <<<DUMBO
+▓█████▄  █    ██  ███▄ ▄███▓ ▄▄▄▄    ▒█████
+▒██▀ ██▌ ██  ▓██▒▓██▒▀█▀ ██▒▓█████▄ ▒██▒  ██▒
+░██   █▌▓██  ▒██░▓██    ▓██░▒██▒ ▄██▒██░  ██▒
+░▓█▄   ▌▓▓█  ░██░▒██    ▒██ ▒██░█▀  ▒██   ██░
+░▒████▓ ▒▒█████▓ ▒██▒   ░██▒░▓█  ▀█▓░ ████▓▒░
+ ▒▒▓  ▒ ░▒▓▒ ▒ ▒ ░ ▒░   ░  ░░▒▓███▀▒░ ▒░▒░▒░
+ ░ ▒  ▒ ░░▒░ ░ ░ ░  ░      ░▒░▒   ░   ░ ▒ ▒░
+ ░ ░  ░  ░░░ ░ ░ ░      ░    ░    ░ ░ ░ ░ ▒
+   ░       ░            ░    ░          ░ ░
+ ░                                ░
+
+DumboPHP 2.0 by Rantes
+DumboTest shell executer.
+Ussage:
+
+    dumboTest [all|<unitTest>,<unitTest>,<unitTest>] [--option=value]
+
+Options:
+    --dir=dir/to/run
+    --env=enviroment        Sets a particular enviroment for the execution
+    --halt=[true|false]     Halt the script on error
+    --watch                 Set a demon to watch files
+
+DUMBO;
+        fwrite(STDOUT, $text . "\n");
+    }
+
+    private function runTestScript() {
+        $this->showNotice('Preparing tests...');
+        $path = $this->_options['dir']['value'] ?? 'tests/';
+        $watch = $this->_options['watch']['value'] ?? false;
+        $path = realpath($path);
+        substr($path, -1) !== '/' && ($path.='/');
+
+        if(empty($this->arguments)) $this->arguments = ['all'];
+
+        if (in_array('all', $this->arguments)):
+            $testsDir = dir($path) or die('unknown path: '.$path);
+            $this->arguments = [];
+            while (($file = $testsDir->read()) !== FALSE):
+                if($file != '.' and $file != '..' and preg_match('/(.+)\.php/', $file, $matches) === 1):
+                    $this->arguments[] = substr($file, 0, -4);
+                endif;
+            endwhile;
+        endif;
+
+        if($watch):
+            $files = [];
+            foreach($this->arguments as $file):
+                $fullpath = "{$path}{$file}.php";
+                $stats = stat($fullpath);
+                $files[] = ['path'=> $fullpath, 'mtime' => $stats['mtime']];
+            endforeach;
+            $this->showNotice("\nWatching files...");
+            while(true):
+                foreach($files as  $index => $file):
+                    $stats = stat($file['path']);
+                    if($stats['mtime'] > 0 and $file['mtime'] !== $stats['mtime']):
+                        $this->showNotice("File changed {$file['path']}");
+                        $files[$index]['mtime'] = $stats['mtime'];
+                        $tests = implode(' ', $this->arguments);
+                        system("dumbo test {$tests} --dir={$path}");
+                        $this->showNotice("\nWatching files...");
+                    endif;
+                endforeach;
+            endwhile;
+        else:
+            $this->_runTests($path);
+        endif;
+    }
+
+    private function _runTests($path) {
+        try {
+            xdebug_set_filter(
+                XDEBUG_FILTER_CODE_COVERAGE,
+                XDEBUG_PATH_INCLUDE,
+                [
+                    INST_PATH . 'app' . DIRECTORY_SEPARATOR . 'controllers',
+                    INST_PATH . 'app' . DIRECTORY_SEPARATOR . 'models',
+                    INST_PATH . 'app' . DIRECTORY_SEPARATOR . 'helpers',
+                    INST_PATH . 'tests'
+                ]
+            );
+            $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
+            $this->showNotice('Runing tests...');
+            $start = microtime(true);
+            $testCounter = 0;
+            $tests = $this->arguments;
+            $result = null;
+            $testReport = new DOMDocument('1.0');
+            $testReport->formatOutput = true;
+
+            $testSuites = $testReport->createElement('testsuites');
+            $testReport->appendChild($testSuites);
+
+            $mainSuite = $testReport->createElement('testsuite');
+            $mainSuite->setAttribute('name', 'Application Test Suite');
+            $mainSuite->setAttribute('tests', 0);
+            $mainSuite->setAttribute('assertions', 0);
+            $mainSuite->setAttribute('failures', 0);
+            $mainSuite->setAttribute('errors', 0);
+            $mainSuite->setAttribute('warnings', 0);
+            $mainSuite->setAttribute('skipped', 0);
+            $mainSuite->setAttribute('time', 0);
+
+            $testSuites->appendChild($mainSuite);
+            $fails = 0;
+            xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);
+            while (null !== ($test = array_shift($tests))):
+                $suite = $testReport->createElement('testsuite');
+                $suite->setAttribute('name', $test);
+                $suite->setAttribute('file', $testLaunch->filepathname);
+                $suite->setAttribute('tests', $testLaunch->tests);
+                $suite->setAttribute('errors', 0);
+                $suite->setAttribute('warnings', 0);
+                $suite->setAttribute('skipped', 0);
+                $suite->setAttribute('time', 0);
+
+                $testLaunch->run($test);
+                $testCounter++;
+                $fails += $testLaunch->fails;
+                $suite->setAttribute('assertions', $testLaunch->assertions);
+                $suite->setAttribute('failures', $testLaunch->fails);
+                $mainSuite->appendChild($suite);
+            endwhile;
+            $result = xdebug_get_code_coverage();
+            xdebug_stop_code_coverage();
+            $took = microtime(true) - $start;
+            $mainSuite->setAttribute('tests', $testCounter);
+            $this->showNotice("\nFinished tests. Ran {$testLaunch->assertions} assertions in {$testCounter} tests. Finished in: {$took} seconds.");
+            $mainSuite->setAttribute('time', $took);
+            $mainSuite->setAttribute('assertions', $testLaunch->assertions);
+            $mainSuite->setAttribute('failures', $fails);
+            file_put_contents(INST_PATH.'test-result.xml', $testReport->saveXML());
+            $testLaunch = null;
+
+            $this->showNotice("\nGenerating coverage report...");
+
+            $totalCount = $notCovered = $lineRate = $packageLines = $fileLines = $packageTotalLines = 0;
+            $report = new DOMDocument('1.0');
+            $report->formatOutput = true;
+            $coverageTag = $report->createElement('coverage');
+            $coverageTag->setAttribute('branch-rate', 0);
+            $coverageTag->setAttribute('line-rate', 0);
+            $coverageTag->setAttribute('lines-covered', 0);
+            $coverageTag->setAttribute('lines-valid', 0);
+            $coverageTag->setAttribute('branches-covered', 0);
+            $coverageTag->setAttribute('branches-valid', 0);
+            $coverageTag->setAttribute('complexity', 0);
+            $coverageTag->setAttribute('version', '5.5');
+            $coverageTag->setAttribute('timestamp', round(microtime(true) * 1000));
+
+            $report->appendChild($coverageTag);
+            $source = $report->createElement('source', substr(INST_PATH, 0, -1));
+            $sources = $report->createElement('sources');
+            $sources->appendChild($source);
+
+            $coverageTag->appendChild($sources);
+
+            $packages = $report->createElement('packages');
+            $coverageTag->appendChild($packages);
+
+            $package = $report->createElement('package');
+            $package->setAttribute('name', 'tests');
+            $package->setAttribute('line-rate', 0);
+            $package->setAttribute('branch-rate', 0);
+            $package->setAttribute('complexity', 0);
+
+            $packages->appendChild($package);
+
+            $classes = $report->createElement('classes');
+            $package->appendChild($classes);
+
+            $classFile = null;
+            $includesPath = addcslashes(str_replace(':','|',get_include_path()), '/-');
+            foreach($result as $entry => $lines):
+                if(preg_match("@{$includesPath}@i", $entry) !== 1):
+                    $classFile = $report->createElement('class');
+                    $classFile->setAttribute('name', basename($entry));
+                    $classFile->setAttribute('filename', basename($entry));
+                    $classFile->setAttribute('complexity', 0);
+                    $classFile->setAttribute('line-rate', 0);
+                    $classFile->setAttribute('branch-rate', 0);
+
+                    $classes->appendChild($classFile);
+                    $classFile->appendChild($report->createElement('methods'));
+
+                    $linesTag = $report->createElement('lines');
+                    $lineTag = null;
+
+                    $fileLines = 0;
+                    foreach($lines as $line => $hit):
+                        if($hit !== -2):
+                            $hit = $hit === 1;
+                            $lineTag = $report->createElement('line');
+                            $lineTag->setAttribute('number', $line);
+                            $lineTag->setAttribute('hits', (int)$hit);
+                            $linesTag->appendChild($lineTag);
+                            $fileLines += $hit;
+                        endif;
+                    endforeach;
+                    $packageTotalLines += sizeof($lines);
+                    $packageLines += $fileLines;
+                    $rate = str_replace(',','.', (string)round($fileLines/sizeof($lines), 4));
+                    $classFile->setAttribute('line-rate', $rate);
+                    $classFile->appendChild($linesTag);
+                endif;
+            endforeach;
+
+            $rate = str_replace(',', '.', (string)round($packageLines/$packageTotalLines, 4));
+            $package->setAttribute('line-rate', $rate);
+            $coverageTag->setAttribute('line-rate', $rate);
+            $coverageTag->setAttribute('lines-covered', $packageTotalLines);
+            $coverageTag->setAttribute('lines-valid', $packageLines);
+
+            file_put_contents(INST_PATH.'coverage.xml', $report->saveXML());
+            $this->showNotice("Coverage report generated at coverage.xml");
+        } catch (Throwable $e) {
+            $this->_failed = true;
+            fwrite(STDERR, (string)$e);
+            exit(1);
+        }
+    }
+
+}
+$shell = new dumboShell();
+$shell->run($argv);
+?>

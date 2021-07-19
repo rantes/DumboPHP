@@ -1,4 +1,4 @@
-#!/usr/bin/php -d display_errors
+#!/usr/bin/php -d display_errors -d xdebug.mode=coverage
 <?php
 if (file_exists('./config/host.php')) {
     require_once './config/host.php';
@@ -512,12 +512,12 @@ DUMBO;
             $this->_runTests($path);
         }
     }
-    
+
     private function _runTests($path) {
         // require_once 'dumbophp.php';
         // require_once 'lib/Timothy/dumboTests.php';
         // require_once 'lib/Timothy/testDispatcher.php';
-        
+
         // $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
         try {
             // $this->_logPath = $logPath;

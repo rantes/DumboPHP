@@ -16,10 +16,9 @@ class dumboTests extends Page {
 
     public function __construct($logFile = INST_PATH.'tmp/dumbotests.log') {
         parent::__construct();
-        $GLOBALS['env'] = 'test';
+        ($GLOBALS['env'] === 'test') || ($GLOBALS['env'] = 'test');
         $this->_logFile = $logFile;
         is_dir(INST_PATH.'tmp') or mkdir(INST_PATH.'tmp', 0775);
-        require_once 'lib/DumboShellColors.php';
         $this->_colors = new DumboShellColors();
         $this->testName = get_class($this);
     }

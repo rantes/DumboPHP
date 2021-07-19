@@ -1877,15 +1877,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 break;
             case 'select':
                 $input = $doc->createElement($types->textarea);
-                $option = null;
+                $optionTag = null;
 
                 foreach ($params['list'] as $value => $option):
-                    $option = $doc->createElement('option');
-                    if ($this->{$field} == $value) $option->setAttribute('selected', 'selected');
-                    $option->setAttribute('value', $value);
-                    $option->appendChild($doc->createTextNode($option));
-                    $input->appendChild($option);
-                    $option = null;
+                    $optionTag = $doc->createElement('option');
+                    if ($this->{$field} == $value) $optionTag->setAttribute('selected', 'selected');
+                    $optionTag->setAttribute('value', $value);
+                    $optionTag->appendChild($doc->createTextNode($option));
+                    $input->appendChild($optionTag);
+                    $optionTag = null;
                 endforeach;
             break;
         endswitch;
