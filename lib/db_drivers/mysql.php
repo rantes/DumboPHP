@@ -197,16 +197,19 @@ class mysqlDriver {
         $queryFields = [];
         while (null !== ($field = array_shift($fields))) {
             if (empty($field['field']) || empty($field['type'])) throw new Exception('Field and type values are mandatory.', 1);
+            $extra = ' ';
             $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
-            
-            empty($field['autoincrement']) || ($field['type'] = "{$field['type']} AUTO_INCREMENT");
-            empty($field['primary']) || ($field['type'] = "{$field['type']} PRIMARY KEY");
+            $field['type'] == 'INTEGER' && empty($field['limit']) && ($field['limit'] = 11);
+
+            empty($field['autoincrement']) || ($extra = "{$extra} AUTO_INCREMENT");
+            empty($field['primary']) || ($extra = "{$extra} PRIMARY KEY");
+
             $limit = empty($field['limit']) ? '' : "({$field['limit']})";
-            $notNull = (empty($field['null']) || $field['null'] === 'false') ? ' NOT NULL' : '';
+            $notNull = (isset($field['null']) && ($field['null'] === false || $field['null'] === 'false')) ? ' NOT NULL' : '';
             $default = isset($field['default']) ? " DEFAULT '{$field['default']}'" : '';
             $comment = isset($field['comment']) ? " COMMENT '{$field['comment']}'" : '';
 
-            $queryFields[] = "`{$field['field']}` {$field['type']}{$limit}{$notNull}{$default}{$comment}";
+            $queryFields[] = "`{$field['field']}` {$field['type']}{$limit}{$extra}{$notNull}{$default}{$comment}";
         }
 
         $query .= implode(',', $queryFields);
@@ -259,6 +262,7 @@ DUMBO;
     public function AlterColumn($table, array $params) {
         $query = '';
         $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+        $params['type'] == 'INTEGER' && empty($field['limit']) && ($params['limit'] = 11);
 
         $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
         $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;

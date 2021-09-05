@@ -1,6 +1,21 @@
 <?php
-set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp')));
 file_exists('./config/host.php') or die('Generator must be executed at the top level of project path.'.PHP_EOL);
+defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
+set_include_path(
+    '/etc/dumbophp'.PATH_SEPARATOR.
+    '/etc/dumbophp/bin'.PATH_SEPARATOR.
+    INST_PATH.'vendor'.PATH_SEPARATOR.
+    INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'vendor/rantes/dumbophp/bin'.PATH_SEPARATOR.
+    INST_PATH.PATH_SEPARATOR.
+    get_include_path().PATH_SEPARATOR.
+    PEAR_EXTENSION_DIR.PATH_SEPARATOR.
+    '/windows/dumbophp'.PATH_SEPARATOR.
+    '/windows/dumbophp/bin'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
+    INST_PATH.'DumboPHP'
+);
 
 require_once './config/host.php';
 require_once 'dumbophp.php';
@@ -8,27 +23,27 @@ require_once 'DumboShellColors.php';
 
 class FieldObject {
 
-  public $name = '';
-  public $type = '';
-  public $isNull = 'false';
-  public $types = array(
-            'primary',
-            'integer',
-            'biginteger',
-            'string',
-            'text',
-            'float',
-            'decimal'
-          );
-  private $dbTypes = array(
-              'primary' => array('INT AUTO_INCREMENT PRIMARY KEY','',''),
-              'integer' => array('INT','',''),
-              'biginteger' => array('BIGINT','',''),
-              'string' => array('VARCHAR','255',''),
-              'text' => array('TEXT','',''),
-              'float' => array('FLOAT','',''),
-              'decimal' => array('FLOAT','','')
-            );
+    public $name = '';
+    public $type = '';
+    public $isNull = 'false';
+    public $types = [
+        'primary',
+        'integer',
+        'biginteger',
+        'string',
+        'text',
+        'float',
+        'decimal'
+    ];
+    private $dbTypes = [
+        'primary' => ['INTEGER','11','0'],
+        'integer' => ['INTEGER','11','0'],
+        'biginteger' => ['BIGINT','','0'],
+        'string' => ['VARCHAR','255',''],
+        'text' => ['TEXT','',''],
+        'float' => ['FLOAT','','0'],
+        'decimal' => ['FLOAT','','0']
+    ];
 
     public function __construct($field) {
         $args = explode(':', $field);
@@ -36,30 +51,30 @@ class FieldObject {
         $matches = [];
 
         ($argsSize < 2) and die('Error on Building: Invalid field definition.'.PHP_EOL);
-        if(preg_match('/\{([0-9]+)\}/is', $args[1], $matches) === 1) {
-        empty($matches[1]) and die("Error on Building: Limit size for the field '{$args[0]}' is not valid.".PHP_EOL);
-        $toRemove = strlen($matches[0]) * -1;
-        $args[1] = substr($args[1], 0, $toRemove);
-        $this->dbTypes[$args[1]][1] = $matches[1];
-        }
+        if(preg_match('/\{([0-9]+)\}/is', $args[1], $matches) === 1):
+            empty($matches[1]) and die("Error on Building: Limit size for the field '{$args[0]}' is not valid.".PHP_EOL);
+            $toRemove = strlen($matches[0]) * -1;
+            $args[1] = substr($args[1], 0, $toRemove);
+            $this->dbTypes[$args[1]][1] = $matches[1];
+        endif;
 
         in_array($args[1], $this->types) or die("Error on Building: Data type for the field '{$args[0]}', is not valid.".PHP_EOL);
 
         $this->name = $args[0];
         $this->type = $args[1];
 
-        if($argsSize > 2) {
-        in_array('null', $args) and ($this->isNull = 'true');
-        in_array('default', $args) and die("Default flag given but value is missing for field '{$args[0]}'.".PHP_EOL);
+        if($argsSize > 2):
+            in_array('null', $args) and ($this->isNull = 'true');
+            in_array('default', $args) and die("Default flag given but value is missing for field '{$args[0]}'.".PHP_EOL);
 
-        for ($i=1; $i < $argsSize; $i++) {
-            if(preg_match('/default\{(.+)\}/', $args[$i], $matches) === 1) {
-            empty($matches[1]) and die("Error on Building: Default value for the field '{$args[0]}' is not valid.".PHP_EOL);
-            $this->dbTypes[$args[1]][2] = $matches[1];
-            break;
-            }
-        }
-        }
+            for ($i=1; $i < $argsSize; $i++):
+                if(preg_match('/default\{(.+)\}/', $args[$i], $matches) === 1):
+                    empty($matches[1]) and die("Error on Building: Default value for the field '{$args[0]}' is not valid.".PHP_EOL);
+                    $this->dbTypes[$args[1]][2] = $matches[1];
+                    break;
+                endif;
+            endfor;
+        endif;
 
     }
 
@@ -79,6 +94,7 @@ class FieldObject {
         $str = "['field'=>'{$arr['field']}', 'type'=>'{$arr['type']}', 'null'=>'{$arr['null']}'";
         empty($arr['limit']) or ($str .= ", 'limit'=>'{$arr['limit']}'");
         empty($arr['default']) or ($str .= ", 'default'=>'{$arr['default']}'");
+        ($this->type === 'primary') and $str = "{$str}, 'primary'=>true, 'autoincrement'=>true";
         $str .= ']';
 
         return $str;
@@ -120,8 +136,11 @@ class DumboGeneratorClass {
 
         return true;
     }
-
-    public function model(&$params) {
+    /**
+     * Will handle the model files generator.
+     * will attempt to create a migration then will set the table up in database.
+     */
+    public function model(array $params) {
         $this->showMessage('Building: Creating model...');
 
         (!empty($params[1]) and $params[1] === 'no-migration') or $this->migration($params);
@@ -142,10 +161,10 @@ class $this->camelized extends ActiveRecord {
     function _init_() {
 
     }
- }
+}
 
 DUMBOPHP;
-            endif;
+        endif;
 
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Model created at: {$path}{$file}");
@@ -177,8 +196,8 @@ DUMBOPHP;
 
         $content = '';
 
-        if ($isScaffold) {
-        $content = <<<DUMBOPHP
+        if ($isScaffold):
+            $content = <<<DUMBOPHP
     public \$noTemplate = array('create','delete');
 
     public function indexAction() {
@@ -212,27 +231,23 @@ DUMBOPHP;
         exit;
     }
 DUMBOPHP;
-        } elseif(sizeof($params) > 1) {
-        for ($i=1; $i < sizeof($params); $i++) {
-            if (!empty($params[$i])) {
-            $content .= <<<DUMBOPHP
+        elseif(sizeof($params) > 1):
+            while(empty($param = array_shift($params))):
+                $content .= <<<DUMBOPHP
 
-    public function {$params[$i]}Action() {
+public function {$param}Action() {
 
-    }
+}
 DUMBOPHP;
-                }
-            }
-        }
+            endwhile;
+        endif;
 
         $fileContent = str_replace('{{content}}', $content, $fileContent);
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Controller created at: {$path}{$file}");
-
-        $this->views($params, $isScaffold);
     }
 
-    public function views($params, $isScaffold) {
+    public function views($params, $isScaffold = false) {
         $this->showMessage('Building: Creating views...');
 
         empty($this->tblName) and $this->setNames($params[0]);
@@ -240,34 +255,34 @@ DUMBOPHP;
         $path = INST_PATH.'app/views/'.$this->singularized.'/';
         is_dir($path) or mkdir($path);
 
-        if ($isScaffold) {
+        if ($isScaffold):
             require_once INST_PATH.'app/models/'.$this->singularized.'.php';
             $model = new $this->camelized();
+            $obj = $model->Find();
 
             $this->fields = $model->getRawFields();
             $columnNames = '';
             $dataRow = '';
             $formContent = '';
-            foreach($this->fields as $field){
-                $columnNames .= "                    <th>{$field}</th>\n";
-                $dataRow .= "                    <td><?=\$row->{$field};?></td>\n";
-                $formContent .= ($field !== 'id')? "                <label>{$field} :</label>\n" : '';
-                $formContent .= "                <?=\$this->data->input_for(array('{$field}'));?>\n";
-            }
+            foreach($this->fields as $field):
+                $columnNames .= "<th>{$field}</th>\n";
+                $dataRow .= "<td><?=\$row->{$field};?></td>\n";
+                $formContent .= $obj->input_for($field)."\n";
+            endforeach;
 
-        $file = 'index.phtml';
+            $file = 'index.phtml';
 
-        if(file_exists("{$this->_scaffoldFolder}list_view.tpl")):
-            $fileContent = file_get_contents("{$this->_scaffoldFolder}list_view.tpl");
-            $fileContent = str_replace('{{controller}}', "{$this->singularized}", $fileContent);
-            $fileContent = str_replace('{{column_names}}', $columnNames, $fileContent);
-            $fileContent = str_replace('{{data}}', $dataRow, $fileContent);
-        else:
+            if(file_exists("{$this->_scaffoldFolder}list_view.tpl")):
+                $fileContent = file_get_contents("{$this->_scaffoldFolder}list_view.tpl");
+                $fileContent = str_replace('{{controller}}', "{$this->singularized}", $fileContent);
+                $fileContent = str_replace('{{column_names}}', $columnNames, $fileContent);
+                $fileContent = str_replace('{{data}}', $dataRow, $fileContent);
+            else:
 
-            $fileContent = <<<DUMBOPHP
-      <div>
-        <div>
-          <table>
+                $fileContent = <<<DUMBOPHP
+<section>
+    <div>
+        <table>
             <thead>
             <tr>
               {$columnNames}
@@ -277,7 +292,7 @@ DUMBOPHP;
             <tbody>
             <? foreach(\$this->data as \$row): ?>
             <tr>
-              $dataRow
+              {$dataRow}
               <td>
                 <a href="<?=INST_URI;?>{$this->singularized}/delete/<?=\$row->id;?>">delete</a>
                 <a href="<?=INST_URI;?>{$this->singularized}/addedit/<?=\$row->id;?>">Edit</a>
@@ -285,41 +300,43 @@ DUMBOPHP;
             </tr>
             <? endforeach; ?>
             </tbody>
-          </table>
-        </div>
-        <a href="<?=INST_URI;?>{$this->singularized}/addedit/">Add new...</a>
-      </div>
-DUMBOPHP;
-        endif;
-
-        file_put_contents("{$path}{$file}", $fileContent);
-        $this->showNotice("View created at: {$path}{$file}");
-
-        $file = 'addedit.phtml';
-
-        $fileContent = <<<DUMBOPHP
-  <div>
-    <div>
-      <?=\$this->data->form_for(array('action'=>INST_URI.'{$this->singularized}/create/'));?>
-$formContent
-      <input name="submit" type="submit" id="submit" value="Submit" />
-      <?=end_form_for();?>
+        </table>
     </div>
-  </div>
+    <div>
+        <a href="<?=INST_URI;?>{$this->singularized}/addedit/">Add new...</a>
+    </div>
+</section>
 DUMBOPHP;
-        file_put_contents("{$path}{$file}", $fileContent);
-        $this->showNotice("View created at: {$path}{$file}");
-        } elseif(sizeof($params) > 1) {
-        for ($i=1; $i < sizeof($params); $i++) {
-            if (!empty($params[$i])) {
-            $file = "{$params[$i]}.phtml";
-            file_put_contents("{$path}{$file}", '');
+            endif;
+
+            file_put_contents("{$path}{$file}", $fileContent);
             $this->showNotice("View created at: {$path}{$file}");
+
+            $file = 'addedit.phtml';
+
+            $fileContent = <<<DUMBOPHP
+<div>
+    <div>
+        <form action="/{$this->singularized}/create/" name="{$this->singularized}">
+        $formContent
+        <input name="submit" type="submit" id="submit-{$this->singularized}" value="Submit" />
+        </form>
+    </div>
+</div>
+DUMBOPHP;
+            file_put_contents("{$path}{$file}", $fileContent);
+            $this->showNotice("View created at: {$path}{$file}");
+        elseif(sizeof($params) > 1):
+            for ($i=1; $i < sizeof($params); $i++) {
+                if (!empty($params[$i])) {
+                    $file = "{$params[$i]}.phtml";
+                    file_put_contents("{$path}{$file}", '');
+                    $this->showNotice("View created at: {$path}{$file}");
+                }
             }
-        }
-        } else {
+        else:
             $this->showNotice("No view created.");
-        }
+        endif;
     }
 
     public function migration($params) {
@@ -327,24 +344,25 @@ DUMBOPHP;
 
         empty($params[1]) and die('Error on Building: fields params are mandatory.'.PHP_EOL);
 
-        for ($i=1; $i < sizeof($params); $i++) {
-        $this->fields[] = new FieldObject($params[$i]);
-        }
+        empty($this->tblName) and $this->setNames(array_shift($params));
 
-        empty($this->tblName) and $this->setNames($params[0]);
+        while(null !== ($param = array_shift($params))):
+            $this->fields[] = new FieldObject($param);
+        endwhile;
 
         $path = INST_PATH.'migrations/';
         $file = "create_{$this->tblName}.php";
 
         file_exists($path.$file) and die('Error on Building: Migration already exists.'.PHP_EOL);
 
+        $fieldsString = implode(",\n            ", $this->fields);
         $fileContent = <<<DUMBOPHP
 <?php
 class Create{$this->camelized} extends Migrations {
     function _init_() {
-          \$this->_fields = [
-              {{fields}}
-          ];
+        \$this->_fields = [
+            {$fieldsString}
+        ];
     }
 
     function up() {
@@ -357,8 +375,6 @@ class Create{$this->camelized} extends Migrations {
 }
 
 DUMBOPHP;
-        $fieldsString = implode(",\n                ", $this->fields);
-        $fileContent = str_replace('{{fields}}', $fieldsString, $fileContent);
 
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Migration created at: {$path}{$file}");
@@ -367,7 +383,7 @@ DUMBOPHP;
         $class = "Create{$this->camelized}";
         $obj = new $class();
         $obj->up();
-        $this->showNotice("Migration executed.");
+        $this->showNotice('Migration executed.');
 
         return true;
     }
@@ -375,6 +391,9 @@ DUMBOPHP;
     public function scaffold($params) {
         $this->model($params);
         $this->controller($params, true);
+        $this->views($params, true);
+
+        return true;
     }
 
     public function seed() {

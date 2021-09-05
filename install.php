@@ -5,6 +5,7 @@ $dumboSystemPath = '/etc/dumbophp';
 $path = dirname(__FILE__);
 $pathSrc = $path.'/src';
 $pathLib = $path.'/lib';
+$pathBin = $path.'/bin';
 $binPath = '/usr/local/bin';
 
 fwrite(STDOUT, 'Installing DumboPHP. Please be patient...'.PHP_EOL);
@@ -24,6 +25,7 @@ if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
 }
 
 $dumboSystemPathSrc = $dumboSystemPath.'/src';
+$dumboSystemPathBin = $dumboSystemPath.'/bin';
 $dumboSystemPathLib = $dumboSystemPath.'/lib';
 file_exists($dumboSystemPath) || mkdir($dumboSystemPath, 0777, TRUE);
 
@@ -45,6 +47,18 @@ while (false !== ($entry = $d->read())) {
         fwrite(STDOUT, 'copying '.$pathSrc.'/'.$entry.' to '.$dumboSystemPathSrc.'/'.$entry.PHP_EOL);
         file_exists($dumboSystemPathSrc.'/'.$entry) && unlink($dumboSystemPathSrc.'/'.$entry);
         copy($pathSrc.'/'.$entry, $dumboSystemPathSrc.'/'.$entry) or die('Could not copy file.');
+   }
+}
+$d->close();
+
+file_exists($dumboSystemPathBin) || mkdir($dumboSystemPathBin, 0777, true);
+
+$d = dir($pathBin);
+while (false !== ($entry = $d->read())) {
+   if($entry != '.' && $entry != '..' && !is_dir($pathBin.'/'.$entry)){
+        fwrite(STDOUT, 'copying '.$pathBin.'/'.$entry.' to '.$dumboSystemPathBin.'/'.$entry.PHP_EOL);
+        file_exists($dumboSystemPathBin.'/'.$entry) && unlink($dumboSystemPathBin.'/'.$entry);
+        copy($pathBin.'/'.$entry, $dumboSystemPathBin.'/'.$entry) or die('Could not copy file.');
    }
 }
 $d->close();
@@ -85,11 +99,21 @@ while (false !== ($entry = $d->read())) {
 }
 $d->close();
 
-fwrite(STDOUT, 'Creating bin file.'.PHP_EOL);
+fwrite(STDOUT, 'Creating bin files.'.PHP_EOL);
 file_exists($binPath.'/dumbo') && unlink($binPath.'/dumbo');
+file_exists($binPath.'/dumboTest') && unlink($binPath.'/dumboTest');
+file_exists('/etc/bash_completion.d/dumbophp') && unlink('/etc/bash_completion.d/dumbophp');
 
-(IS_WIN && copy($dumboSystemPath.'/dumbo.bat', $binPath.'/dumbo.bat')) or symlink($dumboSystemPath.'/dumbo', $binPath.'/dumbo');
+(IS_WIN && copy($dumboSystemPath.'/dumbo.bat', $binPath.'/dumbo.bat')) or symlink($dumboSystemPathBin.'/dumbo', $binPath.'/dumbo');
 IS_WIN or chmod($binPath.'/dumbo', 0775);
+fwrite(STDOUT, 'Created dumbo bin file '.PHP_EOL);
+
+symlink($dumboSystemPathBin.'/dumboTest', $binPath.'/dumboTest');
+chmod($binPath.'/dumboTest', 0775);
+fwrite(STDOUT, 'Created dumboTest bin file '.PHP_EOL);
+
+symlink($dumboSystemPathBin.'/autocomplete.sh', '/etc/bash_completion.d/dumbophp');
+fwrite(STDOUT, 'Created bash autocomplete bin file. --- Please restart your console! ---'.PHP_EOL);
 
 fwrite(STDOUT, 'Install complete'.PHP_EOL);
 ?>

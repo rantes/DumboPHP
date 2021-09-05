@@ -5,13 +5,13 @@
 class sqliteDriver {
     private $_params = null;
     public $tableName = null;
-    public $pk = 'id';
+    public $pk = 'rowid';
 
     public function getColumns($table) {
         return "PRAGMA table_info({$table})";
     }
 
-    public function Select($params = null, $table, $pk = 'id') {
+    public function Select($params = null, $table, $pk = 'rowid') {
         $this->_params = $params;
 
         $tail = '';
@@ -123,7 +123,7 @@ class sqliteDriver {
                 break;
             }
         }
-        $fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? '*' : $this->_params['fields'];
+        $fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? "{$this->pk}, *" : $this->_params['fields'];
         $sql = "{$head}{$fields}{$body}{$tail}";
         $prepared = "{$head}{$fields}{$body}{$prepared}";
 
@@ -170,7 +170,7 @@ class sqliteDriver {
         return array('query' => $query, 'prepared' => $prepared);
     }
 
-    public function Delete($conditions, $table, $pk ='id') {
+    public function Delete($conditions, $table, $pk ='rowid') {
         $query = "DELETE FROM `{$table}` ";
         if(is_numeric($conditions)){
             $this->{$pk} = $conditions;
@@ -195,17 +195,19 @@ class sqliteDriver {
         ];
         while (null !== ($field = array_shift($fields))) {
             if (empty($field['field']) || empty($field['type'])) throw new Exception('Field and type values are mandatory.', 1);
-            $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
             array_key_exists($field['type'], $parsed) and ($field['type'] = $parsed[$field['type']]);
-            
-            empty($field['primary']) || ($field['type'] = "{$field['type']} PRIMARY KEY");
-            empty($field['autoincrement']) || ($field['type'] = "{$field['type']} AUTOINCREMENT");
+            $extra = ' ';
+            $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
+
+            empty($field['autoincrement']) || ($extra = "{$extra} AUTO_INCREMENT");
+            empty($field['primary']) || ($extra = "{$extra} PRIMARY KEY");
+
             $limit = empty($field['limit']) ? '' : "({$field['limit']})";
-            $notNull = (empty($field['null']) || $field['null'] === 'false') ? ' NOT NULL' : '';
+            $notNull = (isset($field['null']) && ($field['null'] === false || $field['null'] === 'false')) ? ' NOT NULL' : '';
             $default = isset($field['default']) ? " DEFAULT '{$field['default']}'" : '';
             $comment = isset($field['comment']) ? " COMMENT '{$field['comment']}'" : '';
 
-            $queryFields[] = "`{$field['field']}` {$field['type']}{$limit}{$notNull}{$default}{$comment}";
+            $queryFields[] = "`{$field['field']}` {$field['type']}{$limit}{$extra}{$notNull}{$default}{$comment}";
         }
 
         $query .= implode(',', $queryFields);
