@@ -5,6 +5,7 @@ class testDispatcher {
     public $filepathname = '';
     public $fails = 0;
     public $tests = 0;
+    public $actions = [];
     private $_testsPath = '';
     private $_failed = false;
     private $_halt = false;
@@ -42,7 +43,6 @@ class testDispatcher {
      * @return void
      */
     function run(string $test) {
-        // $test = (string) $test;
         $actions = [];
 
         try {
@@ -55,7 +55,7 @@ class testDispatcher {
             $test = $this->{$test};
             $GLOBALS['env'] = 'test';
             $test->_init_();
-
+            $this->actions = $actions;
             while (null !== ($action = array_shift($actions))) {
                 $test->beforeEach();
                 $test->{$action}();

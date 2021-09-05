@@ -1,6 +1,21 @@
 <?php
-set_include_path(implode(PATH_SEPARATOR, array(get_include_path(),PEAR_EXTENSION_DIR, '/etc/dumbophp', '/windows/system32/dumbophp', '/windows/dumbophp')));
 file_exists('./config/host.php') or die('Generator must be executed at the top level of project path.'.PHP_EOL);
+defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
+set_include_path(
+    '/etc/dumbophp'.PATH_SEPARATOR.
+    '/etc/dumbophp/bin'.PATH_SEPARATOR.
+    INST_PATH.'vendor'.PATH_SEPARATOR.
+    INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'vendor/rantes/dumbophp/bin'.PATH_SEPARATOR.
+    INST_PATH.PATH_SEPARATOR.
+    get_include_path().PATH_SEPARATOR.
+    PEAR_EXTENSION_DIR.PATH_SEPARATOR.
+    '/windows/dumbophp'.PATH_SEPARATOR.
+    '/windows/dumbophp/bin'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
+    INST_PATH.'DumboPHP'
+);
 
 require_once './config/host.php';
 require_once 'dumbophp.php';
@@ -8,27 +23,27 @@ require_once 'DumboShellColors.php';
 
 class FieldObject {
 
-  public $name = '';
-  public $type = '';
-  public $isNull = 'false';
-  public $types = array(
-            'primary',
-            'integer',
-            'biginteger',
-            'string',
-            'text',
-            'float',
-            'decimal'
-          );
-  private $dbTypes = array(
-              'primary' => array('INT AUTO_INCREMENT PRIMARY KEY','',''),
-              'integer' => array('INT','',''),
-              'biginteger' => array('BIGINT','',''),
-              'string' => array('VARCHAR','255',''),
-              'text' => array('TEXT','',''),
-              'float' => array('FLOAT','',''),
-              'decimal' => array('FLOAT','','')
-            );
+    public $name = '';
+    public $type = '';
+    public $isNull = 'false';
+    public $types = [
+        'primary',
+        'integer',
+        'biginteger',
+        'string',
+        'text',
+        'float',
+        'decimal'
+    ];
+    private $dbTypes = [
+        'primary' => ['INTEGER','11','0'],
+        'integer' => ['INTEGER','11','0'],
+        'biginteger' => ['BIGINT','','0'],
+        'string' => ['VARCHAR','255',''],
+        'text' => ['TEXT','',''],
+        'float' => ['FLOAT','','0'],
+        'decimal' => ['FLOAT','','0']
+    ];
 
     public function __construct($field) {
         $args = explode(':', $field);
@@ -36,30 +51,30 @@ class FieldObject {
         $matches = [];
 
         ($argsSize < 2) and die('Error on Building: Invalid field definition.'.PHP_EOL);
-        if(preg_match('/\{([0-9]+)\}/is', $args[1], $matches) === 1) {
-        empty($matches[1]) and die("Error on Building: Limit size for the field '{$args[0]}' is not valid.".PHP_EOL);
-        $toRemove = strlen($matches[0]) * -1;
-        $args[1] = substr($args[1], 0, $toRemove);
-        $this->dbTypes[$args[1]][1] = $matches[1];
-        }
+        if(preg_match('/\{([0-9]+)\}/is', $args[1], $matches) === 1):
+            empty($matches[1]) and die("Error on Building: Limit size for the field '{$args[0]}' is not valid.".PHP_EOL);
+            $toRemove = strlen($matches[0]) * -1;
+            $args[1] = substr($args[1], 0, $toRemove);
+            $this->dbTypes[$args[1]][1] = $matches[1];
+        endif;
 
         in_array($args[1], $this->types) or die("Error on Building: Data type for the field '{$args[0]}', is not valid.".PHP_EOL);
 
         $this->name = $args[0];
         $this->type = $args[1];
 
-        if($argsSize > 2) {
-        in_array('null', $args) and ($this->isNull = 'true');
-        in_array('default', $args) and die("Default flag given but value is missing for field '{$args[0]}'.".PHP_EOL);
+        if($argsSize > 2):
+            in_array('null', $args) and ($this->isNull = 'true');
+            in_array('default', $args) and die("Default flag given but value is missing for field '{$args[0]}'.".PHP_EOL);
 
-        for ($i=1; $i < $argsSize; $i++) {
-            if(preg_match('/default\{(.+)\}/', $args[$i], $matches) === 1) {
-            empty($matches[1]) and die("Error on Building: Default value for the field '{$args[0]}' is not valid.".PHP_EOL);
-            $this->dbTypes[$args[1]][2] = $matches[1];
-            break;
-            }
-        }
-        }
+            for ($i=1; $i < $argsSize; $i++):
+                if(preg_match('/default\{(.+)\}/', $args[$i], $matches) === 1):
+                    empty($matches[1]) and die("Error on Building: Default value for the field '{$args[0]}' is not valid.".PHP_EOL);
+                    $this->dbTypes[$args[1]][2] = $matches[1];
+                    break;
+                endif;
+            endfor;
+        endif;
 
     }
 
@@ -79,6 +94,7 @@ class FieldObject {
         $str = "['field'=>'{$arr['field']}', 'type'=>'{$arr['type']}', 'null'=>'{$arr['null']}'";
         empty($arr['limit']) or ($str .= ", 'limit'=>'{$arr['limit']}'");
         empty($arr['default']) or ($str .= ", 'default'=>'{$arr['default']}'");
+        ($this->type === 'primary') and $str = "{$str}, 'primary'=>true, 'autoincrement'=>true";
         $str .= ']';
 
         return $str;
@@ -264,7 +280,7 @@ DUMBOPHP;
             else:
 
                 $fileContent = <<<DUMBOPHP
-<div>
+<section>
     <div>
         <table>
             <thead>
@@ -286,8 +302,10 @@ DUMBOPHP;
             </tbody>
         </table>
     </div>
-    <a href="<?=INST_URI;?>{$this->singularized}/addedit/">Add new...</a>
-</div>
+    <div>
+        <a href="<?=INST_URI;?>{$this->singularized}/addedit/">Add new...</a>
+    </div>
+</section>
 DUMBOPHP;
             endif;
 
@@ -337,12 +355,13 @@ DUMBOPHP;
 
         file_exists($path.$file) and die('Error on Building: Migration already exists.'.PHP_EOL);
 
+        $fieldsString = implode(",\n            ", $this->fields);
         $fileContent = <<<DUMBOPHP
 <?php
 class Create{$this->camelized} extends Migrations {
     function _init_() {
         \$this->_fields = [
-            {{fields}}
+            {$fieldsString}
         ];
     }
 
@@ -356,8 +375,6 @@ class Create{$this->camelized} extends Migrations {
 }
 
 DUMBOPHP;
-        $fieldsString = implode(",\n                ", $this->fields);
-        $fileContent = str_replace('{{fields}}', $fieldsString, $fileContent);
 
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Migration created at: {$path}{$file}");
@@ -366,7 +383,7 @@ DUMBOPHP;
         $class = "Create{$this->camelized}";
         $obj = new $class();
         $obj->up();
-        $this->showNotice("Migration executed.");
+        $this->showNotice('Migration executed.');
 
         return true;
     }

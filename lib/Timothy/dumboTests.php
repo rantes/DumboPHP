@@ -53,7 +53,7 @@ class dumboTests extends Page {
      */
     public function _migrateTables($tables = []) {
         $migrationsPath = INST_PATH.'migrations/';
-        foreach ($tables as $table) {
+        foreach ($tables as $table):
             $file = "{$migrationsPath}create_{$table}.php";
             file_exists($file) or die('Migration file '.$file.', does not exists.'.PHP_EOL);
             require_once $file;
@@ -62,7 +62,7 @@ class dumboTests extends Page {
             ob_start();
             $obj->reset();
             ob_get_clean();
-        }
+        endforeach;
     }
     /**
      * Output for an error message

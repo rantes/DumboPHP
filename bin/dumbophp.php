@@ -627,6 +627,10 @@ class Connection extends PDO {
         empty($this->_settings['password']) and $this->_settings['password'] = null;
         parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
         $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        $this->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+        $this->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
+        $this->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_TO_STRING);
     }
     /**
      * Regarding the espcific dirver query, get the fields info from a table
@@ -637,29 +641,7 @@ class Connection extends PDO {
     public function getColumnFields($query) {
         $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER'];
         $norm = [
-            'BLOB' => 'BLOB',
-            'MEDIUM_BLOB' => 'MEDIUM_BLOB',
-            'LONG_BLOB' => 'LONG_BLOB',
-            'DATETIME' => 'DATETIME',
-            'DATE' => 'DATE',
-            'DOUBLE' => 'DOUBLE',
-            'FLOAT' => 'FLOAT',
-            'BIGINT' => 'BIGINT',
-            'INT' => 'INTEGER',
-            'INTEGER' => 'INTEGER',
-            'LONGLONG' => 'LONGLONG',
-            'LONG' => 'LONG',
-            'MEDIUMTEXT' => 'MEDIUMTEXT',
-            'NEWDECIMAL' => 'NEWDECIMAL',
-            'SHORT' => 'SHORT',
-            'STRING' => 'STRING',
-            'TEXT' => 'TEXT',
-            'TIME' => 'TIME',
-            'TIMESTAMP' => 'TIMESTAMP',
-            'TINY' => 'TINY',
-            'VAR_CHAR' => 'VAR_CHAR',
-            'VARCHAR' => 'VARCHAR',
-            'VAR_STRING' => 'VAR_STRING'
+            'INT' => 'INTEGER'
         ];
         try {
             $result1 = $this->query($query);
@@ -674,7 +656,7 @@ class Connection extends PDO {
                 $ret[] = [
                     'Cast' => in_array($type, $numerics),
                     'Field' => $rname,
-                    'Type' => $norm[$type],
+                    'Type' => $norm[$type] ?? $type,
                     'Value' => null
                 ];
             }
@@ -712,7 +694,7 @@ class Connection extends PDO {
                 $count = (integer)$result[0]['counter'];
             break;
         }
-        
+
         return $count;
     }
 }
@@ -813,11 +795,11 @@ abstract class Core_General_Class extends ArrayObject {
             $conditions = "1=1";
             if (method_exists($obj1, 'Find')) {
                 if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)  && !empty($this->{$foreign})) {
-                    $conditions = ($way == 'up')?"`id`='".$this->{$foreign} ."'":$conditions;
+                    $conditions = ($way == 'up')?"`{$this->pk}`='".$this->{$foreign} ."'":$conditions;
                 } elseif (in_array($ClassName, $this->belongs_to) && !empty($this->{$foreign})) {
-                    $conditions = "`id`='".$this->{$foreign} ."'";
+                    $conditions = "`{$this->pk}`='".$this->{$foreign} ."'";
                 } elseif (in_array($ClassName, $this->has_many) ) {
-                    $conditions = "`{$prefix}_id`='{$this->id}'";
+                    $conditions = "`{$prefix}_id`='{$this->pk}'";
                 }
                 $params['conditions'] = empty($params['conditions'])?$conditions:' AND '.$conditions;
                 return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
@@ -908,12 +890,17 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 
-        if (empty($GLOBALS['Connection'])) {
+        if (empty($GLOBALS['Connection'])):
             $GLOBALS['Connection'] = new Connection();
-        }
+        endif;
+
+        if(preg_match('@sqlite@', $GLOBALS['Connection']->engine)):
+            $this->pk = 'rowid';
+            $this->rowid = null;
+        endif;
 
         if (empty($GLOBALS['driver'])) {
-            require_once dirname(__FILE__).'/lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
+            require_once dirname(__FILE__).'/../lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
             $driver = $GLOBALS['Connection']->engine.'Driver';
             $GLOBALS['driver'] = new $driver();
         }
@@ -1020,7 +1007,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($obj));
         $resultset = $sh->fetchAll();
-        $obj->_counter = $GLOBALS['Connection']->engine === 'sqlite' ? sizeof($resultset) : $sh->rowCount();
+        $obj->_counter = preg_match('@sqlite@', $GLOBALS['Connection']->engine) ? sizeof($resultset) : $sh->rowCount();
 
         $sh->closeCursor();
         $obj->exchangeArray($resultset);
@@ -1042,6 +1029,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 if (isset($obj[0]->{$field})) {
                     $obj->{$field} = $obj[0]->{$field};
                 }
+            }
+            if(preg_match('@sqlite@', $GLOBALS['Connection']->engine) and isset($obj[0]->rowid)) {
+                $obj[0]->id = $obj[0]->rowid;
+                $obj->id = $obj[0]->rowid;
             }
         }
         if (!$this->disableCast) {
@@ -1147,6 +1138,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return ActiveRecord
      */
     public function Niu(array $contents = []) {
+        foreach($this->_fields as $field => $val) {
+            $this->{$field} = null;
+        };
         for ($i = 0; $i < $this->_counter; $i++) {
             $this[$i] = null;
             $this->offsetUnset($i);
@@ -1238,10 +1232,15 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         $field['field'];
                     }
                     if (!empty($this->{$field['field']})) {
-                        $obj1 = new $this;
+                        $thisclass = get_class($this);
+                        $obj1 = new $thisclass();
                         $resultset = $obj1->Find([
-                            'fields' => $field['field'],
-                            'conditions' => "`{$field['field']}`='" .$this->{$field['field']} ."' AND `{$this->pk}`<>'" .$this->{$this->pk} ."'"
+                            'fields' => "{$this->pk}, {$field['field']}",
+                            'conditions' => "{$field['field']}='" .$this->{$field['field']} ."' AND {$this->pk}<>'" .$this->{$this->pk} ."'"
+                        ]);
+                        $resultset1 = $obj1->Find([
+                            'fields' => "{$this->pk}, *",
+                            'conditions' => "{$field['field']}='" .$this->{$field['field']} ."'"
                         ]);
                         $resultset->counter() > 0 && $this->_error->add(['field' => $field['field'], 'message' => $message]);
                     }
@@ -1316,6 +1315,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             while (null !== ($field = array_shift($fields))) {
                 $field != $this->pk && isset($this->{$field}) && ($data[$field] = $this->{$field});
             }
+            if (preg_match('@sqlite@', $GLOBALS['Connection']->engine) and isset($data['id'])) unset($data['id']);
 
             $prepared = $GLOBALS['driver']->Insert($data, $this->_ObjTable);
         }
@@ -1331,7 +1331,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
 
             if (empty($this->{$this->pk})) {
-                $this->{$this->pk} = $GLOBALS['Connection']->lastInsertId()+0;
+                $this->{$this->pk} = 0 + $GLOBALS['Connection']->lastInsertId();
                 if (sizeof($this->after_insert) > 0) {
                     foreach ($this->after_insert as $functiontoRun) {
                         $this->{$functiontoRun}();
@@ -1457,6 +1457,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             return false;
         }
         $this->_sqlQuery = $GLOBALS['driver']->Delete($conditions, $this->_ObjTable);
+
         if ($GLOBALS['Connection']->exec($this->_sqlQuery) === false) {
             $e = $GLOBALS['Connection']->errorInfo();
             $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
@@ -1761,7 +1762,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         $this->PaginatePageNumber = 0 + $this->PaginatePageNumber;
         $start = ($this->PaginatePageNumber - 1) * $per_page;
-        
+
         $params['limit'] = $start.",".$per_page;
         $data = $this->Find($params);
 
@@ -1789,9 +1790,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $connector = sizeof(explode('?', $this->paginateURL)) > 0 ? '&' : '?';
         if ($this->PaginatePageNumber > 1) {
             $vars[$this->PaginatePageVarName] = 1;
-            $str .= "<a class=\"paginate paginate-first-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateFirstChar}</a>";
+            $str .= "<a class=\"paginate paginate-page paginate-page-first\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateFirstChar}</a>";
             $vars[$this->PaginatePageVarName] = $this->PaginatePageNumber - 1;
-            $str .= "<a class=\"paginate paginate-prev-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginatePrevChar}</a>";
+            $str .= "<a class=\"paginate paginate-page paginate-page-prev\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginatePrevChar}</a>";
         }
         $top = $this->PaginateTotalPages;
         if ($this->PaginateTotalPages > 10) {
@@ -1807,13 +1808,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         if ($this->PaginatePageNumber < $this->PaginateTotalPages) {
             $vars[$this->PaginatePageVarName] = $this->PaginatePageNumber + 1;
-            $tail .= "<a class=\"paginate paginate-next-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateNextChar}</a>";
+            $tail .= "<a class=\"paginate paginate-page paginate-page-next\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateNextChar}</a>";
             $vars[$this->PaginatePageVarName] = $this->PaginateTotalPages;
-            $tail .= "<a class=\"paginate paginate-last-page\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateLastChar}</a>";
+            $tail .= "<a class=\"paginate paginate-page paginate-page-last\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateLastChar}</a>";
         }
         for (; $i <= $top; $i++) {
             $vars[$this->PaginatePageVarName] = $i;
-            $str .= "<a class=\"paginate paginate-page".($this->PaginatePageNumber == $i?" paginate-active-page":"")."\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$i}</a>";
+            $str .= "<a class=\"paginate paginate-page".($this->PaginatePageNumber == $i?" paginate-page-active":"")."\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$i}</a>";
         }
         $str .= $tail;
         return $str;
@@ -1922,6 +1923,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $string .= ' method="'.$method.'" action="'.$action.'" name="'.$name.'"'.$html.'>';
         return $string;
+    }
+    public function getPK() {
+        return $this->pk;
     }
 }
 class Vendor {
@@ -2128,7 +2132,7 @@ abstract class Migrations extends Core_General_Class {
     private final function connect() {
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection();
-            require_once imploder(DIRECTORY_SEPARATOR, array(dirname(__FILE__),'lib', 'db_drivers', $GLOBALS['Connection']->engine.'.php'));
+            require_once imploder(DIRECTORY_SEPARATOR, [dirname(__FILE__),'../lib', 'db_drivers', $GLOBALS['Connection']->engine.'.php']);
         }
 
         if (empty($GLOBALS['driver'])) {
@@ -2378,7 +2382,7 @@ class index {
         }
 
         $params = is_array($params) ? array_merge($params, $_GET) : $_GET;
-        
+
         if (defined('SITE_STATUS') and SITE_STATUS == 'MAINTENANCE') {
             $urlToLand = explode('/', LANDING_PAGE);
             $replace   = false;
@@ -2447,6 +2451,7 @@ class index {
                     $this->page->before_filter();
                 }
             }
+            $action = $this->page->_getAction_();
             if (method_exists($this->page, $action."Action")) {
                 if(!$this->page->PreventLoad()){
                     $this->page->{$action."Action"}();
@@ -2494,7 +2499,6 @@ class index {
                         }
                     }
                 }
-                
             } else {
                 http_response_code(HTTP_404);
                 echo 'Missing Action';

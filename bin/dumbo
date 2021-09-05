@@ -1,4 +1,4 @@
-#!/usr/bin/php -d display_errors -d xdebug.mode=coverage
+#!/usr/bin/php -d display_errors
 <?php
 if (file_exists('./config/host.php')) {
     require_once './config/host.php';
@@ -6,26 +6,31 @@ if (file_exists('./config/host.php')) {
 defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
 set_include_path(
     '/etc/dumbophp'.PATH_SEPARATOR.
+    '/etc/dumbophp/bin'.PATH_SEPARATOR.
     INST_PATH.'vendor'.PATH_SEPARATOR.
     INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'vendor/rantes/dumbophp/bin'.PATH_SEPARATOR.
     INST_PATH.PATH_SEPARATOR.
     get_include_path().PATH_SEPARATOR.
     PEAR_EXTENSION_DIR.PATH_SEPARATOR.
-    '/windows/system32/dumbophp'.PATH_SEPARATOR.
     '/windows/dumbophp'.PATH_SEPARATOR.
+    '/windows/dumbophp/bin'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
     INST_PATH.'DumboPHP'
 );
 
 class dumboShell{
     private $commands = [
+        'autocomplete',
+        'help',
         'create',
         'run',
         'init',
         'db',
         'generate',
         'destroy',
-        'migration',
-        'test'
+        'migration'
     ];
     private $_options = [
         'env' => ['value' => null, 'cast' => 'string'],
@@ -138,9 +143,10 @@ class dumboShell{
                 case 'run':
                     $this->runActionScript();
                 break;
-                case 'test':
-                    $this->runTestScript();
+                case 'autocomplete':
+                    $this->_autocomplete();
                 break;
+                case 'help':
                 default:
                     $this->help();
                 break;
@@ -149,6 +155,88 @@ class dumboShell{
             $this->help();
         }
 
+    }
+
+    private function _getControllers() {
+        file_exists('./config/host.php') or die();
+        require_once './config/host.php';
+        $controllersPath = INST_PATH.'app/controllers';
+        $controllersDir = dir($controllersPath);
+        $controllersList = [];
+        while (($file = $controllersDir->read()) != false):
+            if($file != "." and $file != ".." and preg_match('/(.+)_controller\.php/', $file, $matches) === 1):
+                $file = preg_replace('/(_controller\.php)/', '', $file);
+                $controllersList[] = $file;
+            endif;
+        endwhile;
+
+        return $controllersList;
+    }
+
+    private function _getActions($controller) {
+        file_exists('./config/host.php') or die();
+        require_once './config/host.php';
+        require_once 'dumbophp.php';
+
+        $controllerFile = INST_PATH."app/controllers/{$controller}_controller.php";
+        file_exists($controllerFile) or die();
+        $className = ucfirst("{$controller}Controller");
+        $actions = [];
+
+        require_once $controllerFile;
+        $methods = get_class_methods($className);
+        while(null !== ($method = array_shift($methods))):
+            if(preg_match('/^[^_](.+)Action/', $method)):
+                $actions[] = str_replace('Action', '', $method);
+            endif;
+        endwhile;
+
+        return $actions;
+    }
+
+    private function _getFullActions() {
+        $list = [];
+        $controllers = $this->_getControllers();
+        while(null !== ($controller = array_shift($controllers))):
+            $actions = $this->_getActions($controller);
+            while(null !== ($action = array_shift($actions))):
+                $list[] = "{$controller}/{$action}";
+            endwhile;
+        endwhile;
+
+        return $list;
+    }
+
+    private function _autocomplete() {
+        array_shift($this->commands);
+        $output = implode("\n", $this->commands);
+
+        if(!empty($this->arguments[0]) and in_array($this->arguments[0], $this->commands)):
+            switch ($this->arguments[0]):
+                case 'run':
+                    $list = $this->_getFullActions();
+                    $output = implode(' ', $list);
+                break;
+                case 'generate':
+                    $list = ['scaffold', 'controller', 'model', 'seed'];
+                    $output = implode(' ', $list);
+                break;
+                case 'destroy':
+                    $list = ['scaffold', 'model'];
+                    $output = implode(' ', $list);
+                break;
+                case 'migration':
+                    $list = ['up', 'down', 'reset', 'run', 'sow'];
+                    $output = implode(' ', $list);
+                break;
+                case 'db':
+                    $list = ['dump', 'load'];
+                    $output = implode(' ', $list);
+                break;
+            endswitch;
+        endif;
+
+        echo $output;
     }
 
     private function help() {
@@ -193,14 +281,11 @@ Commands:
     run [controller/action] [<param=val> <paramn=valn>]
         executes a controller/action. index/index as default.
 
-    test [all|<unitTest>,<unitTest>,<unitTest>] [--dir=dir/to/run]
-         executes Unit test file(s).
-
 Options:
 
     --env=enviroment        Sets a particular enviroment for the execution
     --halt=[true|false]     Halt the script on error
-    --watch                 Set a demon to watch files (used in tests)
+    --watch                 Set a daemon to watch files (used in tests)
 
 DUMBO;
         fwrite(STDOUT, $text . "\n");
@@ -294,7 +379,7 @@ DUMBO;
             $this->params[] = $this->arguments[$i];
         }
 
-        require_once __DIR__.'/lib/generator.php';
+        require_once 'lib/generator.php';
         $generator = new DumboGeneratorClass($this->_options['env']['value']);
 
         switch ($this->arguments[0]) {
@@ -473,86 +558,6 @@ DUMBO;
         require_once('app/webroot/index.php');
     }
 
-    private function runTestScript() {
-        $this->showNotice('Preparing tests...');
-        $path = $this->_options['dir']['value'] ?? 'tests/';
-        $watch = $this->_options['watch']['value'] ?? false;
-        $path = realpath($path);
-        substr($path, -1) !== '/' && ($path.='/');
-        if (in_array('all', $this->arguments)) {
-            $testsDir = dir($path) or die('unknown path: '.$path);
-            $this->arguments = [];
-            while (($file = $testsDir->read()) !== FALSE) {
-                if($file != '.' and $file != '..' and preg_match('/(.+)\.php/', $file, $matches) === 1) {
-                    $this->arguments[] = substr($file, 0, -4);
-                }
-            }
-        }
-        if($watch){
-            $files = [];
-            foreach($this->arguments as $file):
-                $fullpath = "{$path}{$file}.php";
-                $stats = stat($fullpath);
-                $files[] = ['path'=> $fullpath, 'mtime' => $stats['mtime']];
-            endforeach;
-            $this->showNotice("\nWatching files...");
-            while(true) {
-                foreach($files as  $index => $file) {
-                    $stats = stat($file['path']);
-                    if($stats['mtime'] > 0 and $file['mtime'] !== $stats['mtime']){
-                        $this->showNotice("File changed {$file['path']}");
-                        $files[$index]['mtime'] = $stats['mtime'];
-                        $tests = implode(' ', $this->arguments);
-                        system("dumbo test {$tests} --dir={$path}");
-                        $this->showNotice("\nWatching files...");
-                    }
-                }
-            }
-        } else {
-            $this->_runTests($path);
-        }
-    }
-
-    private function _runTests($path) {
-        // require_once 'dumbophp.php';
-        // require_once 'lib/Timothy/dumboTests.php';
-        // require_once 'lib/Timothy/testDispatcher.php';
-
-        // $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
-        try {
-            // $this->_logPath = $logPath;
-            // file_put_contents("{$this->_logPath}{$this->_logFile}", '');
-            $this->showNotice("The very things that hold you down are going to lift you up!\n");
-
-            // $this->_halt = $halt;
-            // $this->_testsPath = $path;
-            $currPath = dirname(__FILE__);
-            while (null !== ($test = array_shift($this->arguments))) {
-                // require "{$this->_testsPath}{$test}.php";
-                chdir(INST_PATH);
-                system("php -d xdebug.mode=coverage -d auto_prepend_file={$currPath}/lib/Timothy/xdebug_pre.php -d auto_append_file={$currPath}/lib/Timothy/xdebug_pos.php {$path}{$test}.php");
-
-                // $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
-            }
-        } catch (Throwable $e) {
-            $this->_failed = true;
-            fwrite(STDERR, (string)$e);
-            exit(1);
-        }
-
-        // $this->showNotice('Runing tests...');
-        // $start = microtime(true);
-        // $testCounter = 0;
-        // $tests = $this->arguments;
-        // while (null !== ($test = array_shift($tests))) {
-        //     $testLaunch->run($test);
-        //     $testCounter++;
-        // }
-        // $took = microtime(true) - $start;
-        // $this->showNotice("\nFinished tests. Ran {$testLaunch->assertions} assertions in {$testCounter} tests. Finished in: {$took} seconds.");
-        // $testLaunch = null;
-    }
-
     private function migrationScripts() {
         file_exists('./config/host.php') or die($this->showError('Migration actions must be executed at the top level of project path.'.PHP_EOL));
 
@@ -630,6 +635,7 @@ DUMBO;
         }
     }
 }
+
 $shell = new dumboShell();
 $shell->run($argv);
 ?>
