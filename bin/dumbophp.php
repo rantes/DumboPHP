@@ -1235,12 +1235,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         $thisclass = get_class($this);
                         $obj1 = new $thisclass();
                         $resultset = $obj1->Find([
-                            'fields' => "{$this->pk}, {$field['field']}",
+                            'fields' => preg_match('@sqlite@', $GLOBALS['Connection']->engine) ? "{$this->pk}, *" : '*',
                             'conditions' => "{$field['field']}='" .$this->{$field['field']} ."' AND {$this->pk}<>'" .$this->{$this->pk} ."'"
-                        ]);
-                        $resultset1 = $obj1->Find([
-                            'fields' => "{$this->pk}, *",
-                            'conditions' => "{$field['field']}='" .$this->{$field['field']} ."'"
                         ]);
                         $resultset->counter() > 0 && $this->_error->add(['field' => $field['field'], 'message' => $message]);
                     }
