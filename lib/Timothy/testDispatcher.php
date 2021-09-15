@@ -6,6 +6,8 @@ class testDispatcher {
     public $fails = 0;
     public $tests = 0;
     public $actions = [];
+    public $testAssertions = 0;
+    public $testFailures = 0;
     private $_testsPath = '';
     private $_failed = false;
     private $_halt = false;
@@ -25,9 +27,9 @@ class testDispatcher {
             $this->_halt = $halt;
             $this->_testsPath = $path;
             while (null !== ($test = array_shift($tests))):
-                $this->filename = "{$test}.php";
-                $this->filepathname = "{$this->_testsPath}{$this->filename}";
-                require $this->filepathname;
+                $file = "{$test}.php";
+                $pathname = "{$this->_testsPath}{$file}";
+                require $pathname;
                 $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
             endwhile;
         } catch (Throwable $e) {
@@ -47,29 +49,43 @@ class testDispatcher {
 
         try {
             $methods = get_class_methods($this->{$test});
-            $this->tests = sizeof($methods);
-            while (null !== ($method = array_shift($methods))) {
+            $this->tests = 0;
+            while (null !== ($method = array_shift($methods))):
                 preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
-                (sizeof($match) === 1) && ($actions[] = $method);
-            }
-            $test = $this->{$test};
+                (sizeof($match) === 1) && ($actions[] = $method) && $this->tests++;
+            endwhile;
+
+            $objtest = $this->{$test};
             $GLOBALS['env'] = 'test';
-            $test->_init_();
-            $this->actions = $actions;
-            while (null !== ($action = array_shift($actions))) {
-                $test->beforeEach();
-                $test->{$action}();
-                $this->_failed = ($this->_failed || $test->_failed > 0);
-                $this->fails += $test->_failed;
+            $objtest->_init_();
+
+            while (null !== ($action = array_shift($actions))):
+                $objtest->assertions = 0;
+                $start = microtime(true);
+                $objtest->beforeEach();
+                $objtest->{$action}();
+                $took = microtime(true) - $start;
+                $this->_failed = ($this->_failed || $objtest->_failed > 0);
+                $this->fails += $objtest->_failed;
+                $this->actions[] = [
+                    'test' => $action,
+                    'time' => $took,
+                    'assertions' => $objtest->assertions,
+                    'fails' => $objtest->_failed
+                ];
 
                 if ($this->_halt && $this->_failed):
                     exit(1);
                 endif;
-            }
-            $this->assertions += $test->assertions;
+            endwhile;
 
-            $test->_end_();
-            $test->_summary();
+            $this->assertions += $objtest->assertions;
+            $this->filepathname = "{$this->_testsPath}{$test}.php";
+            $this->testAssertions = $objtest->assertions;
+            $this->testFailures = $objtest->fails;
+
+            $objtest->_end_();
+            $objtest->_summary();
         } catch (Throwable $e) {
             $this->_failed = true;
             fwrite(STDERR, (string)$e);

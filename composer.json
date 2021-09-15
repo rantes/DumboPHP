@@ -23,17 +23,23 @@
         "ext-json": "*"
     },
     "scripts": {
-        "post-package-install": [
-            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
-        ],
-        "post-package-update": [
-            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
-        ],
-        "post-autoload-dump": [
-            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
+        "post-install-cmd": [
+            "rm ./dumbo -f 2>/dev/null ||:",
+            "rm ./dumboTest -f 2>/dev/null ||:",
+            "ln -s vendor/rantes/dumbophp/bin/dumbo ./dumbo",
+            "ln -s vendor/rantes/dumbophp/bin/dumboTest ./dumboTest"
         ],
         "post-update-cmd": [
-            "php -r \"copy('./dumbo', dirname(realpath('./../../')).'/dumbo'); chmod(dirname(realpath('./../../')).'/dumbo', 0775);\""
+            "rm ./dumbo -f 2>/dev/null ||:",
+            "rm ./dumboTest -f 2>/dev/null ||:",
+            "ln -s vendor/rantes/dumbophp/bin/dumbo ./dumbo",
+            "ln -s vendor/rantes/dumbophp/bin/dumboTest ./dumboTest"
+        ],
+        "post-create-project-cmd": [
+            "rm ./dumbo -f 2>/dev/null ||:",
+            "rm ./dumboTest -f 2>/dev/null ||:",
+            "ln -s vendor/rantes/dumbophp/bin/dumbo ./dumbo",
+            "ln -s vendor/rantes/dumbophp/bin/dumboTest ./dumboTest"
         ]
     },
     "minimum-stability": "dev",

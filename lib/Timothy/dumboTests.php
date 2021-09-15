@@ -13,6 +13,10 @@ class dumboTests extends Page {
     private $_colorsPalete = ['red', 'green'];
     private $_textOutputs = ['Failed', 'Passed'];
     private $_logFile = '';
+    private $_data = [
+        'filename' => '',
+        'filepathname' => ''
+    ];
 
     public function __construct($logFile = INST_PATH.'tmp/dumbotests.log') {
         parent::__construct();
@@ -21,11 +25,22 @@ class dumboTests extends Page {
         is_dir(INST_PATH.'tmp') or mkdir(INST_PATH.'tmp', 0775);
         $this->_colors = new DumboShellColors();
         $this->testName = get_class($this);
+        $this->_data['filename'] = __FILE__;
+        $this->_data['filepathname'] = __FILE__;
     }
 
     public function _init_() {}
 
     public function _end_() {}
+
+    public function _set_data_(array $data) {
+        !empty($data['filename']) and ($this->_data['filename'] = $data['filename']);
+        !empty($data['filepathname']) and ($this->_data['filepathname'] = $data['filepathname']);
+    }
+
+    public function _get_data() {
+        return $this->_data;
+    }
 
     public function _runAction(string $action) {
         $_GET = [];

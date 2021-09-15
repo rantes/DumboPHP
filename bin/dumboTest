@@ -16,11 +16,17 @@ endif;
 defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
 set_include_path(
     '/etc/dumbophp'.PATH_SEPARATOR.
+    '/etc/dumbophp/bin'.PATH_SEPARATOR.
     INST_PATH.'vendor'.PATH_SEPARATOR.
     INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+    INST_PATH.'vendor/rantes/dumbophp/bin'.PATH_SEPARATOR.
+    INST_PATH.PATH_SEPARATOR.
+    get_include_path().PATH_SEPARATOR.
     PEAR_EXTENSION_DIR.PATH_SEPARATOR.
-    '/windows/system32/dumbophp'.PATH_SEPARATOR.
     '/windows/dumbophp'.PATH_SEPARATOR.
+    '/windows/dumbophp/bin'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp'.PATH_SEPARATOR.
+    '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
     INST_PATH.'DumboPHP'
 );
 
@@ -199,7 +205,7 @@ DUMBO;
             $testCounter = 0;
             $tests = $this->arguments;
             $result = null;
-            $testReport = new DOMDocument('1.0');
+            $testReport = new DOMDocument('1.0', 'UTF-8');
             $testReport->formatOutput = true;
 
             $testSuites = $testReport->createElement('testsuites');
@@ -221,18 +227,35 @@ DUMBO;
             while (null !== ($test = array_shift($tests))):
                 $suite = $testReport->createElement('testsuite');
                 $suite->setAttribute('name', $test);
-                $suite->setAttribute('file', $testLaunch->filepathname);
-                $suite->setAttribute('tests', $testLaunch->tests);
                 $suite->setAttribute('errors', 0);
                 $suite->setAttribute('warnings', 0);
                 $suite->setAttribute('skipped', 0);
-                $suite->setAttribute('time', 0);
 
                 $testLaunch->run($test);
                 $testCounter++;
-                $fails += $testLaunch->fails;
-                $suite->setAttribute('assertions', $testLaunch->assertions);
-                $suite->setAttribute('failures', $testLaunch->fails);
+
+                $assertions = $times = $failures = 0;
+
+                while (null !== ($case = array_shift($testLaunch->actions))):
+                    $assertions += $case['assertions'];
+                    $times += $case['time'];
+                    $failures += $case['fails'];
+                    $testCase = $testReport->createElement('testcase');
+                    $testCase->setAttribute('name', $case['test']);
+                    $testCase->setAttribute('class', $test);
+                    $testCase->setAttribute('classname', $test);
+                    $testCase->setAttribute('file', $testLaunch->filepathname);
+                    $testCase->setAttribute('line', 0);
+                    $testCase->setAttribute('assertions', $case['assertions']);
+                    $testCase->setAttribute('time', $case['time']);
+                    $suite->appendChild($testCase);
+                endwhile;
+
+                $suite->setAttribute('assertions', $assertions);
+                $suite->setAttribute('failures', $failures);
+                $suite->setAttribute('time', $times);
+                $suite->setAttribute('file', $testLaunch->filepathname);
+                $suite->setAttribute('tests', $testLaunch->tests);
                 $mainSuite->appendChild($suite);
             endwhile;
             $result = xdebug_get_code_coverage();
