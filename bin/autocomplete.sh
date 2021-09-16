@@ -14,4 +14,4 @@ _dumbo() {
 
     return 0
 }
-complete -o nospace -F _dumbo dumbo
+complete -F _dumbo dumbo
