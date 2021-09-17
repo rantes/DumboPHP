@@ -120,7 +120,7 @@ symlink($dumboSystemPathBin.'/dumboTest', $binPath.'/dumboTest');
 chmod($binPath.'/dumboTest', 0775);
 fwrite(STDOUT, 'Created dumboTest bin file '.PHP_EOL);
 
-symlink($dumboSystemPathBin.'/autocomplete.sh', '/etc/bash_completion.d/dumbophp');
+is_dir('/etc/bash_completion.d') and symlink($dumboSystemPathBin.'/autocomplete.sh', '/etc/bash_completion.d/dumbophp');
 fwrite(STDOUT, 'Created bash autocomplete bin file. --- Please restart your console! ---'.PHP_EOL);
 
 fwrite(STDOUT, 'Install complete'.PHP_EOL);
