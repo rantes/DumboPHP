@@ -1,4 +1,4 @@
-#!/usr/bin/php -d display_errors
+#!php -d display_errors
 <?php
 if (file_exists('./config/host.php')) {
     require_once './config/host.php';
