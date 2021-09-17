@@ -24,6 +24,14 @@ if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
     is_dir($binPath) or mkdir($binPath);
 }
 
+if(!empty($argv)):
+    foreach($argv as $arg):
+        if(preg_match('@\-\-bindir\=([a-z0-9\-\_\/]+)[\s]*@i', $arg, $match) === 1):
+            $binPath = $match[1];
+        endif;
+    endforeach;
+endif;
+
 $dumboSystemPathSrc = $dumboSystemPath.'/src';
 $dumboSystemPathBin = $dumboSystemPath.'/bin';
 $dumboSystemPathLib = $dumboSystemPath.'/lib';
