@@ -1,4 +1,4 @@
-#!php -d xdebug.mode=coverage,profile
+#!/usr/bin/php -d xdebug.mode=coverage,profile
 <?php
 extension_loaded('sockets') or die('The XDebug extension must be installed.');
 defined('XDEBUG_FILTER_CODE_COVERAGE') or define('XDEBUG_FILTER_CODE_COVERAGE',0b100000000);
