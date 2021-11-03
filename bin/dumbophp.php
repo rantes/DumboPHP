@@ -626,9 +626,9 @@ class Connection extends PDO {
         empty($this->_settings['username']) and $this->_settings['username'] = null;
         empty($this->_settings['password']) and $this->_settings['password'] = null;
         parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
-        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        $this->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+        $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
+        $this->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $this->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
         $this->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_TO_STRING);
     }
@@ -986,16 +986,30 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         try {
             $sh = $GLOBALS['Connection']->prepare($prepared);
             $sh->execute($data);
-        } catch (PDOException $e) {
-            throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
-        }
 
-        try {
             $cols = $sh->columnCount();
-            for ($i = 0; $i < $cols; $i++) {
-                $meta = $sh->getColumnMeta($i);
-                $obj->_set_columns($meta);
+
+            if (preg_match('@sqlite@', $GLOBALS['Connection']->engine) and $sh->rowCount() === 0):
+                foreach($this->_fields as $field => $cast) {
+                    $obj->_set_columns([
+                        'native_type' => 'VAR_STRING',
+                        'name' => $field
+                    ]);
+                }
+            else:
+                for ($i = 0; $i < $cols; $i++) {
+                    $meta = $sh->getColumnMeta($i);
+                    $obj->_set_columns($meta);
+                }
+            endif;
+        } catch (PDOException $e) {
+            foreach($this->_fields as $field => $cast) {
+                $obj->_set_columns([
+                    'native_type' => 'VAR_STRING',
+                    'name' => $field
+                ]);
             }
+            throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         } catch (Exception $e) {
             foreach($this->_fields as $field => $cast) {
                 $obj->_set_columns([
@@ -1017,13 +1031,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $obj->offsetSet(0, NULL);
             $obj[0] = NULL;
             unset($obj[0]);
-            $fields = $GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable));
-            while (null !== ($row = array_shift($fields))) {
-                $obj->_fields[$row['Field']] = false;
-                $obj->{$row['Field']} = null;
-                $obj->_dataAttributes[$row['Field']]['native_type'] = $row['Type'];
-                $obj->_dataAttributes[$row['Field']]['cast'] = $obj->_fields[$row['Field']];
-            }
+            foreach ($obj->_fields as $field => $cast):
+                $obj->{$field} = '';
+            endforeach;
         } elseif ($obj->_counter === 1) {
             foreach ($obj->_fields as $field => $cast) {
                 if (isset($obj[0]->{$field})) {
@@ -1031,8 +1041,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             }
             if(preg_match('@sqlite@', $GLOBALS['Connection']->engine) and isset($obj[0]->rowid)) {
-                $obj[0]->id = $obj[0]->rowid;
-                $obj->id = $obj[0]->rowid;
+                $obj->rowid = $obj[0]->rowid;
             }
         }
         if (!$this->disableCast) {
@@ -1235,7 +1244,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                         $thisclass = get_class($this);
                         $obj1 = new $thisclass();
                         $resultset = $obj1->Find([
-                            'fields' => preg_match('@sqlite@', $GLOBALS['Connection']->engine) ? "{$this->pk}, *" : '*',
+                            'fields' => $field['field'],
                             'conditions' => "{$field['field']}='" .$this->{$field['field']} ."' AND {$this->pk}<>'" .$this->{$this->pk} ."'"
                         ]);
                         $resultset->counter() > 0 && $this->_error->add(['field' => $field['field'], 'message' => $message]);
@@ -1406,7 +1415,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         } catch (PDOException $e) {
             echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
-            var_dump($prepared['prepared']);
             return FALSE;
         }
 
@@ -1482,13 +1490,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 class_exists($m) or require_once INST_PATH.'app/models/'.strtolower($s).'.php';
                 $model1   = new $m();
                 $condition = is_numeric($id)? " = '{$id}'" : " IN (".imploder(',', $id).")";
-                $children = $model1->Find(array('conditions' => Singulars($this->_ObjTable)."_id{$condition}"));
+                $children = $model1->Find([
+                    'conditions' => Singulars($this->_ObjTable)."_id{$condition}"
+                ]);
                 if ($children->counter() > 0) {
                     foreach ($children as $child) {
                         switch ($this->dependents) {
                             case 'destroy':
                                 if (!$child->Delete()) {
-                                    $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Cannot delete dependents"));
+                                    $this->_error->add([
+                                        'field' => $this->_ObjTable,
+                                        'message' => 'Cannot delete dependents'
+                                    ]);
                                     return FALSE;
                                 }
                             break;
@@ -1513,6 +1526,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * Dumps out the data contained in the model.
      */
     public function inspect($tabs = 0) {
+        fwrite(STDOUT, get_class($this) . " ActiveRecord ({$this->_counter}): " . $this->ListProperties_ToString($tabs));
         echo get_class($this), " ActiveRecord ({$this->_counter}): ", $this->ListProperties_ToString($tabs);
     }
     protected function ListProperties_ToString($i = 0) {
@@ -1762,7 +1776,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $params['limit'] = $start.",".$per_page;
         $data = $this->Find($params);
 
-        $data->PaginateTotalItems = !empty($params['group']) || $regs->counter() > 1 ? $regs->counter() : $regs->rows;
+        $data->PaginateTotalItems = !empty($params['group']) || $regs->counter() > 1 ? $regs->counter() : 0;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
         return $data;
     }
@@ -2034,7 +2048,6 @@ abstract class Page extends Core_General_Class {
             $renderPage   = false;
             $this->layout = '';
         } else {
-
             if (isset($this->render) and is_array($this->render)) {
                 if (isset($this->render['action']) && $this->render['action'] === false) {
                     $this->yield = '';
@@ -2196,7 +2209,7 @@ abstract class Migrations extends Core_General_Class {
     protected function Create_Table() {
         $this->connect();
         $query = $GLOBALS['driver']->CreateTable($this->_table, $this->_fields);
-
+        var_dump($query);
         empty($query) || $this->_runQuery($query);
     }
 
@@ -2450,7 +2463,8 @@ class index {
             $action = $this->page->_getAction_();
             if (method_exists($this->page, $action."Action")) {
                 if(!$this->page->PreventLoad()){
-                    $this->page->{$action."Action"}();
+                    $actionToRun = "{$action}Action";
+                    $this->page->{$actionToRun}();
                     //before render, executed after the action execution and before the data renderize
                     if (method_exists($this->page, "before_render")) {
                         $actionsToExclude = $controllersToExclude = [];
