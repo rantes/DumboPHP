@@ -3,7 +3,7 @@
 if (file_exists('./config/host.php')) {
     require_once './config/host.php';
 }
-defined('INST_PATH') || define('INST_PATH', dirname(realpath(__FILE__).'../../').'/');
+defined('INST_PATH') || define('INST_PATH', dirname(realpath(__DIR__).'../').'/');
 set_include_path(
     '/etc/dumbophp'.PATH_SEPARATOR.
     '/etc/dumbophp/bin'.PATH_SEPARATOR.
