@@ -626,7 +626,7 @@ class Connection extends PDO {
         empty($this->_settings['username']) and $this->_settings['username'] = null;
         empty($this->_settings['password']) and $this->_settings['password'] = null;
         parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
-        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
         $this->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $this->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
@@ -988,8 +988,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $sh->execute($data);
 
             $cols = $sh->columnCount();
+            // $rows = $sh->rowCount();
 
-            if (preg_match('@sqlite@', $GLOBALS['Connection']->engine) and $sh->rowCount() === 0):
+            $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($obj));
+            $resultset = $sh->fetchAll();
+
+            if (preg_match('@sqlite@', $GLOBALS['Connection']->engine)):
+                // $rows = sizeof($resultset);
                 foreach($this->_fields as $field => $cast) {
                     $obj->_set_columns([
                         'native_type' => 'VAR_STRING',
@@ -1002,6 +1007,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $obj->_set_columns($meta);
                 }
             endif;
+
+            $obj->_counter = sizeof($resultset);;
+
+            $sh->closeCursor();
+            $obj->exchangeArray($resultset);
         } catch (PDOException $e) {
             foreach($this->_fields as $field => $cast) {
                 $obj->_set_columns([
@@ -1010,22 +1020,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 ]);
             }
             throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
-        } catch (Exception $e) {
-            foreach($this->_fields as $field => $cast) {
-                $obj->_set_columns([
-                    'native_type' => 'VAR_STRING',
-                    'name' => $field
-                ]);
-            }
         }
-
-        $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($obj));
-        $resultset = $sh->fetchAll();
-        $obj->_counter = preg_match('@sqlite@', $GLOBALS['Connection']->engine) ? sizeof($resultset) : $sh->rowCount();
-
-        $sh->closeCursor();
-        $obj->exchangeArray($resultset);
-
 
         if ($obj->_counter === 0) {
             $obj->offsetSet(0, NULL);
