@@ -39,7 +39,7 @@ class dumboShell{
         'watch' => ['value' => false, 'cast' => 'boolean']
     ];
     private $command = null;
-    private $systemFolder = '/etc/';
+    private $systemFolder = '';
     private $dumboSource = 'dumbophp/src';
     private $dumboSystemPath = 'dumbophp';
     private $dumboLibs = 'dumbophp/lib';
@@ -51,13 +51,12 @@ class dumboShell{
 
     public function __construct() {
 
+        $this->systemFolder = dirname(realpath(__DIR__)).'/';
+
         $this->dumboSource = $this->systemFolder . 'dumbophp/src';
         $this->dumboSystemPath = $this->systemFolder . 'dumbophp';
         $this->dumboLibs = $this->systemFolder . 'dumbophp/lib';
 
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $this->systemFolder = 'C:/Windows';
-        }
         require_once 'lib/DumboShellColors.php';
         $this->colors = new DumboShellColors();
     }
