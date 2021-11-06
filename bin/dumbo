@@ -56,8 +56,9 @@ class dumboShell{
         $this->dumboSource = $this->systemFolder . 'src';
         $this->dumboSystemPath = $this->systemFolder;
         $this->dumboLibs = $this->systemFolder . 'lib';
+        $this->dumboBin = $this->systemFolder . 'bin';
 
-        require_once 'lib/DumboShellColors.php';
+        require_once "{$this->dumboLibs}/DumboShellColors.php";
         $this->colors = new DumboShellColors();
     }
 
@@ -174,7 +175,7 @@ class dumboShell{
     private function _getActions($controller) {
         file_exists('./config/host.php') or die();
         require_once './config/host.php';
-        require_once 'dumbophp.php';
+        require_once "{$this->dumboBin}/dumbophp.php";
 
         $controllerFile = INST_PATH."app/controllers/{$controller}_controller.php";
         file_exists($controllerFile) or die();
@@ -377,7 +378,7 @@ DUMBO;
             $this->params[] = $this->arguments[$i];
         }
 
-        require_once 'lib/generator.php';
+        require_once "{$this->systemLibs}/generator.php";
         $generator = new DumboGeneratorClass($this->_options['env']['value']);
 
         switch ($this->arguments[0]) {
@@ -420,7 +421,7 @@ DUMBO;
         file_exists('./config/host.php') or die($this->showError('Destroy actions must be executed at the top level of project path.'.PHP_EOL));
 
         require_once './config/host.php';
-        require_once 'dumbophp.php';
+        require_once "{$this->dumboBin}/dumbophp.php";
 
         empty($this->_options['env']['value']) || ($GLOBALS['env'] = $this->_options['env']['value']);
 
@@ -490,7 +491,7 @@ DUMBO;
         file_exists('./config/host.php') or die($this->showError('DB actions must be executed at the top level of project path.'.PHP_EOL));
 
         require_once './config/host.php';
-        require 'dumbophp.php';
+        require "{$this->dumboBin}/dumbophp.php";
 
         empty($this->_options['env']['value']) || ($GLOBALS['env'] = $this->_options['env']['value']);
 
@@ -560,7 +561,7 @@ DUMBO;
         file_exists('./config/host.php') or die($this->showError('Migration actions must be executed at the top level of project path.'.PHP_EOL));
 
         require_once './config/host.php';
-        require_once 'dumbophp.php';
+        require_once "{$this->dumboBin}/dumbophp.php";
 
         for ($i=1; $i < sizeof($this->arguments); $i++) {
             $this->params[] = $this->arguments[$i];
