@@ -378,7 +378,7 @@ DUMBO;
             $this->params[] = $this->arguments[$i];
         }
 
-        require_once "{$this->systemLibs}/generator.php";
+        require_once "{$this->dumboLibs}/generator.php";
         $generator = new DumboGeneratorClass($this->_options['env']['value']);
 
         switch ($this->arguments[0]) {
