@@ -53,9 +53,9 @@ class dumboShell{
 
         $this->systemFolder = dirname(realpath(__DIR__)).'/';
 
-        $this->dumboSource = $this->systemFolder . 'dumbophp/src';
-        $this->dumboSystemPath = $this->systemFolder . 'dumbophp';
-        $this->dumboLibs = $this->systemFolder . 'dumbophp/lib';
+        $this->dumboSource = $this->systemFolder . 'src';
+        $this->dumboSystemPath = $this->systemFolder;
+        $this->dumboLibs = $this->systemFolder . 'lib';
 
         require_once 'lib/DumboShellColors.php';
         $this->colors = new DumboShellColors();
