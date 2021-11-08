@@ -37,16 +37,6 @@ $dumboSystemPathBin = $dumboSystemPath.'/bin';
 $dumboSystemPathLib = $dumboSystemPath.'/lib';
 file_exists($dumboSystemPath) || mkdir($dumboSystemPath, 0777, TRUE);
 
-// $d = dir($path);
-// while (false !== ($entry = $d->read())) {
-//    if($entry != '.' && $entry != '..' && $entry != 'install.php' && !is_dir($entry) && $entry != 'src' && $entry != 'lib' && $entry != '.git' && $entry != '.gitignore'){
-//         fwrite(STDOUT, 'copying '.$path.'/'.$entry.' to '.$dumboSystemPath.'/'.$entry.PHP_EOL);
-//         file_exists($dumboSystemPath.'/'.$entry) && unlink($dumboSystemPath.'/'.$entry);
-//         copy($path.'/'.$entry, $dumboSystemPath.'/'.$entry) or die('Could not copy file.');
-//    }
-// }
-// $d->close();
-
 file_exists($dumboSystemPathSrc) || mkdir($dumboSystemPathSrc, 0777, TRUE);
 
 $d = dir($pathSrc);
