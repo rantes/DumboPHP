@@ -195,6 +195,7 @@ DUMBOPHP;
         endif;
 
         $content = '';
+        array_shift($params);
 
         if ($isScaffold):
             $content = <<<DUMBOPHP
@@ -231,8 +232,8 @@ DUMBOPHP;
         exit;
     }
 DUMBOPHP;
-        elseif(sizeof($params) > 1):
-            while(empty($param = array_shift($params))):
+        elseif(sizeof($params) > 0):
+            while(!empty($param = array_shift($params))):
                 $content .= <<<DUMBOPHP
 
 public function {$param}Action() {
