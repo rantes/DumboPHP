@@ -1837,11 +1837,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $types->input = 'input';
         $types->textarea = 'textarea';
         $types->select = 'select';
+        $types->label = 'label';
 
         $_scaffoldFolder = INST_PATH.'scaffold/';
 
         if (empty($attributes['name'])) $attributes['name'] = Singulars(strtolower($this->_ObjTable)).'['.$field.']';
-        if (empty($attributes['value'])) $attributes['value'] = $this->{$field};
+        if (empty($attributes['value'])) $attributes['value'] = "<?=\$this->data->{$field};?>";
 
         file_exists("{$_scaffoldFolder}/tags.json") and $types = json_decode(file_get_contents("{$_scaffoldFolder}/tags.json"));
 
@@ -1869,6 +1870,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $doc = new DOMDocument('1.0');
         $input = null;
+        $label = null;
 
         switch ($attributes['type']):
             case 'checkbox':
@@ -1895,6 +1897,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 endforeach;
             break;
         endswitch;
+        if (!empty($types->label)):
+            $label = $doc->createElement($types->label);
+            $label->appendChild($doc->createTextNode($field));
+            $doc->appendChild($label);
+        endif;
         foreach($attributes as $attr => $value):
             $input->setAttribute($attr, $value);
         endforeach;
@@ -2204,7 +2211,6 @@ abstract class Migrations extends Core_General_Class {
     protected function Create_Table() {
         $this->connect();
         $query = $GLOBALS['driver']->CreateTable($this->_table, $this->_fields);
-        var_dump($query);
         empty($query) || $this->_runQuery($query);
     }
 

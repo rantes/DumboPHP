@@ -318,7 +318,7 @@ DUMBOPHP;
             $fileContent = <<<DUMBOPHP
 <div>
     <div>
-        <form action="/{$this->singularized}/create/" name="{$this->singularized}">
+        <form action="/{$this->singularized}/create/" name="{$this->singularized}" method="POST">
         $formContent
         <input name="submit" type="submit" id="submit-{$this->singularized}" value="Submit" />
         </form>
