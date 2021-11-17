@@ -1521,8 +1521,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * Dumps out the data contained in the model.
      */
     public function inspect($tabs = 0) {
-        fwrite(STDOUT, get_class($this) . " ActiveRecord ({$this->_counter}): " . $this->ListProperties_ToString($tabs));
-        echo get_class($this), " ActiveRecord ({$this->_counter}): ", $this->ListProperties_ToString($tabs);
+        if (_IN_SHELL_):
+            fwrite(STDOUT, get_class($this) . " ActiveRecord ({$this->_counter}): " . $this->ListProperties_ToString($tabs));
+        else:
+            echo get_class($this), " ActiveRecord ({$this->_counter}): ", $this->ListProperties_ToString($tabs);
+        endif;
     }
     protected function ListProperties_ToString($i = 0) {
         $listProperties = "{\n";
