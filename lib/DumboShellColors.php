@@ -34,7 +34,7 @@ class DumboShellColors {
      * Sets a formatted color for a string
      * @param string $string string to format
      * @param string $foreground_color human readable color
-     * @param unknown $background_color human readable color
+     * @param string $background_color human readable color
      * @return string Colorformatted string
      */
     public function getColoredString($string, $foreground_color = null, $background_color = null) {

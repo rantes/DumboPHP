@@ -134,8 +134,8 @@ DUMBO;
 
     /**
      * Compare two params and asserts if are equals
-     * @param any $param1
-     * @param any $param2
+     * @param $param1
+     * @param $param2
      */
     public function assertEquals($param1, $param2, $message = null) {
         $this->assertions++;
@@ -149,7 +149,7 @@ DUMBO;
     }
     /**
      * Asserts if the Value is true.
-     * @param any $value
+     * @param $value
      * @param string $message
      */
     public function assertTrue($value, $message = null) {
@@ -164,7 +164,7 @@ DUMBO;
     }
     /**
      * Asserts if the Value is false.
-     * @param any $value
+     * @param $value
      * @param string $message
      */
     public function assertFalse($value, $message = null) {
@@ -276,7 +276,7 @@ DUMBO;
     /**
      * Undocumented function
      *
-     * @param [type] $method
+     * @param string $method
      * @param string $message
      * @return void
      */

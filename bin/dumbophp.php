@@ -571,8 +571,8 @@ trait DumboSysConfig {
      * Retrieves a config value if not exists, returns a default value given
      *
      * @param string $key
-     * @param [any] $default
-     * @return [any]
+     * @param string $default
+     * @return string
      */
     public function _sysConfig(string $key, $default = null) {
         empty($this->__sys_conf_values__) && ($this->__sys_conf_values__ = parse_ini_file(INST_PATH.'.env'));
@@ -636,7 +636,7 @@ class Connection extends PDO {
      * Regarding the espcific dirver query, get the fields info from a table
      *
      * @param [string] $query
-     * @return yield
+     * @return array
      */
     public function getColumnFields($query) {
         $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER'];
@@ -818,7 +818,6 @@ abstract class Core_General_Class extends ArrayObject {
     }
 }
 $GLOBALS['models'] = [];
-$driver = null;
 /**
  * Class for Active Record design
  * @version 2.0
@@ -1076,7 +1075,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     /**
      * Performs a select query from a given string
      * @param string $query
-     * @return unknown|ActiveRecord
+     * @return ActiveRecord
      */
     public function Find_by_SQL($query) {
         if (!is_string($query)) {
@@ -1426,7 +1425,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     }
     /**
      * Handles the delete register in database
-     * @param array|numeric $conditions can be an array of IDs or just a single ID
+     * @param array|integer $conditions can be an array of IDs or just a single ID
      * @return boolean
      */
     public function Delete($conditions = NULL) {
@@ -1474,7 +1473,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     }
     /**
      * Handles the dependants tasks, delete or set to null the relational data in other models
-     * @param numeric $id
+     * @param integer $id
      * @return boolean
      */
     protected function _delete_or_nullify_dependents($id) {
@@ -1768,13 +1767,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (!empty($params[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName];
         }
-        $this->PaginatePageNumber = 0 + $this->PaginatePageNumber;
+        $this->PaginatePageNumber = (int)$this->PaginatePageNumber;
         $start = ($this->PaginatePageNumber - 1) * $per_page;
 
         $params['limit'] = $start.",".$per_page;
         $data = $this->Find($params);
 
-        $data->PaginateTotalItems = !empty($params['group']) || $regs->counter() > 1 ? $regs->counter() : 0;
+        $data->PaginateTotalItems = $regs->rows;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
         return $data;
     }
@@ -1795,7 +1794,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $str  = '';
         $tail = '';
         $i    = 1;
-        $connector = sizeof(explode('?', $this->paginateURL)) > 0 ? '&' : '?';
+
         if ($this->PaginatePageNumber > 1) {
             $vars[$this->PaginatePageVarName] = 1;
             $str .= "<a class=\"paginate paginate-page paginate-page-first\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateFirstChar}</a>";
@@ -1835,7 +1834,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @throws Exception
      * @return NULL|string
      */
-    public function input_for($field, array $attributes = [], array $list = []) {
+    public function input_for($field, array $attributes = [], array $list = [], array $params = []) {
         $types = new stdClass();
         $types->input = 'input';
         $types->textarea = 'textarea';
@@ -1915,7 +1914,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     /**
      * @deprecated
      * @param string $params
-     * @return html
+     * @return string
      */
     public function form_for($params) {
         $string = '<form';
@@ -1936,7 +1935,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $html = " {$html}";
         }
 
-        $string .= ' method="'.$method.'" action="'.$action.'" name="'.$name.'"'.$html.'>';
+        $string .= " method=\"{$method}\" id=\"{$id}\" action=\"{$action}\" name=\"$name\"{$html}>";
         return $string;
     }
     public function getPK() {
@@ -2244,7 +2243,6 @@ abstract class Migrations extends Core_General_Class {
      * Add index to the table
      * @param array $params Array with the index attributes
      * @throws Exception Each attribute is mandatory
-     * @todo Change to new driver structure
      */
     protected function Add_Index(array $params) {
         $this->connect();
