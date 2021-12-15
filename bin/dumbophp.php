@@ -627,7 +627,7 @@ class Connection extends PDO {
         empty($this->_settings['password']) and $this->_settings['password'] = null;
         parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
         $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
+        $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         $this->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $this->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
         $this->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_TO_STRING);
@@ -799,7 +799,7 @@ abstract class Core_General_Class extends ArrayObject {
                 } elseif (in_array($ClassName, $this->belongs_to) && !empty($this->{$foreign})) {
                     $conditions = "`{$this->pk}`='".$this->{$foreign} ."'";
                 } elseif (in_array($ClassName, $this->has_many) ) {
-                    $conditions = "`{$prefix}_id`='{$this->pk}'";
+                    $conditions = "`{$prefix}_id`='{$this->{$this->pk}}'";
                 }
                 $params['conditions'] = empty($params['conditions'])?$conditions:' AND '.$conditions;
                 return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();

@@ -214,8 +214,10 @@ DUMBO;
         $migrationName = 'Create'.Camelize(Singulars($table));
         $migration = new $migrationName();
         $fields = $migration->getDefinitions();
-        foreach ($GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($table)) as $i => $field) {
-            if (strcmp($field['Field'], $fields[$i]['field']) === 0) {
+        $tblDefinitions = $GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($table));
+
+        foreach ($tblDefinitions as $i => $field) {
+            if (strcmp($field['Field'], $fields[$i]['field']) === 0):
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
                 $passed = strcmp($migrationType, $field['Type']) === 0;
@@ -223,11 +225,11 @@ DUMBO;
                 $text = $passed ? 'Passed.' : 'Failed';
                 $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: ".$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
                 !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
-            } else {
+            else:
                 $passed = false;
                 $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: ".$this->_colors->getColoredString('Failed', 'red'));
                 !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
-            }
+            endif;
 
             $this->_passed += $passed;
             $this->_progress($passed);
