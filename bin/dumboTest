@@ -135,7 +135,10 @@ DUMBO;
 
     private function runTestScript() {
         $this->showNotice('Preparing tests...');
-        $path = $this->_options['dir']['value'] ?? 'tests/';
+        $path = 'tests/';
+        if (!empty($this->_options['dir']['value'])):
+            $path = "{$path}{$this->_options['dir']['value']}";
+        endif;
         $watch = $this->_options['watch']['value'] ?? false;
         $path = realpath($path);
         substr($path, -1) !== '/' && ($path.='/');
