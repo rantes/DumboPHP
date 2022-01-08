@@ -167,7 +167,7 @@ class sqliteDriver {
 
         $query .= "({$fields}) VALUES ({$values})";
 
-        return array('query' => $query, 'prepared' => $prepared);
+        return ['query' => $query, 'prepared' => $prepared];
     }
 
     public function Delete($conditions, $table, $pk ='rowid') {
@@ -199,8 +199,8 @@ class sqliteDriver {
             $extra = ' ';
             $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
 
-            empty($field['autoincrement']) || ($extra = "{$extra} AUTO_INCREMENT");
             empty($field['primary']) || ($extra = "{$extra} PRIMARY KEY");
+            empty($field['autoincrement']) || ($extra = "{$extra} AUTOINCREMENT");
 
             $limit = empty($field['limit']) ? '' : "({$field['limit']})";
             $notNull = (isset($field['null']) && ($field['null'] === false || $field['null'] === 'false')) ? ' NOT NULL' : '';
@@ -211,7 +211,7 @@ class sqliteDriver {
         }
 
         $query .= implode(',', $queryFields);
-        $query = "{$query});";
+        $query = "{$query})";
 
         return $query;
     }

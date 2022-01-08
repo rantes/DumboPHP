@@ -1330,7 +1330,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
 
             if (empty($this->{$this->pk})) {
-                $this->{$this->pk} = 0 + $GLOBALS['Connection']->lastInsertId();
+                $name = preg_match('@sqlite@', $GLOBALS['Connection']->engine) ? 'rowid' : null;
+                $this->{$this->pk} = (int)$GLOBALS['Connection']->lastInsertId($name);
                 if (sizeof($this->after_insert) > 0) {
                     foreach ($this->after_insert as $functiontoRun) {
                         $this->{$functiontoRun}();
