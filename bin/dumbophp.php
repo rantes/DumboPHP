@@ -1753,7 +1753,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $request = parse_url(_FULL_URL);
 
-        $per_page = (isset($params['per_page']))? 0 + $params['per_page'] : 10;
+        $per_page = empty($params['per_page'])? 10 : (int)$params['per_page'];
         isset($params['prevChar']) && ($this->_paginatePrevChar = $params['prevChar']);
         isset($params['nextChar']) && ($this->_paginateNextChar = $params['nextChar']);
         isset($params['forwardChar']) && ($this->_paginateLastChar = $params['forwardChar']);

@@ -308,7 +308,7 @@ DUMBO;
         $res->setFetchMode(PDO::FETCH_ASSOC);
         $c = $res->fetchAll();
 
-        return 0 + $c[0]['indexes'];
+        return (int)$c[0]['indexes'];
     }
     /**
      * Adds single index or index which is nothing but the field name
@@ -318,10 +318,12 @@ DUMBO;
      */
     public function AddSingleIndex($table, $field) {
         $query = '';
-        $x = $this->ValidateIndex($table, $field);
+        $indexName = "idx_{$table}_{$field}";
 
-        if (!$x) {
-        $query = "CREATE INDEX {$field} ON {$table} ({$field})";
+        $x = $this->ValidateIndex($table, $indexName);
+
+        if ($x === 0) {
+            $query = "CREATE INDEX {$indexName} ON {$table} ({$field})";
         }
 
         return $query;
@@ -342,7 +344,7 @@ DUMBO;
      */
     public function GetAllIndexes($table) {
         $query = <<<DUMBO
-SELECT INDEX_NAME FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}'
+PRAGMA index_list('{$table}')
 DUMBO;
 
         return $query;
@@ -355,7 +357,9 @@ DUMBO;
      */
     public function RemoveIndex($table, $index) {
         $query = '';
-        $query = "DROP INDEX IF EXISTS `{$index}`";
+        if ($this->validateIndex($table, $index) > 0) {
+            $query = "DROP INDEX IF EXISTS `{$index}`";
+        }
 
         return $query;
     }

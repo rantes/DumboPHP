@@ -316,7 +316,7 @@ DUMBO;
         $res = $GLOBALS['Connection']->query($query);
         $res->setFetchMode(PDO::FETCH_ASSOC);
         $c = $res->fetchAll();
-        return 0 + $c[0]['indexes'];
+        return (int)$c[0]['indexes'];
     }
     /**
      * Adds single index or index which is nothing but the field name
@@ -328,7 +328,7 @@ DUMBO;
         $query = '';
         $x = $this->ValidateIndex($table, $field);
 
-        if (!$x) {
+        if ($x === 0) {
             $query = "ALTER TABLE `{$table}` ADD INDEX (`{$field}`)";
         }
 
