@@ -1284,6 +1284,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             if ($this->_error->isActived()) return false;
         }
 
+        if (preg_match('@sqlite@', $GLOBALS['Connection']->engine) and isset($this->id)) $this->{$this->pk} = $this->id;
+
         if (!empty($this->{$this->pk})) {
             foreach($this->before_update as $functiontoRun) {
                 $this->{$functiontoRun}();
@@ -1321,9 +1323,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
 
         $this->_sqlQuery = $prepared['query'];
-        $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
 
         try {
+            $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
             if (!$sh->execute($prepared['prepared'])) {
                 $e = $GLOBALS['Connection']->errorInfo();
                 $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
