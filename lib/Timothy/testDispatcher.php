@@ -60,6 +60,7 @@ class testDispatcher {
             $objtest->_init_();
 
             while (null !== ($action = array_shift($actions))):
+                fwrite(STDOUT, "\n{$test} - {$action}: ");
                 $objtest->assertions = 0;
                 $start = microtime(true);
                 $objtest->beforeEach();

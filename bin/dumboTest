@@ -155,6 +155,9 @@ DUMBO;
             endwhile;
         endif;
 
+
+        asort($this->arguments);
+
         if($watch):
             $files = [];
             foreach($this->arguments as $file):

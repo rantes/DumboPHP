@@ -79,6 +79,11 @@ class dumboTests extends Page {
             ob_get_clean();
         endforeach;
     }
+    public function _sow() {
+        require_once INST_PATH.'migrations/seeds.php';
+        $seeds = new Seed();
+        $seeds->sow();
+    }
     /**
      * Output for an error message
      * @param string $errorMessage

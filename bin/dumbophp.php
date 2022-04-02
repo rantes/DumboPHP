@@ -1022,10 +1022,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
 
         if ($obj->_counter === 0) {
+            $aux = clone($obj);
             $obj->offsetSet(0, NULL);
             $obj[0] = NULL;
             unset($obj[0]);
-            foreach ($obj->_fields as $field => $cast):
+            foreach ($aux->_fields as $field => $cast):
                 $obj->{$field} = '';
             endforeach;
         } elseif ($obj->_counter === 1) {
@@ -1331,7 +1332,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
             if (empty($this->{$this->pk})) {
                 $name = preg_match('@sqlite@', $GLOBALS['Connection']->engine) ? 'rowid' : null;
-                $this->{$this->pk} = (int)$GLOBALS['Connection']->lastInsertId($name);
+                $this->id = $this->{$this->pk} = (int)$GLOBALS['Connection']->lastInsertId($name);
                 if (sizeof($this->after_insert) > 0) {
                     foreach ($this->after_insert as $functiontoRun) {
                         $this->{$functiontoRun}();
@@ -2516,6 +2517,7 @@ class index {
                 http_response_code(HTTP_404);
                 echo 'Missing Action';
             }
+            $this->page->_response_code = http_response_code();
         }
     }
 
