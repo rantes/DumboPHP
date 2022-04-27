@@ -45,10 +45,26 @@ class dumboShell{
     private $arguments = [];
     private $params = [];
     private $colors = null;
+    public $shellOutput = true;
 
     public function __construct() {
         $GLOBALS['env'] = 'test';
         $this->colors = new DumboShellColors();
+    }
+
+    private function _logger($source, $message) {
+        if (empty($source) or empty($message) or !is_string($source) or !is_string($message)):
+            return false;
+        endif;
+        $logdir = INST_PATH.'tmp/logs/';
+        is_dir($logdir) or mkdir($logdir, 0777, true);
+        $file = "{$source}.log";
+        $stamp = date('d-m-Y i:s:H');
+
+        file_exists("{$logdir}{$file}") and filesize("{$logdir}{$file}") >= 524288000 and rename("{$logdir}{$file}", "{$logdir}{$stamp}_{$file}");
+        $this->shellOutput and fwrite(STDOUT, "{$message}\n");
+        file_put_contents("{$logdir}{$file}", "[{$stamp}] - {$message}\n", FILE_APPEND);
+        return true;
     }
 
     private function _parseOptions() {
@@ -153,13 +169,30 @@ DUMBO;
                     $this->arguments[] = substr($file, 0, -4);
                 endif;
             endwhile;
+                    //Second level, subdirectories
+            $dir = opendir($path);
+            while(false !== ($file = readdir($dir))):
+                $npath = "{$path}{$file}";
+                if ($file !== '.' and $file !== '..' and is_dir($npath) and is_readable($npath)):
+                    $dir1 = opendir("{$path}{$file}");
+                    if(false !== $dir1):
+                        while(false !== ($file1 = readdir($dir1))):
+                            if($file != '.' and $file != '..' and is_file("{$path}{$file}/{$file1}") and preg_match('/(.+)\.php/', $file1, $matches) === 1):
+                                $this->arguments[] = substr("{$file}/{$file1}", 0, -4);
+                            endif;
+                        endwhile;
+                        closedir($dir1);
+                    endif;
+                endif;
+            endwhile;
+            closedir($dir);
         endif;
-
 
         asort($this->arguments);
 
         if($watch):
             $files = [];
+            $this->_logger('dumboTest_watcher', "Watching for changes in files: \n".implode("\n", $this->arguments));
             foreach($this->arguments as $file):
                 $fullpath = "{$path}{$file}.php";
                 $stats = stat($fullpath);
@@ -173,7 +206,7 @@ DUMBO;
                         $this->showNotice("File changed {$file['path']}");
                         $files[$index]['mtime'] = $stats['mtime'];
                         $tests = implode(' ', $this->arguments);
-                        system("dumbo test {$tests} --dir={$path}");
+                        $this->_runTests($path);
                         $this->showNotice("\nWatching files...");
                     endif;
                 endforeach;
