@@ -1159,6 +1159,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $this->_queryConditions[] = new QueryCondition($params['conditions']);
                 }
             }
+        } else if (is_numeric($params)) {
+            $this->_queryConditions[] = new QueryCondition("`id`={$params}");
         }
     }
     /**
@@ -1168,6 +1170,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function Find($paramsIn = null): ActiveRecord {
         (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
+
+        $this->_queryFields = '*';
+        $this->_queryConditions = [];
 
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
