@@ -1,5 +1,6 @@
 <?php
 defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty($_SERVER['REMOTE_ADDR']));
+define('SQLITE_PREG', '@sqlite@');
 /**
  * This function is to handle transition to php7.4 since this will change the way you call implode
  * Will change on php7.4 official release
@@ -60,7 +61,8 @@ if (!function_exists('getallheaders')) {
  * @return string
  */
 function uuidV4() {
-    return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+    return sprintf(
+        '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
         // 32 bits for "time_low"
         mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
 
@@ -79,6 +81,39 @@ function uuidV4() {
         // 48 bits for "node"
         mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
     );
+}
+class QueryConditionException extends Exception {}
+/**
+ * Construct a condition query
+ */
+class QueryCondition {
+    private $_connector = 'AND';
+    private $_condition = '';
+    private $_key = '';
+
+    public function __construct(string $condition, $connector = 'AND') {
+        $connector = strtoupper(trim($connector));
+        if ($connector !== 'AND' and $connector !== 'OR') {
+            throw new QueryConditionException(
+                "Conditional connector {$connector} is not allowed, The only condition connectors allowed are: AND, OR"
+            );
+        }
+        $this->_connector = $connector;
+        $this->_condition = trim($condition);
+        $this->_key = md5("{$this->_connector} {$this->_condition}");
+    }
+    /**
+     * Magic function to expose as string
+     */
+    public function __toString() {
+        return "{$this->_connector} {$this->_condition}";
+    }
+    /**
+     * Return the key of this condition
+     */
+    public function getKey(): string {
+        return $this->_key;
+    }
 }
 /**
  * Implements the functionalities for translating
@@ -379,7 +414,13 @@ function Plurals($params, &$obj = NULL) {
             } else {
                 $strconv = str_replace('y', 'ies', $string);
             }
-        } elseif (substr($string, -1, 1) == 'x' or substr($string, -1, 1) == 's' or substr($string, -2, 2) == 'ch' or substr($string, -2, 2) == 'sh' or substr($string, -2, 2) == 'ss') {
+        } elseif (
+            substr($string, -1, 1) == 'x'
+            or substr($string, -1, 1) == 's'
+            or substr($string, -2, 2) == 'ch'
+            or substr($string, -2, 2) == 'sh'
+            or substr($string, -2, 2) == 'ss'
+        ) {
             $strconv = $string.'es';
         } else {
             $strconv = $string.'s';
@@ -394,8 +435,8 @@ function Plurals($params, &$obj = NULL) {
  * @param object $obj
  * @return string
  */
-function Singulars($params, &$obj = NULL) {
-    if ($obj == NULL) {
+function Singulars($params, &$obj = null) {
+    if ($obj === null) {
         $string = $params;
     } else {
         $string = $params[0];
@@ -405,16 +446,22 @@ function Singulars($params, &$obj = NULL) {
     if (in_array($string, $GLOBALS['IN']->plural)) {
         $key     = array_search($string, $GLOBALS['IN']->plural);
         $strconv = $GLOBALS['IN']->singular[$key];
-    } elseif (substr($string, -3, 3) == 'ies') {
+    } elseif (substr($string, -3, 3) === 'ies') {
         $strconv = str_replace('ies', 'y', $string);
-    } elseif (substr($string, -2, 2) == 'es') {
+    } elseif (substr($string, -2, 2) === 'es') {
         $test = substr($string, 0, -2);
-        if (substr($test, -1, 1) == 'x' or substr($test, -1, 1) == 's' or substr($test, -2, 2) == 'ch' or substr($test, -2, 2) == 'sh' or substr($test, -2, 2) == 'ss') {
+        if (
+            substr($test, -1, 1) == 'x'
+            or substr($test, -1, 1) == 's'
+            or substr($test, -2, 2) == 'ch'
+            or substr($test, -2, 2) == 'sh'
+            or substr($test, -2, 2) == 'ss'
+        ) {
             $strconv = $test;
         } else {
             $strconv = substr($string, 0, -1);
         }
-    } elseif (substr($string, -1, 1) == 's') {
+    } elseif (substr($string, -1, 1) === 's') {
         $strconv = substr($string, 0, -1);
     } else {
         $strconv = $string;
@@ -427,8 +474,8 @@ function Singulars($params, &$obj = NULL) {
  * @param object $obj
  * @return string
  */
-function Camelize($params, &$obj = NULL) {
-    if ($obj === NULL) {$string = $params;
+function Camelize($params, &$obj = null) {
+    if ($obj === null) {$string = $params;
     } else {
         $string = $params[0];
     }
@@ -613,7 +660,8 @@ class Connection extends PDO {
             break;
             default:
                 empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
-                empty($this->_settings['port']) or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
+                empty($this->_settings['port'])
+                    or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
 
                 $charset = $dialect = '';
 
@@ -704,26 +752,26 @@ class Connection extends PDO {
  * @package Core
  */
 class Errors {
-    private $actived  = FALSE;
+    private $actived  = false;
     private $messages = [];
     private $counter  = 0;
     public function add($params) {
         if ($params === NULL or !is_array($params)):
-            throw new Exception("Must to give an array with the params to add.");
+            throw new Exception('Must to give an array with the params to add.');
         else :
             if (isset($params['field']) and isset($params['message'])):
                 $this->messages[$params['field']][] = array('message' => $params['message'], 'code' => isset($params['code'])?$params['code']:'');
                 $this->counter++;
                 $this->actived = TRUE;
             else :
-                throw new Exception("Must to give an array with the params to add.");
+                throw new Exception('Must to give an array with the params to add.');
             endif;
         endif;
     }
     public function __toString() {
         $msgs = [];
 
-        foreach ($this->messages as $field => $messages) {
+        foreach ($this->messages as $messages) {
             foreach ($messages as $message) {
                 $msgs[] = $message['message'];
             }
@@ -735,7 +783,7 @@ class Errors {
     }
     public function errCodes() {
         $errorsCodes = [];
-        foreach ($this->messages as $field => $messages) {
+        foreach ($this->messages as $messages) {
             foreach ($messages as $message) {
                 $errorCodes[] = $message['code'];
             }
@@ -792,7 +840,7 @@ abstract class Core_General_Class extends ArrayObject {
                 require_once INST_PATH.'app/models/'.$field.'.php';
             }
             $obj1       = new $classFromCall();
-            $conditions = "1=1";
+            $conditions = '1=1';
             if (method_exists($obj1, 'Find')) {
                 if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)  && !empty($this->{$foreign})) {
                     $conditions = ($way == 'up')?"`{$this->pk}`='".$this->{$foreign} ."'":$conditions;
@@ -829,25 +877,16 @@ $GLOBALS['models'] = [];
  *
  */
 abstract class ActiveRecord extends Core_General_Class implements JsonSerializable {
-    public $PaginatePageVarName = 'page';
-    public $PaginateTotalItems  = 0;
-    public $PaginateTotalPages  = 0;
-    public $PaginatePageNumber  = 1;
-    public $paginateURL         = '/';
-    public $driver              = NULL;
-    public $_error              = NULL;
-    public $_sqlQuery           = '';
-    public $candump             = true;
-    public $id = null;
+    private $_paginatePrevChar  = '&lt;';
+    private $_paginateNextChar  = '&gt;';
+    private $_paginateFirstChar  = '|&lt;&lt;';
+    private $_paginateLastChar  = '&gt;&gt;|';
+    private $_validate = true;
+    private $_queryConditions = [];
+    private $_queryFields = '*';
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
-    public $has_many                = [];
-    public $has_one                 = [];
-    public $belongs_to              = [];
-    public $has_many_and_belongs_to = [];
-    public $validate                = [];
-    public $disableCast = true;
     protected $before_insert           = [];
     protected $after_insert            = [];
     protected $before_update           = [];
@@ -860,25 +899,40 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     protected $after_delete            = [];
     protected $dependents              = '';
     protected $_dataAttributes         = [];
-    protected $_params                 = array('fields' => '*', 'conditions' => '');
+    protected $_params                 = ['fields' => '*', 'conditions' => ''];
     protected $pk                      = 'id';
     protected $escapeField             = [];
     protected $_fields                 = [];
     protected $_preparedQuery = [];
-    private $_paginatePrevChar  = '&lt;';
-    private $_paginateNextChar  = '&gt;';
-    private $_paginateFirstChar  = '|&lt;&lt;';
-    private $_paginateLastChar  = '&gt;&gt;|';
-    private $_validate = true;
+    public $PaginatePageVarName = 'page';
+    public $PaginateTotalItems  = 0;
+    public $PaginateTotalPages  = 0;
+    public $PaginatePageNumber  = 1;
+    public $paginateURL         = '/';
+    public $driver              = null;
+    public $_error              = null;
+    public $_sqlQuery           = '';
+    public $candump             = true;
+    public $id = null;
+    public $has_many                = [];
+    public $has_one                 = [];
+    public $belongs_to              = [];
+    public $has_many_and_belongs_to = [];
+    public $validate                = [];
+    public $disableCast = true;
 
     public function _init_() {}
 
     public final function __construct($fields = null) {
+        $this->_error = new Errors;
+        $this->_init_();
+        $this->_counter = 0;
+
         $name = get_class($this);
 
         if (empty($GLOBALS['models'][$name])) {
             $className       = unCamelize($name);
-            $words           = explode("_", $className);
+            $words           = explode('_', $className);
             $i               = sizeof($words)-1;
             $words[$i]       = Plurals($words[$i]);
             $GLOBALS['models'][$name]['tableName'] = imploder('_', $words);
@@ -887,13 +941,14 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (empty($this->_ObjTable)) {
             $this->_ObjTable = $GLOBALS['models'][$name]['tableName'];
         }
+
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 
         if (empty($GLOBALS['Connection'])):
             $GLOBALS['Connection'] = new Connection();
         endif;
 
-        if(preg_match('@sqlite@', $GLOBALS['Connection']->engine)):
+        if(preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine)):
             $this->pk = 'rowid';
             $this->rowid = null;
         endif;
@@ -909,9 +964,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         } else {
             $this->_fields = $fields;
         }
-        $this->_error = new Errors;
-        $this->_init_();
-        $this->_counter = 0;
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
@@ -987,14 +1039,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $sh->execute($data);
 
             $cols = $sh->columnCount();
-            // $rows = $sh->rowCount();
 
             $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($obj));
             $resultset = $sh->fetchAll();
 
-            if (preg_match('@sqlite@', $GLOBALS['Connection']->engine)):
-                // $rows = sizeof($resultset);
-                foreach($this->_fields as $field => $cast) {
+            if (preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine)):
+                foreach ($this->_fields as $field => $cast) {
                     $obj->_set_columns([
                         'native_type' => 'VAR_STRING',
                         'name' => $field
@@ -1007,12 +1057,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             endif;
 
-            $obj->_counter = sizeof($resultset);;
+            $obj->_counter = sizeof($resultset);
 
             $sh->closeCursor();
             $obj->exchangeArray($resultset);
         } catch (PDOException $e) {
-            foreach($this->_fields as $field => $cast) {
+            foreach ($this->_fields as $field => $cast) {
                 $obj->_set_columns([
                     'native_type' => 'VAR_STRING',
                     'name' => $field
@@ -1023,8 +1073,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         if ($obj->_counter === 0) {
             $aux = clone($obj);
-            $obj->offsetSet(0, NULL);
-            $obj[0] = NULL;
+            $obj->offsetSet(0, null);
+            $obj[0] = null;
             unset($obj[0]);
             foreach ($aux->_fields as $field => $cast):
                 $obj->{$field} = '';
@@ -1035,7 +1085,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $obj->{$field} = $obj[0]->{$field};
                 }
             }
-            if(preg_match('@sqlite@', $GLOBALS['Connection']->engine) and isset($obj[0]->rowid)) {
+            if(preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine) and isset($obj[0]->rowid)) {
                 $obj->rowid = $obj[0]->rowid;
             }
         }
@@ -1048,12 +1098,75 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         return $obj;
     }
+    public function and(string $condition): ActiveRecord {
+        $this->_queryConditions[] = new QueryCondition($condition, 'AND');
+        return $this;
+    }
+    public function or(string $condition): ActiveRecord {
+        $this->_queryConditions[] = new QueryCondition($condition, 'OR');
+        return $this;
+    }
+
+    private function _buildConditions(array $mainConditions): void {
+        $operator = '=';
+        $_condition = '';
+        $connector = 'AND';
+
+        foreach($mainConditions as $conn => $condition) {
+            $operator = '=';
+            is_numeric($conn) or ($connector = strtoupper($conn));
+            if(sizeof($condition) > 2) {
+                $operator = strtoupper($condition[1]);
+                unset($condition[1]);
+            }
+            $field = array_shift($condition);
+            $_condition = "{$field} {$operator} ";
+
+            if(preg_match('@BETWEEN@i', $operator) === 1) {
+                $_condition = "{$_condition}{$condition[0]} AND {$condition[1]}";
+                $values[] = $condition[0];
+                $values[] = $condition[1];
+            } elseif(preg_match('@IN@i', $operator) === 1) {
+                $_condition = "{$_condition}(";
+                $condition = $condition[0];
+                while(null !== ($item = array_shift($condition))) {
+                    $conditions = "{$_condition}{$item},";
+                    $values[] = $item;
+                }
+                $_condition = substr($_condition, 0, -1);
+                $_condition = "{$_condition})";
+            } else {
+                $value = array_shift($condition);
+                $_condition = "{$_condition}'{$value}'";
+                $values[] = $value;
+            }
+
+            $this->_queryConditions[] = new QueryCondition($_condition, $connector);
+        }
+    }
+    /**
+     * Sets the query conditions for select query
+     * @param params
+     */
+    private function _prepareSelectParams($params) {
+        if (is_array($params)) {
+            $this->_queryFields = $params['fields'] ?? '*';
+    
+            if (!empty($params['conditions'])) {
+                if (is_array($params['conditions'])) {
+                    $this->_buildConditions($params['conditions']);
+                } else {
+                    $this->_queryConditions[] = new QueryCondition($params['conditions']);
+                }
+            }
+        }
+    }
     /**
      * Performs the select queries to the database according to the given params
-     * @param array|integer $params
+     * @param array|integer $paramsIn
      * @return ActiveRecord
      */
-    public function Find($params = NULL) {
+    public function Find($paramsIn = null): ActiveRecord {
         (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
 
         if (sizeof($this->before_find) > 0) {
@@ -1061,6 +1174,34 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $this->{$functiontoRun}();
             }
         }
+
+        $this->_prepareSelectParams($paramsIn);
+
+        $params = [
+            'fields' => $this->_queryFields,
+            'conditions' => trim(implode(' ', $this->_queryConditions))
+        ];
+
+        if (isset($paramsIn[0])) {
+            $params[0] = $paramsIn[0];
+        }
+
+        if (isset($paramsIn['join'])) {
+            $params['join'] = $paramsIn['join'];
+        }
+
+        if (isset($paramsIn['sort'])) {
+            $params['sort'] = $paramsIn['sort'];
+        }
+
+        if (isset($paramsIn['group'])) {
+            $params['group'] = $paramsIn['group'];
+        }
+
+        if (isset($paramsIn['limit'])) {
+            $params['limit'] = $paramsIn['limit'];
+        }
+
         $prepared = $GLOBALS['driver']->Select($params, $this->_ObjTable, $this->pk);
         $this->_sqlQuery = $prepared['query'];
         $x = $this->getData($prepared['prepared'], $prepared['data']);
@@ -1081,7 +1222,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public function Find_by_SQL($query) {
         if (!is_string($query)) {
             throw new Exception('The query must be an string');
-            exit;
         } else {
             $this->_sqlQuery = $query;
             $x = $this->getData($query, []);
@@ -1284,7 +1424,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             if ($this->_error->isActived()) return false;
         }
 
-        if (preg_match('@sqlite@', $GLOBALS['Connection']->engine) and isset($this->id)) $this->{$this->pk} = $this->id;
+        if (preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine) and isset($this->id)) $this->{$this->pk} = $this->id;
 
         if (!empty($this->{$this->pk})) {
             foreach($this->before_update as $functiontoRun) {
@@ -1317,7 +1457,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             while (null !== ($field = array_shift($fields))) {
                 $field != $this->pk && isset($this->{$field}) && ($data[$field] = $this->{$field});
             }
-            if (preg_match('@sqlite@', $GLOBALS['Connection']->engine) and isset($data['id'])) unset($data['id']);
+            if (preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine) and isset($data['id'])) unset($data['id']);
 
             $prepared = $GLOBALS['driver']->Insert($data, $this->_ObjTable);
         }
@@ -1333,7 +1473,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
 
             if (empty($this->{$this->pk})) {
-                $name = preg_match('@sqlite@', $GLOBALS['Connection']->engine) ? 'rowid' : null;
+                $name = preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine) ? 'rowid' : null;
                 $this->id = $this->{$this->pk} = (int)$GLOBALS['Connection']->lastInsertId($name);
                 if (sizeof($this->after_insert) > 0) {
                     foreach ($this->after_insert as $functiontoRun) {
@@ -1500,14 +1640,16 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                                         'field' => $this->_ObjTable,
                                         'message' => 'Cannot delete dependents'
                                     ]);
-                                    return FALSE;
+                                    return false;
                                 }
                             break;
                             case 'nullify':
                                 $child->{$this->_ObjTable.'_id'} = '';
                                 if (!$child->Save()) {
-                                    $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Cannot nullify dependents"));
-                                    return FALSE;
+                                    $this->_error->add(
+                                        ['field' => $this->_ObjTable, 'message' => 'Cannot nullify dependents']
+                                    );
+                                    return false;
                                 }
                             break;
                         }
@@ -1750,19 +1892,28 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $params = $params[0];
         }
 
+        if (isset($params['conditions']) and strlen(trim($params['conditions'])) === 0) {
+            $params['conditions'] = null;
+            unset($params['conditions']);
+        } else {
+            $this->_prepareSelectParams($params);
+            $params['conditions'] = implode(' ', $this->_queryConditions);
+        }
+        $params['fields'] = $this->_queryFields;
+
         $fullquery = $GLOBALS['driver']->Select($params, $this->_ObjTable);
         $queryCount = $GLOBALS['driver']->RowCountOnQuery($fullquery['query']);
         $regs = $this->Find_by_SQL($queryCount);
 
         $request = parse_url(_FULL_URL);
-
         $per_page = empty($params['per_page'])? 10 : (int)$params['per_page'];
         isset($params['prevChar']) && ($this->_paginatePrevChar = $params['prevChar']);
         isset($params['nextChar']) && ($this->_paginateNextChar = $params['nextChar']);
         isset($params['forwardChar']) && ($this->_paginateLastChar = $params['forwardChar']);
         isset($params['backwardChar']) && ($this->_paginateFirstChar = $params['backwardChar']);
 
-        $this->paginateURL = empty($params['url'])? "{$request['scheme']}://{$request['host']}{$request['path']}" : $params['url'];
+        $this->paginateURL = empty($params['url'])?
+            "{$request['scheme']}://{$request['host']}{$request['path']}" : $params['url'];
 
         empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
         if (!empty($_GET[$this->PaginatePageVarName])) {
@@ -1775,6 +1926,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $start = ($this->PaginatePageNumber - 1) * $per_page;
 
         $params['limit'] = $start.",".$per_page;
+        
+        $params['conditions'] = null;
+        unset($params['conditions']);
         $data = $this->Find($params);
 
         $data->PaginateTotalItems = $regs->rows;

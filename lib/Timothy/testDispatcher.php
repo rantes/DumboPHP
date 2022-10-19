@@ -1,4 +1,16 @@
 <?php
+class ActionTest {
+    public $name = '';
+    public $line = '';
+    function __construct($name = '', $line = 0) {
+        $this->name = $name;
+        $this->line = $line;
+    }
+
+    public function __toString() {
+        return $this->name;
+    }
+}
 class testDispatcher {
     public $assertions = 0;
     public $filename = '';
@@ -28,9 +40,11 @@ class testDispatcher {
             $this->_testsPath = $path;
             while (null !== ($test = array_shift($tests))):
                 $file = "{$test}.php";
+                $exploded = explode('/', $test);
+                $class = array_pop($exploded);
                 $pathname = "{$this->_testsPath}{$file}";
                 require $pathname;
-                $this->{$test} = new $test("{$this->_logPath}{$this->_logFile}");
+                $this->{$class} = new $class("{$this->_logPath}{$this->_logFile}");
             endwhile;
         } catch (Throwable $e) {
             $this->_failed = true;
@@ -48,14 +62,21 @@ class testDispatcher {
         $actions = [];
 
         try {
-            $methods = get_class_methods($this->{$test});
+            $exploded = explode('/', $test);
+            $class = array_pop($exploded);
+            $reflectedClass = new ReflectionClass($class);
+            $methods = get_class_methods($this->{$class});
             $this->tests = 0;
             while (null !== ($method = array_shift($methods))):
                 preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
-                (sizeof($match) === 1) && ($actions[] = $method) && $this->tests++;
+                if (sizeof($match) === 1) {
+                    $rMethod = $reflectedClass->getMethod($method);
+                    $actions[] = new ActionTest($method, $rMethod->getStartLine());
+                    $this->tests++;
+                }
             endwhile;
 
-            $objtest = $this->{$test};
+            $objtest = $this->{$class};
             $GLOBALS['env'] = 'test';
             $objtest->_init_();
 
@@ -64,12 +85,13 @@ class testDispatcher {
                 $objtest->assertions = 0;
                 $start = microtime(true);
                 $objtest->beforeEach();
-                $objtest->{$action}();
+                $objtest->{$action->name}();
                 $took = microtime(true) - $start;
                 $this->_failed = ($this->_failed || $objtest->_failed > 0);
                 $this->fails += $objtest->_failed;
                 $this->actions[] = [
-                    'test' => $action,
+                    'test' => $action->name,
+                    'line' => $action->line,
                     'time' => $took,
                     'assertions' => $objtest->assertions,
                     'fails' => $objtest->_failed

@@ -46,59 +46,19 @@ class sqliteDriver {
                     $tail = ' WHERE 1=1';
                     $operator = '=';
                     $conditions = ' ';
-                    $connector = 'AND';
-                    if(!empty($this->_params['conditions'])){
-                        if (is_string($this->_params['conditions'])) {
-                            $prepared = $tail = "{$tail} AND {$this->_params['conditions']}";
-                        } elseif(is_array($this->_params['conditions'])){
-                            foreach($this->_params['conditions'] as $conn => $condition) {
-                                $operator = '=';
-                                is_numeric($conn) or ($connector = strtoupper($conn));
-                                if(sizeof($condition) > 2) {
-                                    $operator = strtoupper($condition[1]);
-                                    unset($condition[1]);
-                                }
-                                $field = array_shift($condition);
-                                $prepared .= " {$connector} {$field} {$operator} ";
-                                $conditions .= " {$connector} {$field} {$operator} ";
-
-                                if(preg_match('@BETWEEN@i', $operator) === 1) {
-                                    $conditions .= "{$condition[0]} AND {$condition[1]}";
-                                    $prepared .= '? AND ?';
-                                    $values[] = $condition[0];
-                                    $values[] = $condition[1];
-                                } elseif(preg_match('@IN@i', $operator) === 1) {
-                                    $conditions .= '( ';
-                                    $prepared .= '( ';
-                                    $condition = $condition[0];
-                                    while(null !== ($item = array_shift($condition))) {
-                                        $conditions .= "{$item},";
-                                        $prepared .= '?,';
-                                        $values[] = $item;
-                                    }
-                                    $conditions = substr($conditions, 0, -1);
-                                    $prepared = substr($prepared, 0, -1);
-                                    $conditions .= ')';
-                                    $prepared .= ')';
-                                } else {
-                                    $value = array_shift($condition);
-                                    $conditions .= "'{$value}'";
-                                    $prepared .= '?';
-                                    $values[] = $value;
-                                }
-                            }
-
-                            $prepared = "{$tail}{$prepared}";
-                            $tail = "{$tail}{$conditions}";
-                        }
+                    if(!empty($this->_params['conditions']) and is_string($this->_params['conditions']) and strlen(trim($this->_params['conditions'])) > 0) {
+                        $prepared = $tail = "{$tail} {$this->_params['conditions']}";
                     }
-                    if(!empty($this->_params['join'])){
+
+                    if(!empty($this->_params['join'])) {
                         $body .= $this->_params['join'];
                     }
+
                     if(isset($this->_params['group'])){
                         $tail .= " GROUP BY {$this->_params['group']}";
                         $prepared .= " GROUP BY {$this->_params['group']}";
                     }
+
                     if(isset($this->_params['sort'])){
                         switch (gettype($this->_params['sort'])){
                             case 'string':

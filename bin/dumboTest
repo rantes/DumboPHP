@@ -325,7 +325,7 @@ DUMBO;
                     $testCase->setAttribute('class', $test);
                     $testCase->setAttribute('classname', $test);
                     $testCase->setAttribute('file', $testLaunch->filepathname);
-                    $testCase->setAttribute('line', 0);
+                    $testCase->setAttribute('line', $case['line']);
                     $testCase->setAttribute('assertions', $case['assertions']);
                     $testCase->setAttribute('time', $case['time']);
                     $suite->appendChild($testCase);
@@ -375,32 +375,46 @@ DUMBO;
             $projectTag->appendChild($package);
 
             //coverage
-            /**
-             * @TODO the phtml files should be removed
-             */
             foreach($coverageResult as $entry => $lines):
+                    $fileContent = new SplFileObject($entry);
+                    $fileName = Camelize(basename($entry, '.php'));
                     $fileTag = $coverageReport->createElement('file');
                     $fileTag->setAttribute('name', $entry);
                     $package->appendChild($fileTag);
 
                     $classTag = $coverageReport->createElement('class');
-                    $classTag->setAttribute('name', Camelize(basename($entry, '.php')));
-                    $classTag->setAttribute('namespace', 'tests');
+                    $classTag->setAttribute('name', $fileName);
+                    $classTag->setAttribute('namespace', 'App');
                     $fileTag->appendChild($classTag);
                     $classInfo = $this->_getMethodLines($entry);
 
                     $fileLines = 0;
                     $linesCovered = [];
                     foreach($lines as $line => $hit):
-                        if($hit === 1):
-                            $linesCovered[] = $line;
-                            $lineTag = $coverageReport->createElement('line');
-                            $lineTag->setAttribute('num', $line);
-                            $lineTag->setAttribute('type', 'stmt');
-                            $lineTag->setAttribute('count', 3);
-                            $fileTag->appendChild($lineTag);
-                            $fileLines++;
-                        endif;
+                        switch ($hit):
+                            case 1:
+                                $linesCovered[] = $line;
+                                $lineTag = $coverageReport->createElement('line');
+                                $lineTag->setAttribute('num', $line);
+                                $lineTag->setAttribute('type', 'stmt');
+                                $lineTag->setAttribute('count', 3);
+                                $fileTag->appendChild($lineTag);
+                                $fileLines++;
+                            break;
+                            // case -2:
+                            //     $fileContent->seek(($line - 1));
+                            //     $lineText = trim($fileContent->current());
+                            //     if(preg_match('@(\}|function|{)@i', $lineText) === 1):
+                            //         $linesCovered[] = $line;
+                            //         $lineTag = $coverageReport->createElement('line');
+                            //         $lineTag->setAttribute('num', $line);
+                            //         $lineTag->setAttribute('type', 'stmt');
+                            //         $lineTag->setAttribute('count', 0);
+                            //         $fileTag->appendChild($lineTag);
+                            //         $fileLines++;
+                            //     endif;
+                            // break;
+                        endswitch;
                     endforeach;
 
                     $coveredMethods = 0;

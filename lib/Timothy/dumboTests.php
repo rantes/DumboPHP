@@ -262,19 +262,24 @@ DUMBO;
         $result = $this->_colors->getColoredString($text, $this->_colorsPalete[!$this->_failed]);
         $this->_log($result);
     }
-
+    /**
+     * Will exit and return an integer code to the console
+     * if no failed any test, the return code will be 0.
+     */
     public function __destruct() {
-        // exit(0 + !!$this->_failed);
+        exit((int)$this->_failed);
     }
-
+    /**
+     * Will performs any action before each test
+     * @return void
+     */
     public function beforeEach() {}
 
     /**
      * Redefines a method to set an spy
-     *
+     * @todo Implements object spy
      * @param Page $controller
      * @param string $method
-     * @param Closure $closure
      * @return void
      */
     public function spyOn(Page $controller, $method) {
