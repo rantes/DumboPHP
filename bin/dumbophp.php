@@ -99,7 +99,7 @@ class QueryCondition {
             );
         }
         $this->_connector = $connector;
-        $this->_condition = trim($condition);
+        $this->_condition = preg_replace('@[\s]{2,}@i', ' ', str_replace("\n", ' ', trim($condition)));
         $this->_key = md5("{$this->_connector} {$this->_condition}");
     }
     /**
@@ -1153,7 +1153,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     private function _prepareSelectParams($params) {
         if (is_array($params)) {
             $this->_queryFields = $params['fields'] ?? "{$this->_ObjTable}.*";
-    
+
             if (!empty($params['conditions'])) {
                 if (is_array($params['conditions'])) {
                     $this->_buildConditions($params['conditions']);
@@ -1185,6 +1185,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             'fields' => $this->_queryFields,
             'conditions' => trim(implode(' ', $this->_queryConditions))
         ];
+
 
         if (isset($paramsIn[0])) {
             $params[0] = $paramsIn[0];
@@ -1926,8 +1927,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $params['limit'] = $start.",".$per_page;
         
-        $params['conditions'] = null;
-        unset($params['conditions']);
+        if (!empty($params['conditions'])) {
+            $params['conditions'] = preg_replace('@^and\s@i', '', $params['conditions']);
+        }
         $data = $this->Find($params);
 
         $data->PaginateTotalItems = $regs->rows;
