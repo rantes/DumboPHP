@@ -883,7 +883,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     private $_paginateLastChar  = '&gt;&gt;|';
     private $_validate = true;
     private $_queryConditions = [];
-    private $_queryFields = '*';
+    private $_queryFields = null;
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
@@ -1096,6 +1096,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 }
             }
         }
+        $this->_queryFields = "{$this->_ObjTable}.*";
+        $this->_queryConditions = [];
         return $obj;
     }
     public function and(string $condition): ActiveRecord {
@@ -1150,7 +1152,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     private function _prepareSelectParams($params) {
         if (is_array($params)) {
-            $this->_queryFields = $params['fields'] ?? '*';
+            $this->_queryFields = $params['fields'] ?? "{$this->_ObjTable}.*";
     
             if (!empty($params['conditions'])) {
                 if (is_array($params['conditions'])) {
@@ -1170,9 +1172,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function Find($paramsIn = null): ActiveRecord {
         (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
-
-        $this->_queryFields = '*';
-        $this->_queryConditions = [];
 
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
@@ -1897,14 +1896,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $params = $params[0];
         }
 
-        if (isset($params['conditions']) and strlen(trim($params['conditions'])) === 0) {
-            $params['conditions'] = null;
-            unset($params['conditions']);
-        } else {
-            $this->_prepareSelectParams($params);
-            $params['conditions'] = implode(' ', $this->_queryConditions);
-        }
-        $params['fields'] = $this->_queryFields;
+        $this->_prepareSelectParams($params);
+        $params['fields'] = $this->_queryFields ?? "{$this->_ObjTable}.*";
+        $params['conditions'] = trim(implode(' ', $this->_queryConditions));
 
         $fullquery = $GLOBALS['driver']->Select($params, $this->_ObjTable);
         $queryCount = $GLOBALS['driver']->RowCountOnQuery($fullquery['query']);
@@ -2560,7 +2554,7 @@ class index {
         if (defined('SITE_STATUS') and SITE_STATUS == 'MAINTENANCE') {
             $urlToLand = explode('/', LANDING_PAGE);
             $replace   = false;
-            if (LANDING_REPLACE == 'ALL') {
+            if (LANDING_REPLACE === 'ALL') {
                 $replace = true;
             } else {
                 $locations = explode(',', LANDING_REPLACE);
@@ -2626,7 +2620,7 @@ class index {
                 }
             }
             $action = $this->page->_getAction_();
-            if (method_exists($this->page, $action."Action")) {
+            if (method_exists($this->page, "{$action}Action")) {
                 if(!$this->page->PreventLoad()){
                     $actionToRun = "{$action}Action";
                     $this->page->{$actionToRun}();
