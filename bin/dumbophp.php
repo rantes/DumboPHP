@@ -1131,11 +1131,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             } elseif(preg_match('@IN@i', $operator) === 1) {
                 $_condition = "{$_condition}(";
                 $condition = $condition[0];
+
+                $conditionsArr = [];
                 while(null !== ($item = array_shift($condition))) {
-                    $conditions = "{$_condition}{$item},";
+                    $conditionsArr[] = "'{$item}'";
                     $values[] = $item;
                 }
-                $_condition = substr($_condition, 0, -1);
+                $_condition .= implode(',', $conditionsArr);
                 $_condition = "{$_condition})";
             } else {
                 $value = array_shift($condition);
