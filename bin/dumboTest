@@ -45,6 +45,7 @@ class dumboShell{
     private $arguments = [];
     private $params = [];
     private $colors = null;
+    private $_failed = false;
     public $shellOutput = true;
 
     public function __construct() {

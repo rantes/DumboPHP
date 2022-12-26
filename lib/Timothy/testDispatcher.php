@@ -25,6 +25,7 @@ class testDispatcher {
     private $_halt = false;
     private $_logPath = '/tmp/';
     private $_logFile = 'dumbotests.log';
+    private $_tests = [];
     /**
      *
      * @param array $tests
@@ -44,7 +45,7 @@ class testDispatcher {
                 $class = array_pop($exploded);
                 $pathname = "{$this->_testsPath}{$file}";
                 require $pathname;
-                $this->{$class} = new $class("{$this->_logPath}{$this->_logFile}");
+                $this->_tests[$class] = new $class("{$this->_logPath}{$this->_logFile}");
             endwhile;
         } catch (Throwable $e) {
             $this->_failed = true;
@@ -65,7 +66,7 @@ class testDispatcher {
             $exploded = explode('/', $test);
             $class = array_pop($exploded);
             $reflectedClass = new ReflectionClass($class);
-            $methods = get_class_methods($this->{$class});
+            $methods = get_class_methods($this->_tests[$class]);
             $this->tests = 0;
             while (null !== ($method = array_shift($methods))):
                 preg_match('/[a-zA-Z0-9]+Test/', $method, $match);
@@ -76,7 +77,7 @@ class testDispatcher {
                 }
             endwhile;
 
-            $objtest = $this->{$class};
+            $objtest = $this->_tests[$class];
             $GLOBALS['env'] = 'test';
             $objtest->_init_();
 

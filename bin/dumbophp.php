@@ -5,7 +5,7 @@ define('SQLITE_PREG', '@sqlite@');
  * This function is to handle transition to php7.4 since this will change the way you call implode
  * Will change on php7.4 official release
  */
-function imploder($glue = '', array $pieces ) {
+function imploder($glue, array $pieces ) {
     return (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70400) ? implode($glue, $pieces) : implode($pieces, $glue);
 }
 
@@ -634,6 +634,7 @@ trait DumboSysConfig {
  * @package Core
  *
  */
+#[AllowDynamicProperties]
 class Connection extends PDO {
     use DumboSysConfig;
     public $_settings = null;
@@ -804,6 +805,7 @@ class Errors {
 /**
  * Dumbo Core
  */
+#[AllowDynamicProperties]
 abstract class Core_General_Class extends ArrayObject {
     use DumboSysConfig;
     /**
@@ -814,10 +816,11 @@ abstract class Core_General_Class extends ArrayObject {
      * @return void
      */
     public function __call($ClassName, $val = NULL) {
-        $field         = Singulars(strtolower($ClassName));
+        $field = Singulars(strtolower($ClassName));
         $classFromCall = Camelize($ClassName);
-        $conditions    = '';
-        $params        = [];
+        $conditions = '';
+        $params = [];
+
         if (file_exists(INST_PATH.'app/models/'.$field.'.php')) {
             $way = 'down';
             if (!empty($val[0])) {
@@ -827,7 +830,7 @@ abstract class Core_General_Class extends ArrayObject {
                         $way = $val[0];
                         break;
                     case ':first':
-                        $params = array(':first');
+                        $params = [':first'];
                         break;
                     default:
                         $params = $val[0];
@@ -863,7 +866,12 @@ abstract class Core_General_Class extends ArrayObject {
         } else {
             return $ClassName($val, $this);
         }
+
     }
+
+    // public function rewind(): void {
+    //     $this->_it_pos = 0;
+    // }
 }
 $GLOBALS['models'] = [];
 /**
@@ -920,6 +928,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $has_many_and_belongs_to = [];
     public $validate                = [];
     public $disableCast = true;
+    public $rowid = null;
 
     public function _init_() {}
 
@@ -990,6 +999,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         return true;
     }
+    #[ReturnTypeWillChange]
     public function jsonSerialize() {
         return $this->getArray();
     }
@@ -1020,8 +1030,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * {@inheritDoc}
      * @see ArrayObject::getIterator()
      */
+    #[ReturnTypeWillChange]
     public function getIterator() {
-        return new ArrayIterator($this);
+        return new \ArrayIterator($this);
     }
     /**
      * Fetch the data with the providen query
@@ -1666,6 +1677,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         return true;
     }
+    #[ReturnTypeWillChange]
     public function __debugInfo() {
         $this->inspect();
     }
@@ -2303,7 +2315,7 @@ abstract class Migrations extends Core_General_Class {
     private $_table = '';
     public $_fields;
 
-    private final function connect() {
+    private function connect() {
         if (empty($GLOBALS['Connection'])) {
             $GLOBALS['Connection'] = new Connection();
             require_once imploder(DIRECTORY_SEPARATOR, [dirname(__FILE__),'../lib', 'db_drivers', $GLOBALS['Connection']->engine.'.php']);
@@ -2315,7 +2327,7 @@ abstract class Migrations extends Core_General_Class {
         }
     }
 
-    private final function _runQuery($query) {
+    private function _runQuery($query) {
         echo 'Running query: ', $query, PHP_EOL;
         if ($GLOBALS['Connection']->exec($query) === false) {
             fwrite(STDERR, $GLOBALS['Connection']->errorInfo() . PHP_EOL);

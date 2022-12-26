@@ -11,7 +11,7 @@ class sqliteDriver {
         return "PRAGMA table_info({$table})";
     }
 
-    public function Select($params = null, $table, $pk = 'rowid') {
+    public function Select($params, $table, $pk = 'rowid') {
         $this->_params = $params;
 
         $tail = '';
@@ -90,8 +90,8 @@ class sqliteDriver {
         return ['query' => $sql, 'prepared' => $prepared, 'data' => $values];
     }
 
-    public function Update($params = null, $table, $pk = 'id') {
-        $prepared = array();
+    public function Update($params, $table, $pk = 'id') {
+        $prepared = [];
         $query = 'UPDATE `'.$table.'` SET ';
         foreach ($params['data'] as $field => $value) {
             if($field != $pk &&  $value !== null){
@@ -108,7 +108,7 @@ class sqliteDriver {
     }
 
     public function Insert($params, $table) {
-        $prepared = array();
+        $prepared = [];
         $fields = '';
         $values = '';
         $action = 'INSERT';

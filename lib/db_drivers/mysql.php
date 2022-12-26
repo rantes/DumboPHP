@@ -15,7 +15,7 @@ class mysqlDriver {
     /**
      * 
      */
-    public function Select($params = null, $table, $pk = 'id') {
+    public function Select($params, $table, $pk = 'id') {
         $this->_params = $params;
 
         $tail = '';
@@ -96,7 +96,7 @@ class mysqlDriver {
         return ['query' => $sql, 'prepared' => $prepared, 'data' => $values];
     }
 
-    public function Update($params = null, $table, $pk = 'id') {
+    public function Update($params, $table, $pk = 'id') {
         $prepared = array();
         $query = 'UPDATE `'.$table.'` SET ';
         foreach ($params['data'] as $field => $value) {
