@@ -613,12 +613,12 @@ function GetInput($type, &$obj = NULL) {
  */
 trait DumboSysConfig {
     /** stores the env config values */
-    private $__sys_conf_values__ = [];
+    public $__sys_conf_values__ = [];
     /**
      * Retrieves a config value if not exists, returns a default value given
      *
      * @param string $key
-     * @param string $default
+     * @param any $default
      * @return string
      */
     public function _sysConfig(string $key, $default = null) {
@@ -626,6 +626,12 @@ trait DumboSysConfig {
         $rval = $this->__sys_conf_values__[$key] ?? $default;
 
         return $rval;
+    }
+    /**
+     * Set all config values from .env file
+     */
+    public function _setAllConfigValues() {
+        $this->__sys_conf_values__ = parse_ini_file(INST_PATH.'.env');
     }
 }
 /**
@@ -643,6 +649,7 @@ class Connection extends PDO {
     function __construct() {
         empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
         $databases = [];
+        $this->_setAllConfigValues();
 
         require INST_PATH.'config/db_settings.php';
         if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
@@ -868,10 +875,6 @@ abstract class Core_General_Class extends ArrayObject {
         }
 
     }
-
-    // public function rewind(): void {
-    //     $this->_it_pos = 0;
-    // }
 }
 $GLOBALS['models'] = [];
 /**
@@ -929,10 +932,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $validate                = [];
     public $disableCast = true;
     public $rowid = null;
+    public $created_at = 0;
+    public $updated_at = 0;
 
     public function _init_() {}
 
     public final function __construct($fields = null) {
+        $this->_setAllConfigValues();
         $this->_error = new Errors;
         $this->_init_();
         $this->_counter = 0;
@@ -2171,6 +2177,7 @@ abstract class Page extends Core_General_Class {
 
     public function __construct() {
         $this->Vendor = new Vendor();
+        $this->_setAllConfigValues();
     }
 
     public function __get($var) {
@@ -2526,6 +2533,7 @@ class index {
     use DumboSysConfig;
     public $page = null;
     public function __construct() {
+        $this->_setAllConfigValues();
         http_response_code(HTTP_200);
         if (!empty($_GET['url'])) {
             $_GET['url'][0] === '/' && ($_GET['url'] = substr($_GET['url'], 1));

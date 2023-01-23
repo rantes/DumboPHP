@@ -49,6 +49,8 @@ class dumboShell{
     private $params = [];
     private $colors = null;
 
+    public $dumboBin = '';
+
     public function __construct() {
 
         $this->systemFolder = dirname(realpath(__DIR__)).'/';

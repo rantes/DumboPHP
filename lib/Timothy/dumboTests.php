@@ -61,6 +61,7 @@ class dumboTests extends Page {
         $index->page->_rawOutput = $buf;
         return $index->page;
     }
+
     /**
      * Attempts to run migration reset action over the given tables
      * for model testing purposes
@@ -84,6 +85,9 @@ class dumboTests extends Page {
         $seeds = new Seed();
         $seeds->sow();
     }
+    private function _setConfigValue(string $key, $value) {
+        $this->__sys_conf_values__[$key] = $value;
+    }
     /**
      * Output for an error message
      * @param string $errorMessage
@@ -97,7 +101,7 @@ class dumboTests extends Page {
      * @param string $errorMessage
      */
     private function _showMessage($message) {
-        fwrite(STDOUT, "\n{$errorMessage}\n");
+        fwrite(STDOUT, "\n{$message}\n");
         return true;
     }
     /**
@@ -244,7 +248,7 @@ DUMBO;
     /**
      * Add description for a set of tests
      *
-     * @param [string] $message
+     * @param string $message
      * @return void
      */
     public function describe($message) {
@@ -309,7 +313,7 @@ DUMBO;
     /**
      * Call protected/private method of a class.
      *
-     * @param object &$object    Instantiated object that we will run method on.
+     * @param object &$object    Instantiated object that will run method on.
      * @param string $methodName Method name to call
      * @param array  $parameters Array of parameters to pass into method.
      *
@@ -321,6 +325,23 @@ DUMBO;
         $method->isPublic() or $method->setAccessible(true);
 
         return $method->invokeArgs($object, $parameters);
+    }
+    /**
+     * Set a sysConfig value
+     * 
+     * @param object &$object    Instantiated object that sysConf will change.
+     * @param string $property   SysConf property to change
+     * @param mixed  $value      Value to set
+     */
+    public function setSysconfigValue(&$object, $property, $value) {
+        $current = [];
+        $reflection = new ReflectionObject($object);
+        $confs = $reflection->getProperty('__sys_conf_values__');
+        $confs->setAccessible(true);
+        $current = $confs->getValue($object);
+        $current[$property] = $value;
+        $confs->setValue($object, $current);
+        return true;
     }
 }
 ?>

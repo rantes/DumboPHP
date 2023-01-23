@@ -21,29 +21,31 @@ require_once './config/host.php';
 require_once 'dumbophp.php';
 require_once 'DumboShellColors.php';
 
+$GLOBALS['types'] = [
+    'primary',
+    'integer',
+    'biginteger',
+    'string',
+    'text',
+    'float',
+    'decimal'
+];
+
+$GLOBALS['dbTypes'] = [
+    'primary' => ['INTEGER','11','0'],
+    'integer' => ['INTEGER','11','0'],
+    'biginteger' => ['BIGINT','','0'],
+    'string' => ['VARCHAR','255',''],
+    'text' => ['TEXT','',''],
+    'float' => ['FLOAT','','0'],
+    'decimal' => ['FLOAT','','0']
+];
+
 class FieldObject {
 
     public $name = '';
     public $type = '';
     public $isNull = 'false';
-    public $types = [
-        'primary',
-        'integer',
-        'biginteger',
-        'string',
-        'text',
-        'float',
-        'decimal'
-    ];
-    private $dbTypes = [
-        'primary' => ['INTEGER','11','0'],
-        'integer' => ['INTEGER','11','0'],
-        'biginteger' => ['BIGINT','','0'],
-        'string' => ['VARCHAR','255',''],
-        'text' => ['TEXT','',''],
-        'float' => ['FLOAT','','0'],
-        'decimal' => ['FLOAT','','0']
-    ];
 
     public function __construct($field) {
         $args = explode(':', $field);
@@ -55,10 +57,10 @@ class FieldObject {
             empty($matches[1]) and die("Error on Building: Limit size for the field '{$args[0]}' is not valid.".PHP_EOL);
             $toRemove = strlen($matches[0]) * -1;
             $args[1] = substr($args[1], 0, $toRemove);
-            $this->dbTypes[$args[1]][1] = $matches[1];
+            $GLOBALS['dbTypes'][$args[1]][1] = $matches[1];
         endif;
 
-        in_array($args[1], $this->types) or die("Error on Building: Data type for the field '{$args[0]}', is not valid.".PHP_EOL);
+        in_array($args[1], $GLOBALS['types']) or die("Error on Building: Data type for the field '{$args[0]}', is not valid.".PHP_EOL);
 
         $this->name = $args[0];
         $this->type = $args[1];
@@ -70,7 +72,7 @@ class FieldObject {
             for ($i=1; $i < $argsSize; $i++):
                 if(preg_match('/default\{(.+)\}/', $args[$i], $matches) === 1):
                     empty($matches[1]) and die("Error on Building: Default value for the field '{$args[0]}' is not valid.".PHP_EOL);
-                    $this->dbTypes[$args[1]][2] = $matches[1];
+                    $GLOBALS['dbTypes'][$args[1]][2] = $matches[1];
                     break;
                 endif;
             endfor;
@@ -81,10 +83,10 @@ class FieldObject {
     public function getArray() {
         return [
             'field' => $this->name,
-            'type'=>$this->dbTypes[$this->type][0],
+            'type'=>$GLOBALS['dbTypes'][$this->type][0],
             'null' => $this->isNull,
-            'limit' => $this->dbTypes[$this->type][1],
-            'default' => $this->dbTypes[$this->type][2]
+            'limit' => $GLOBALS['dbTypes'][$this->type][1],
+            'default' => $GLOBALS['dbTypes'][$this->type][2]
         ];
     }
 
@@ -142,29 +144,48 @@ class DumboGeneratorClass {
      */
     public function model(array $params) {
         $this->showMessage('Building: Creating model...');
+        $attributes = '';
 
-        (!empty($params[1]) and $params[1] === 'no-migration') or $this->migration($params);
-        empty($this->tblName) and $this->setNames($params[0]);
+        if(!empty($params[1]) and $params[1] === 'no-migration'):
+            unset($params[1]);
+        else:
+            $this->migration($params);
+        endif;
+        empty($this->tblName) and $this->setNames(array_shift($params));
 
         $file = $this->singularized.'.php';
         $path = INST_PATH.'app/models/';
 
         file_exists($path.$file) and $this->showError('Error on Building: Model already exists.') and die();
 
+        if (sizeof($this->fields) < 1) :
+            while(null !== ($param = array_shift($params))):
+                $this->fields[] = new FieldObject($param);
+            endwhile;
+        endif;
+
+        while(null !== ($field = array_shift($this->fields))):
+            $attributes = "{$attributes}public \${$field->name} = null;\n    ";
+        endwhile;
+
+        $attributes = trim($attributes);
+
         if(file_exists("{$this->_scaffoldFolder}model.tpl")):
             $fileContent = file_get_contents("{$this->_scaffoldFolder}model.tpl");
-            $fileContent = str_replace('{{model}}', $this->camelized, $fileContent);
         else:
             $fileContent = <<<DUMBOPHP
 <?php
-class $this->camelized extends ActiveRecord {
+class {{model}} extends ActiveRecord {
+    {{attributes}}
     function _init_() {
-
     }
 }
 
 DUMBOPHP;
         endif;
+
+        $fileContent = str_replace('{{model}}', $this->camelized, $fileContent);
+        $fileContent = str_replace('{{attributes}}', $attributes, $fileContent);
 
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Model created at: {$path}{$file}");

@@ -1,6 +1,10 @@
 #!/usr/bin/php -d xdebug.mode=coverage,profile
 <?php
 extension_loaded('sockets') or die('The XDebug extension must be installed.');
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+set_time_limit(0);
+ini_set('max_execution_time',0);
 defined('XDEBUG_FILTER_CODE_COVERAGE') or define('XDEBUG_FILTER_CODE_COVERAGE',0b100000000);
 defined('XDEBUG_PATH_INCLUDE') or define('XDEBUG_PATH_INCLUDE',0b000000001);
 defined('XDEBUG_PATH_EXCLUDE') or define('XDEBUG_PATH_EXCLUDE',0b000000010);
@@ -53,7 +57,7 @@ class dumboShell{
         $this->colors = new DumboShellColors();
     }
 
-    private function _logger($source, $message) {
+    private function _logger($message, $out = STDOUT, $source = 'unit_testing') {
         if (empty($source) or empty($message) or !is_string($source) or !is_string($message)):
             return false;
         endif;
@@ -63,7 +67,7 @@ class dumboShell{
         $stamp = date('d-m-Y i:s:H');
 
         file_exists("{$logdir}{$file}") and filesize("{$logdir}{$file}") >= 524288000 and rename("{$logdir}{$file}", "{$logdir}{$stamp}_{$file}");
-        $this->shellOutput and fwrite(STDOUT, "{$message}\n");
+        $this->shellOutput and fwrite($out, "{$message}\n");
         file_put_contents("{$logdir}{$file}", "[{$stamp}] - {$message}\n", FILE_APPEND);
         return true;
     }
@@ -86,7 +90,6 @@ class dumboShell{
                         break;
                         default:
                             throw new Exception("Value not allowed for {$match[1]}");
-                        break;
                     endswitch;
                     $this->_options[$match[1]]['value'] = strlen($match[2]) > 0 ? $match[2] : null;
                 endif;
@@ -97,15 +100,15 @@ class dumboShell{
     }
 
     public function showError($errorMessage) {
-        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "red") . "\n");
+        $this->_logger($this->colors->getColoredString($errorMessage, "white", "red") . "\n", STDERR);
     }
 
     public function showMessage($errorMessage) {
-        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "white", "green") . "\n");
+        $this->_logger($this->colors->getColoredString($errorMessage, "white", "green") . "\n");
     }
 
     public function showNotice($errorMessage) {
-        fwrite(STDOUT, $this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
+        $this->_logger($this->colors->getColoredString($errorMessage, "blue", "yellow") . "\n");
     }
 
     public function run($argv) {
@@ -325,7 +328,7 @@ DUMBO;
                     $testCase->setAttribute('name', $case['test']);
                     $testCase->setAttribute('class', $test);
                     $testCase->setAttribute('classname', $test);
-                    $testCase->setAttribute('file', $testLaunch->filepathname);
+                    $testCase->setAttribute('file', $testLaunch->relativePathName);
                     $testCase->setAttribute('line', $case['line']);
                     $testCase->setAttribute('assertions', $case['assertions']);
                     $testCase->setAttribute('time', $case['time']);
@@ -335,14 +338,12 @@ DUMBO;
                 $suite->setAttribute('assertions', $assertions);
                 $suite->setAttribute('failures', $failures);
                 $suite->setAttribute('time', $times);
-                $suite->setAttribute('file', $testLaunch->filepathname);
+                $suite->setAttribute('file', $testLaunch->relativePathName);
                 $suite->setAttribute('tests', $testLaunch->tests);
                 $mainSuite->appendChild($suite);
             endwhile;
             $coverageResult = xdebug_get_code_coverage();
             xdebug_stop_code_coverage();
-
-            // $includesPath = addcslashes(str_replace(':','|',get_include_path()) . '|migrations|tests|config', '/-');
             $includesPath = 'controllers|helpers|models';
             foreach($coverageResult as $entry => $lines):
                 if(preg_match("@{$includesPath}@i", $entry) !== 1):
@@ -356,9 +357,7 @@ DUMBO;
             $mainSuite->setAttribute('time', $took);
             $mainSuite->setAttribute('assertions', $testLaunch->assertions);
             $mainSuite->setAttribute('failures', $fails);
-            file_put_contents(INST_PATH.'test-result.xml', $testReport->saveXML());
-            $testLaunch = null;
-
+            $testReport->save(INST_PATH.'test-result.xml');
             $this->showNotice("\nGenerating coverage report...");
 
             $generated = time();
@@ -380,7 +379,8 @@ DUMBO;
                     $fileContent = new SplFileObject($entry);
                     $fileName = Camelize(basename($entry, '.php'));
                     $fileTag = $coverageReport->createElement('file');
-                    $fileTag->setAttribute('name', $entry);
+                    $entryRelative = str_replace(INST_PATH, '', $entry);
+                    $fileTag->setAttribute('name', $entryRelative);
                     $package->appendChild($fileTag);
 
                     $classTag = $coverageReport->createElement('class');
@@ -437,10 +437,10 @@ DUMBO;
             endforeach;
 
             file_put_contents(INST_PATH.'coverage.xml', $coverageReport->saveXML());
-            $this->showNotice("Coverage report generated at coverage.xml");
+            $this->showNotice('Coverage report generated at coverage.xml');
         } catch (Throwable $e) {
             $this->_failed = true;
-            fwrite(STDERR, (string)$e);
+            $this->showError("\n{$e}");
             exit(1);
         }
     }

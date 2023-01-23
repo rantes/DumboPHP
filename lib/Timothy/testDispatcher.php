@@ -15,6 +15,7 @@ class testDispatcher {
     public $assertions = 0;
     public $filename = '';
     public $filepathname = '';
+    public $relativePathName = '';
     public $fails = 0;
     public $tests = 0;
     public $actions = [];
@@ -105,6 +106,7 @@ class testDispatcher {
 
             $this->assertions += $objtest->assertions;
             $this->filepathname = "{$this->_testsPath}{$test}.php";
+            $this->relativePathName = str_replace(INST_PATH, '', $this->filepathname);
             $this->testAssertions = $objtest->assertions;
             $this->testFailures = $objtest->fails;
 
