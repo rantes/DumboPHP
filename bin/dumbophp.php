@@ -924,17 +924,21 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $_error              = null;
     public $_sqlQuery           = '';
     public $candump             = true;
-    public $id = null;
+    public $id = 0;
     public $has_many                = [];
     public $has_one                 = [];
     public $belongs_to              = [];
     public $has_many_and_belongs_to = [];
     public $validate                = [];
-    public $disableCast = true;
-    public $rowid = null;
+    public $disableCast = false;
+    public $rowid = 0;
     public $created_at = 0;
     public $updated_at = 0;
 
+    /**
+     * Will run after construction and set all model behavior
+     * @return void
+     */
     public function _init_() {}
 
     public final function __construct($fields = null) {
@@ -1002,6 +1006,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         } else {
             $this->_fields = $GLOBALS['models'][$this->_ObjTable]['fields'];
         }
+        $this->{$this->pk} = 0;
 
         return true;
     }
@@ -1094,12 +1099,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $obj[0] = null;
             unset($obj[0]);
             foreach ($aux->_fields as $field => $cast):
-                $obj->{$field} = '';
+                $obj->{$field} = null;
             endforeach;
         } elseif ($obj->_counter === 1) {
             foreach ($obj->_fields as $field => $cast) {
                 if (isset($obj[0]->{$field})) {
-                    $obj->{$field} = $obj[0]->{$field};
+                    $obj->{$field} = $cast ? 0 + $obj[0]->{$field} : $obj[0]->{$field};
                 }
             }
             if(preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine) and isset($obj[0]->rowid)) {
@@ -1257,7 +1262,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             foreach ($resultset[0] as $key => $value) {
                 if (!array_key_exists($key, $this->_fields)) {
                     $this->_fields[$key] = is_numeric($value);
-                    $this->{$key} = '';
+                    $this->{$key} = null;
                     $this->_dataAttributes[$key]['native_type'] = is_numeric($value)?'NUMERIC':'STRING';
                     $this->_dataAttributes[$key]['cast'] = $this->_fields[$key];
                 }
@@ -1268,9 +1273,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         (empty($meta['native_type']) || ($meta['native_type'] === 'null')) && ($meta['native_type'] = 'VAR_STRING');
         if(!empty($meta['name'])) {
             $this->_fields[$meta['name']] = $GLOBALS['PDOCASTS'][$meta['native_type']];
-            $this->{$meta['name']} = '';
             $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
             $this->_dataAttributes[$meta['name']]['cast'] = $this->_fields[$meta['name']];
+            $this->{$meta['name']} = null;
         }
     }
     private function _setValues(array $values) {
@@ -1281,7 +1286,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         foreach ($values as $field => $value) {
             if (array_key_exists($field, $this->_fields)) {
-                $this->{$field} = $value;
+                $this->{$field} = $this->_fields[$field] ? $value + 0 : $value;
             }
         }
     }
@@ -1307,10 +1312,10 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function Niu(array $contents = []) {
         foreach($this->_fields as $field => $val) {
-            $this->{$field} = null;
+            unset($this->{$field});
         };
         for ($i = 0; $i < $this->_counter; $i++) {
-            $this[$i] = null;
+            unset($this[$i]);
             $this->offsetUnset($i);
         }
 
@@ -1811,7 +1816,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function LoadDump() {
         $doc  = new DOMDocument;
-        $path = defined('DUMPS_PATH')?DUMPS_PATH:INST_PATH.'migrations/dumps/';
+        $path = defined('DUMPS_PATH')? DUMPS_PATH : INST_PATH.'migrations/dumps/';
         if (file_exists($path.$this->_ObjTable.'.xml')) {
             $doc->load($path.$this->_ObjTable.'.xml');
             $items = $doc->getElementsByTagName($this->_ObjTable);
@@ -2235,6 +2240,7 @@ abstract class Page extends Core_General_Class {
             if (isset($this->render) and is_array($this->render)) {
                 if (isset($this->render['action']) && $this->render['action'] === false) {
                     $this->yield = '';
+                    $view = null;
                     $renderPage  = false;
                 } elseif (!empty($this->render['file'])) {
                     $view = $this->render['file'];
@@ -2259,18 +2265,15 @@ abstract class Page extends Core_General_Class {
             $viewsFolder = INST_PATH.'app/views/';
             $this->_outputContent = $this->yield;
 
-            if ($renderPage) {
-                if (strlen($this->layout) > 0) {
-                    ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
-                    include_once ($viewsFolder.$view);
-                    $this->yield = ob_get_clean();
-                    $this->_outputContent = $this->yield;
-                } elseif (!empty($view)) {
-                    include_once ($viewsFolder.$view);
-                }
+            if (!empty($view)) {
+                ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
+                include_once ($viewsFolder.$view);
+                $this->yield = ob_get_clean();
             }
 
-            if (strlen($this->layout) > 0) {
+            $this->_outputContent = $this->yield;
+
+            if (!empty($this->layout)) {
                 ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
                 include_once ($viewsFolder.$this->layout.".phtml");
                 $this->_outputContent = ob_get_clean();
@@ -2341,6 +2344,13 @@ abstract class Migrations extends Core_General_Class {
         }
     }
 
+    private function _fetchQuery($query) {
+        echo 'Running query: ', $query, PHP_EOL;
+        $st = $GLOBALS['Connection']->prepare($query);
+        $st->execute();
+        return $st->fetchAll();
+    }
+
     public final function __construct() {
         $this->_table = Plurals(unCamelize(substr(get_class($this), 6)));
 
@@ -2348,7 +2358,10 @@ abstract class Migrations extends Core_General_Class {
     }
 
     public function __destruct() {}
-
+    /**
+     * Will run after construction and set all model behavior
+     * @return void
+     */
     public function _init_() {}
 
     public function up() {
@@ -2471,13 +2484,16 @@ abstract class Migrations extends Core_General_Class {
     protected function Remove_All_indexes() {
         $this->connect();
         $query = $GLOBALS['driver']->GetAllIndexes($this->_table);
-        $indexes = $this->_runQuery($query);
-        foreach ($indexes as $index) {
-            if ($index['INDEX_NAME'] !== 'PRIMARY') {
-                $query = $GLOBALS['driver']->RemoveIndex($this->_table, $index['INDEX_NAME']);
-                empty($query) || $this->_runQuery($query);
+        $indexes = $this->_fetchQuery($query);
+
+        if (!empty($indexes)):
+            foreach ($indexes as $index) {
+                if (isset($index['INDEX_NAME']) && $index['INDEX_NAME'] !== 'PRIMARY') {
+                    $query = $GLOBALS['driver']->RemoveIndex($this->_table, $index['INDEX_NAME']);
+                    empty($query) || $this->_runQuery($query);
+                }
             }
-        }
+        endif;
 
     }
     /**

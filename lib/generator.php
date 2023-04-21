@@ -144,6 +144,7 @@ class DumboGeneratorClass {
      */
     public function model(array $params) {
         $this->showMessage('Building: Creating model...');
+        $noSet = ['id','created_at', 'updated_at'];
         $attributes = '';
 
         if(!empty($params[1]) and $params[1] === 'no-migration'):
@@ -165,7 +166,9 @@ class DumboGeneratorClass {
         endif;
 
         while(null !== ($field = array_shift($this->fields))):
-            $attributes = "{$attributes}public \${$field->name} = null;\n    ";
+            if (!in_array($field, $noSet)):
+                $attributes = "{$attributes}public \${$field->name} = null;\n    ";
+            endif;
         endwhile;
 
         $attributes = trim($attributes);
