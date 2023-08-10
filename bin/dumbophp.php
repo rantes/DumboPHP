@@ -919,6 +919,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $PaginateTotalItems  = 0;
     public $PaginateTotalPages  = 0;
     public $PaginatePageNumber  = 1;
+    public $PaginateStartReg = 0;
+    public $PaginateEndReg = 0;
     public $paginateURL         = '/';
     public $driver              = null;
     public $_error              = null;
@@ -1763,6 +1765,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         return $arraux;
     }
+    public function appendDataset($field) {
+        isset($this->_fields[$field]) or ($this->_fields[$field] = []);
+    }
     /**
      * Dumps the table data into a xml file
      */
@@ -1959,6 +1964,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $data->PaginateTotalItems = $regs->rows;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
+        $data->PaginateStartReg = $start;
+        $data->PaginateEndReg = $start + $per_page;
+
         return $data;
     }
     /**
@@ -2687,7 +2695,7 @@ class index {
                     }
 
                     $this->page->display();
-                    if (method_exists($this->page, "after_render")) {
+                    if (method_exists($this->page, 'after_render')) {
                         $actionsToExclude = $controllersToExclude = [];
                         if (!empty($this->page->excepts_after_render) && is_array($this->page->excepts_after_render)) {
                             if (!empty($this->page->excepts_after_render['actions']) && is_string($this->page->excepts_after_render['actions'])) {
@@ -2720,4 +2728,3 @@ class index {
         $GLOBALS['Connection'] = null;
     }
 }
-?>
