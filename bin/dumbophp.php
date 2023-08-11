@@ -655,6 +655,8 @@ class Connection extends PDO {
         if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
         $this->_settings = $databases[$GLOBALS['env']];
         $this->engine = $this->_settings['driver'];
+        $host = '';
+        $protocol = '';
 
         switch ($this->engine) {
             case 'firebird':
@@ -670,13 +672,15 @@ class Connection extends PDO {
                 empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
                 empty($this->_settings['port'])
                     or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
+                empty($this->_settings['protocol'])
+                    or ($protocol = ';protocol=' . $this->_settings['protocol']);
 
                 $charset = $dialect = '';
 
                 empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
                 empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
 
-                $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}";
+                $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}{$protocol}";
             break;
         }
         empty($this->_settings['username']) and $this->_settings['username'] = null;
