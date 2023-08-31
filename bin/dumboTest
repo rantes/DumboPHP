@@ -122,6 +122,7 @@ class dumboShell{
         $this->arguments = $argv;
         $this->_parseOptions();
         $this->runTestScript();
+        return true;
     }
 
     private function help() {
