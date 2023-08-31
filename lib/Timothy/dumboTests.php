@@ -271,7 +271,9 @@ DUMBO;
      * if no failed any test, the return code will be 0.
      */
     public function __destruct() {
-        exit((int)$this->_failed);
+        if ($this->_failed):
+            exit((int)$this->_failed);
+        endif;
     }
     /**
      * Will performs any action before each test
