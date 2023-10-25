@@ -361,10 +361,12 @@ $GLOBALS['PDOCASTS'] = [
     'NEWDECIMAL' => false,
     'SHORT' => true,
     'STRING' => false,
+    'TEXT' => false,
     'TIME' => false,
     'TIMESTAMP' => true,
     'TINY' => true,
     'VAR_CHAR' => false,
+    'VARCHAR' => false,
     'VAR_STRING' => false,
     'blob' => false,
     'medium_blob' => false,
@@ -381,10 +383,12 @@ $GLOBALS['PDOCASTS'] = [
     'newdecimal' => false,
     'short' => true,
     'string' => false,
+    'text' => false,
     'time' => false,
     'timestamp' => true,
     'tiny' => true,
     'var_char' => false,
+    'varchar' => false,
     'var_string' => false,
 ];
 /**
@@ -899,6 +903,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     private $_validate = true;
     private $_queryConditions = [];
     private $_queryFields = null;
+    private $_name = '';
     protected $_ObjTable;
     protected $_singularName;
     protected $_counter                = 0;
@@ -953,18 +958,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $this->_init_();
         $this->_counter = 0;
 
-        $name = get_class($this);
+        $this->_name = get_class($this);
 
-        if (empty($GLOBALS['models'][$name])) {
-            $className       = unCamelize($name);
+        if (empty($GLOBALS['models'][$this->_name])) {
+            $className       = unCamelize($this->_name);
             $words           = explode('_', $className);
             $i               = sizeof($words)-1;
             $words[$i]       = Plurals($words[$i]);
-            $GLOBALS['models'][$name]['tableName'] = imploder('_', $words);
+            $GLOBALS['models'][$this->_name]['tableName'] = imploder('_', $words);
         }
 
         if (empty($this->_ObjTable)) {
-            $this->_ObjTable = $GLOBALS['models'][$name]['tableName'];
+            $this->_ObjTable = $GLOBALS['models'][$this->_name]['tableName'];
         }
 
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
@@ -988,36 +993,39 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $this->_setInitialCols();
         } else {
             $this->_fields = $fields;
+            foreach($fields as $field => $value) {
+                $this->{$field} = $value;
+            }
         }
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
      * @param string $name
      */
-    public function _TableName($name = '') {
+    public function _TableName($name = ''): string {
         empty($name) or ($this->_ObjTable = $name);
         return $this->_ObjTable;
     }
     /**
      * Sets the initial col names (attrs)
      */
-    private function _setInitialCols() {
+    private function _setInitialCols(): bool {
+        $this->_fields = [];
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
             $fields = $GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($this->_ObjTable));
-            while(null !== ($field = array_shift($fields))) {
-                $this->_fields[$field['Field']] = $field['Cast'];
-            }
-
-            $GLOBALS['models'][$this->_ObjTable]['fields'] = $this->_fields;
-        } else {
-            $this->_fields = $GLOBALS['models'][$this->_ObjTable]['fields'];
+            $GLOBALS['models'][$this->_ObjTable]['fields'] = $fields;
+            
         }
+        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field):
+            $this->{$field['Field']} = $field['Cast'] ? 0 : '';
+            $this->_fields = array_merge($this->_fields, [$field['Field'] => $field['Cast']]);
+        endforeach;
         $this->{$this->pk} = 0;
 
         return true;
     }
     #[ReturnTypeWillChange]
-    public function jsonSerialize() {
+    public function jsonSerialize(): array {
         return $this->getArray();
     }
     /**
@@ -1025,16 +1033,20 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return array
      */
     public function getRawFields() {
-        empty($this->_fields) && $this->_setInitialCols();
-        return array_keys($this->_fields);
+        empty($GLOBALS['models'][$this->_ObjTable]['fields']) && $this->_setInitialCols();
+        $fields = [];
+        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field):
+            $fields[] = $field['Field'];
+        endforeach;
+        return $fields;
     }
     /**
      * Getter for the fields taken from the query or table
      * @return array Fields of the current Active Record Object
      */
     public function getFields() {
-        empty($this->_fields) && $this->_setInitialCols();
-        return $this->_fields;
+        empty($GLOBALS['models'][$this->_ObjTable]['fields']) && $this->_setInitialCols();
+        return $GLOBALS['models'][$this->_ObjTable]['fields'];
     }
     /**
      * Unset the params for the queries
@@ -1048,7 +1060,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @see ArrayObject::getIterator()
      */
     #[ReturnTypeWillChange]
-    public function getIterator() {
+    public function getIterator(): ArrayIterator {
         return new \ArrayIterator($this);
     }
     /**
@@ -1056,11 +1068,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * Sets the active record.
      * @param string $query SQL query to fetch the data
      */
-    protected function getData($prepared, $data) {
+    protected function getData($prepared, $data, $fields = []): ActiveRecord {
         (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
-        $obj = clone $this;
-        $obj->_fields = [];
-        $obj->_dataAttributes = [];
 
         try {
             $sh = $GLOBALS['Connection']->prepare($prepared);
@@ -1068,62 +1077,29 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
             $cols = $sh->columnCount();
 
-            $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($obj));
+            // $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($this));
+            $sh->setFetchMode(PDO::FETCH_ASSOC);
             $resultset = $sh->fetchAll();
+            $rowsCount = sizeof($resultset);
 
-            if (preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine)):
-                foreach ($this->_fields as $field => $cast) {
-                    $obj->_set_columns([
-                        'native_type' => 'VAR_STRING',
-                        'name' => $field
-                    ]);
-                }
-            else:
-                for ($i = 0; $i < $cols; $i++) {
-                    $meta = $sh->getColumnMeta($i);
-                    $obj->_set_columns($meta);
-                }
+            $obj = new $this([]);
+            if($rowsCount > 0):
+                $cols = array_keys($resultset[0]);
+                while (null !== ($row = array_shift($resultset))):
+                    $obj[] = new $this($row);
+                endwhile;
             endif;
 
-            $obj->_counter = sizeof($resultset);
-
             $sh->closeCursor();
-            $obj->exchangeArray($resultset);
+            if ($obj->count() === 1):
+                foreach($cols as $col):
+                    $obj->{$col} = $obj[0]->{$col};
+                endforeach;
+            endif;
         } catch (PDOException $e) {
-            foreach ($this->_fields as $field => $cast) {
-                $obj->_set_columns([
-                    'native_type' => 'VAR_STRING',
-                    'name' => $field
-                ]);
-            }
             throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
 
-        if ($obj->_counter === 0) {
-            $aux = clone($obj);
-            $obj->offsetSet(0, null);
-            $obj[0] = null;
-            unset($obj[0]);
-            foreach ($aux->_fields as $field => $cast):
-                $obj->{$field} = null;
-            endforeach;
-        } elseif ($obj->_counter === 1) {
-            foreach ($obj->_fields as $field => $cast) {
-                if (isset($obj[0]->{$field})) {
-                    $obj->{$field} = $cast ? 0 + $obj[0]->{$field} : $obj[0]->{$field};
-                }
-            }
-            if(preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine) and isset($obj[0]->rowid)) {
-                $obj->rowid = $obj[0]->rowid;
-            }
-        }
-        if (!$this->disableCast) {
-            for ($i=0; $i<$obj->_counter; $i++) {
-                foreach ($obj->_fields as $field => $cast) {
-                    $obj[$i]->{$field} = $cast ? 0 + $obj[$i]->{$field} : $obj[$i]->{$field};
-                }
-            }
-        }
         $this->_queryFields = "{$this->_ObjTable}.*";
         $this->_queryConditions = [];
         return $obj;
@@ -1238,8 +1214,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
 
         $prepared = $GLOBALS['driver']->Select($params, $this->_ObjTable, $this->pk);
-        $this->_sqlQuery = $prepared['query'];
-        $x = $this->getData($prepared['prepared'], $prepared['data']);
+        $x = $this->getData($prepared['prepared'], $prepared['data'], $params['fields']);
+        $x->_sqlQuery = $prepared['query'];
 
         if (sizeof($x->after_find) > 0) {
             foreach ($x->after_find as $functiontoRun) {
@@ -1275,25 +1251,21 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         }
     }
-    private function _set_columns($meta) {
-        (empty($meta['native_type']) || ($meta['native_type'] === 'null')) && ($meta['native_type'] = 'VAR_STRING');
-        if(!empty($meta['name'])) {
-            $this->_fields[$meta['name']] = $GLOBALS['PDOCASTS'][$meta['native_type']];
-            $this->_dataAttributes[$meta['name']]['native_type'] = $meta['native_type'];
-            $this->_dataAttributes[$meta['name']]['cast'] = $this->_fields[$meta['name']];
-            $this->{$meta['name']} = null;
-        }
-    }
-    private function _setValues(array $values) {
-        if (empty($values)) {
-            foreach ($this->_fields as $field => $cast){
-                $values[$field] = null;
+
+    private function _setValues(array $values): void {
+        try {
+            if (empty($values)) {
+                $values = [];
+                foreach ($GLOBALS['models'][$this->_ObjTable]['fields'] as $field) {
+                    $values = array_merge($values, [$field['Field'] => $field['Cast'] ? 0 : '']);
+                }
             }
-        }
-        foreach ($values as $field => $value) {
-            if (array_key_exists($field, $this->_fields)) {
-                $this->{$field} = $this->_fields[$field] ? $value + 0 : $value;
+            foreach ($values as $field => $value) {
+                $this->{$field} = $value;
             }
+        } catch (Throwable $e) {
+            echo $e->getMessage();
+            die();
         }
     }
     /**
@@ -1302,7 +1274,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      *
      * @return array
      */
-    public function flatten() {
+    public function flatten(): array {
         $result = [];
         $fields = $this->getRawFields();
         foreach($this as $row) {
@@ -1317,10 +1289,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return ActiveRecord
      */
     public function Niu(array $contents = []) {
-        foreach($this->_fields as $field => $val) {
-            unset($this->{$field});
-        };
-        for ($i = 0; $i < $this->_counter; $i++) {
+        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field) {
+            unset($this->{$field['Field']});
+        }
+
+        for ($i = 0; $i < $this->count(); $i++) {
             unset($this[$i]);
             $this->offsetUnset($i);
         }
@@ -1452,7 +1425,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public function Save() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
         AUTO_AUDITS && !($this->updated_at = 0) && !($this->created_at = 0);
-        $fields = array_keys($this->_fields);
+        $fields = $this->getRawFields();
 
         foreach($this->before_save as $functiontoRun) {
             $this->{$functiontoRun}();
@@ -1527,7 +1500,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             return FALSE;
         }
 
-        $this->_counter === 0 && ($this->_counter = 1) && $this->offsetSet(0, $this);
+        $this->count() === 0 && $this->offsetSet(0, $this);
 
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
@@ -1591,7 +1564,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             return FALSE;
         }
 
-        $this->_counter === 0 && ($this->_counter = 1) && $this->offsetSet(0, $this);
+        $this->count() === 0 && $this->offsetSet(0, $this);
 
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
@@ -1608,7 +1581,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return boolean
      */
     public function Delete($conditions = NULL) {
-        if ($this->_counter > 1) {
+        if ($this->count() > 1) {
             $conditions = [];
             foreach ($this as $ele) {
                 $conditions[] = $ele->{$this->pk};
@@ -1666,7 +1639,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $children = $model1->Find([
                     'conditions' => Singulars($this->_ObjTable)."_id{$condition}"
                 ]);
-                if ($children->counter() > 0) {
+                if ($children->count() > 0) {
                     foreach ($children as $child) {
                         switch ($this->dependents) {
                             case 'destroy':
@@ -1696,23 +1669,23 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     }
     #[ReturnTypeWillChange]
     public function __debugInfo() {
-        $this->inspect();
+        return null;
     }
     /**
      * Dumps out the data contained in the model.
      */
     public function inspect($tabs = 0) {
         if (_IN_SHELL_):
-            fwrite(STDOUT, get_class($this) . " ActiveRecord ({$this->_counter}): " . $this->ListProperties_ToString($tabs));
+            fwrite(STDOUT, get_class($this) . " ActiveRecord ({$this->count()}): " . $this->ListProperties_ToString($tabs));
         else:
-            echo get_class($this), " ActiveRecord ({$this->_counter}): ", $this->ListProperties_ToString($tabs);
+            echo get_class($this), " ActiveRecord ({$this->count()}): ", $this->ListProperties_ToString($tabs);
         endif;
     }
     protected function ListProperties_ToString($i = 0) {
         $listProperties = "{\n";
         $fields = array_keys($this->_fields);
 
-        if ($this->_counter <= 1) {
+        if ($this->count() <= 1) {
             foreach ($fields as $field) {
                 $buffer = 'NULL'.PHP_EOL;
                 if (isset($this->{$field})) {
@@ -1725,7 +1698,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             }
         } else {
             ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
-            for ($j = 0; $j < $this->_counter; $j++) {
+            for ($j = 0; $j < $this->count(); $j++) {
                 $this[$j]->inspect($i+1);
             }
             $buffer = ob_get_clean();
@@ -1751,8 +1724,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $arraux = [];
         $fields = array_keys($this->_fields);
 
-        if ($this->_counter > 0) {
-            for ($j = 0; $j < $this->_counter; $j++) {
+        if ($this->count() > 0) {
+            for ($j = 0; $j < $this->count(); $j++) {
                 foreach ($fields as $field) {
                     if (isset($this[$j]->{$field})) {
                         $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
@@ -1890,13 +1863,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return $this->_error;
     }
     public function counter() {
-        return (integer) $this->_counter;
+        return $this->count();
     }
     public function first() {
-        return $this->_counter > 0?$this[0]:false;
+        return $this->count() > 0 ? $this[0] : null;
     }
     public function last() {
-        return $this->_counter > 0?$this[$this->counter()-1]:false;
+        return $this->count() > 0 ? $this[$this->count()] : null;
     }
     public function _sqlQuery() {
         return $this->_sqlQuery;
@@ -1908,11 +1881,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         return $this->_dataAttributes[$field]['native_type'];
     }
     public function slice($start = 0, $length = 0) {
-        empty($length) && ($length = $this->_counter);
+        empty($length) && ($length = $this->count());
 
-        $end = $start+$length;
+        $end = $start + $length;
 
-        $end > $this->_counter && ($end = $this->_counter);
+        $end > $this->count() && ($end = $this->count());
 
         $name = get_class($this);
         $arr  = new $name();
