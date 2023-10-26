@@ -651,50 +651,55 @@ class Connection extends PDO {
     public $engine = null;
 
     function __construct() {
-        empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
-        $databases = [];
-        $this->_setAllConfigValues();
+        try {
 
-        require INST_PATH.'config/db_settings.php';
-        if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
-        $this->_settings = $databases[$GLOBALS['env']];
-        $this->engine = $this->_settings['driver'];
-        $host = '';
-        $protocol = '';
+            empty($GLOBALS['env']) && ($GLOBALS['env'] = 'production');
+            $databases = [];
+            $this->_setAllConfigValues();
 
-        switch ($this->engine) {
-            case 'firebird':
-                $dsn = "'firebird:dbname={$this->_settings['host']}/{$this->_settings['port']}:{$this->_settings['schema']}";
-            break;
-            case 'sqlite':
-            case 'sqlite2':
-            case 'sqlite3':
-                $dsn = "{$this->engine}:{$this->_settings['schema']}";
-                $this->_settings['schema'] === 'memory' and ($dsn = "{$this->engine}::memory:");
-            break;
-            default:
-                empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
-                empty($this->_settings['port'])
-                    or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
-                empty($this->_settings['protocol'])
-                    or ($protocol = ';protocol=' . $this->_settings['protocol']);
+            require INST_PATH.'config/db_settings.php';
+            if(empty($databases[$GLOBALS['env']])) throw new Exception('There is no DB settings for the choosen env.');
+            $this->_settings = $databases[$GLOBALS['env']];
+            $this->engine = $this->_settings['driver'];
+            $host = '';
+            $protocol = '';
 
-                $charset = $dialect = '';
+            switch ($this->engine) {
+                case 'firebird':
+                    $dsn = "'firebird:dbname={$this->_settings['host']}/{$this->_settings['port']}:{$this->_settings['schema']}";
+                break;
+                case 'sqlite':
+                case 'sqlite2':
+                case 'sqlite3':
+                    $dsn = "{$this->engine}:{$this->_settings['schema']}";
+                    $this->_settings['schema'] === 'memory' and ($dsn = "{$this->engine}::memory:");
+                break;
+                default:
+                    empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
+                    empty($this->_settings['port'])
+                        or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
+                    empty($this->_settings['protocol'])
+                        or ($protocol = ';protocol=' . $this->_settings['protocol']);
 
-                empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
-                empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
+                    $charset = $dialect = '';
 
-                $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}{$protocol}";
-            break;
+                    empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
+                    empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
+
+                    $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}{$protocol}";
+                break;
+            }
+            empty($this->_settings['username']) and $this->_settings['username'] = null;
+            empty($this->_settings['password']) and $this->_settings['password'] = null;
+            parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
+            $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+            $this->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+            $this->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
+            $this->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_TO_STRING);
+        } catch (Exception $e) {
+            throw new Exception('Internal Server');
         }
-        empty($this->_settings['username']) and $this->_settings['username'] = null;
-        empty($this->_settings['password']) and $this->_settings['password'] = null;
-        parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [PDO::ATTR_PERSISTENT => true]);
-        $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        $this->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
-        $this->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
-        $this->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_TO_STRING);
     }
     /**
      * Regarding the espcific dirver query, get the fields info from a table
@@ -2209,7 +2214,6 @@ abstract class Page extends Core_General_Class {
                 header('ETag: 123');
                 header('Expires: Wed, 11 Jan 1984 05:00:00 GMT');
                 header('Pragma: no-cache');
-                header('X-Powered-By: "DUMBO PHP - LA TUTECA"');
             }
 
             $this->_outputContent = $this->respondToAJAX();
