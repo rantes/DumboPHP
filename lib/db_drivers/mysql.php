@@ -6,6 +6,7 @@ class mysqlDriver {
     private $_params = null;
     public $tableName = null;
     public $pk = 'id';
+    public $id = 0;
     /**
      * 
      */
