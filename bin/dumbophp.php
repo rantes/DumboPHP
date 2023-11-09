@@ -1904,7 +1904,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param array $params
      * @return ActiveRecord
      */
-    public function Paginate($params = NULL) {
+    public function Paginate($params = null) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
         }
@@ -1944,6 +1944,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         }
         $data = $this->Find($params);
 
+        $data->paginateURL = $this->paginateURL;
+        $data->PaginatePageNumber = $this->PaginatePageNumber;
         $data->PaginateTotalItems = $regs->rows;
         $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
         $data->PaginateStartReg = $start;
@@ -1956,7 +1958,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param array $params
      * @return string
      */
-    public function WillPaginate($params = NULL) {
+    public function WillPaginate($params = null) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
         }
