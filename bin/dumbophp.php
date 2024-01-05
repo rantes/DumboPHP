@@ -698,7 +698,7 @@ class Connection extends PDO {
             $this->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
             $this->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_TO_STRING);
         } catch (Exception $e) {
-            throw new Exception('Internal Server');
+            throw new Exception('Internal Server: '.$e->getMessage());
         }
     }
     /**
@@ -865,14 +865,16 @@ abstract class Core_General_Class extends ArrayObject {
             $obj1       = new $classFromCall();
             $conditions = '1=1';
             if (method_exists($obj1, 'Find')) {
-                if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)  && !empty($this->{$foreign})) {
-                    $conditions = ($way == 'up')?"`{$this->pk}`='".$this->{$foreign} ."'":$conditions;
+                if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)) {
+                    $conditions = ($way == 'up') ?
+                        "`{$this->pk}`='".$this->{$foreign} ."'"
+                        : "`{$foreign}`='".$this->{$this->pk}."'";
                 } elseif (in_array($ClassName, $this->belongs_to) && !empty($this->{$foreign})) {
                     $conditions = "`{$this->pk}`='".$this->{$foreign} ."'";
                 } elseif (in_array($ClassName, $this->has_many) ) {
                     $conditions = "`{$prefix}_id`='{$this->{$this->pk}}'";
                 }
-                $params['conditions'] = empty($params['conditions'])?$conditions:' AND '.$conditions;
+                $params['conditions'] = $conditions;
                 return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
             }
             return NULL;
@@ -957,6 +959,18 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      */
     public function _init_() {}
 
+    protected function __setGlobals() {
+        if (empty($GLOBALS['Connection'])):
+            $GLOBALS['Connection'] = new Connection();
+        endif;
+
+        if (empty($GLOBALS['driver'])):
+            require_once dirname(__FILE__).'/../lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
+            $driver = $GLOBALS['Connection']->engine.'Driver';
+            $GLOBALS['driver'] = new $driver();
+        endif;
+    }
+
     public final function __construct($fields = null) {
         $this->_setAllConfigValues();
         $this->_error = new Errors;
@@ -979,20 +993,12 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 
-        if (empty($GLOBALS['Connection'])):
-            $GLOBALS['Connection'] = new Connection();
-        endif;
+        $this->__setGlobals();
 
         if(preg_match(SQLITE_PREG, $GLOBALS['Connection']->engine)):
             $this->pk = 'rowid';
             $this->rowid = null;
         endif;
-
-        if (empty($GLOBALS['driver'])) {
-            require_once dirname(__FILE__).'/../lib/db_drivers/'.$GLOBALS['Connection']->engine.'.php';
-            $driver = $GLOBALS['Connection']->engine.'Driver';
-            $GLOBALS['driver'] = new $driver();
-        }
 
         if(empty($fields)) {
             $this->_setInitialCols();
@@ -1073,8 +1079,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * Sets the active record.
      * @param string $query SQL query to fetch the data
      */
-    protected function getData($prepared, $data, $fields = []): ActiveRecord {
-        (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
+    protected function getData($prepared, $data): ActiveRecord {
+        $this->__setGlobals();
 
         try {
             $sh = $GLOBALS['Connection']->prepare($prepared);
@@ -1087,12 +1093,14 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             $resultset = $sh->fetchAll();
             $rowsCount = sizeof($resultset);
 
-            $obj = new $this([]);
             if($rowsCount > 0):
                 $cols = array_keys($resultset[0]);
+                $obj = new $this($resultset[0]);
                 while (null !== ($row = array_shift($resultset))):
                     $obj[] = new $this($row);
                 endwhile;
+            else:
+                $obj = new $this();
             endif;
 
             $sh->closeCursor();
@@ -1182,7 +1190,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return ActiveRecord
      */
     public function Find($paramsIn = null): ActiveRecord {
-        (empty($GLOBALS['connection']) || empty($GLOBALS['driver'])) && $this->__construct();
+        $this->__setGlobals();
 
         if (sizeof($this->before_find) > 0) {
             foreach ($this->before_find as $functiontoRun) {
@@ -1322,7 +1330,6 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         if (empty($params['data']) || !is_array($params['data']))
             throw new Exception('The param data should not be empty and must be array.');
 
-        defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
         $prepared = $GLOBALS['driver']->Update($params, $this->_ObjTable);
         $this->_sqlQuery = $prepared['query'];
         $sh = $GLOBALS['Connection']->prepare($this->_sqlQuery);
@@ -2254,19 +2261,18 @@ abstract class Page extends Core_General_Class {
             if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
 
             $viewsFolder = INST_PATH.'app/views/';
-            $this->_outputContent = $this->yield;
 
             if (!empty($view)) {
-                ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
-                include_once ($viewsFolder.$view);
+                ob_start();
+                include_once "{$viewsFolder}{$view}";
                 $this->yield = ob_get_clean();
             }
 
             $this->_outputContent = $this->yield;
 
             if (!empty($this->layout)) {
-                ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
-                include_once ($viewsFolder.$this->layout.".phtml");
+                ob_start();
+                include_once "{$viewsFolder}{$this->layout}.phtml";
                 $this->_outputContent = ob_get_clean();
             }
         }
