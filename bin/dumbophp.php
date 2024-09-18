@@ -942,7 +942,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $_error              = null;
     public $_sqlQuery           = '';
     public $candump             = true;
-    public $id = 0;
+    public ?int $id = null;
     public $has_many                = [];
     public $has_one                 = [];
     public $belongs_to              = [];
@@ -1270,7 +1270,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             if (empty($values)) {
                 $values = [];
                 foreach ($GLOBALS['models'][$this->_ObjTable]['fields'] as $field) {
-                    $values = array_merge($values, [$field['Field'] => $field['Cast'] ? 0 : '']);
+                    if ($field['Field'] === $this->pk):
+                        $this->{$this->pk} = null;
+                    else:
+                        $values = array_merge($values, [$field['Field'] => $field['Cast'] ? 0 : '']);
+                    endif;
                 }
             }
             foreach ($values as $field => $value) {
@@ -1301,7 +1305,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param array $contents
      * @return ActiveRecord
      */
-    public function Niu(array $contents = []) {
+    public function Niu(array $contents = []): ActiveRecord {
         foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field) {
             unset($this->{$field['Field']});
         }
@@ -1313,7 +1317,14 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
         $this->__construct();
         $this->_setInitialCols();
+        $this->{$this->pk} = null;
         $this->_setValues($contents);
+        $keys = array_keys($contents);
+        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field) {
+            if (!in_array($field['Field'], $keys)) {
+                unset($this->{$field['Field']});
+            }
+        }
 
         return clone $this;
     }
@@ -1412,17 +1423,24 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                     $message = 'This field can not be empty or null.';
                     if (is_array($field)) {
                         if (empty($field['field'])) throw new Exception('Field key must be defined in array.');
-
+                        
                         empty($field['message']) or ($message = $field['message']);
-                        $field = $field['field'];
+                        $soleField = $field['field'];
                     }
-                    (($action === 'insert'
-                        && !isset($this->{$field}))
-                        || (empty($this->{$field})
-                        && isset($this->{$field})
-                        && !is_numeric($this->{$field})))
+                    (
+                        (
+                            $action === 'insert'
+                            && !isset($this->{$soleField})
+                        )
+                        ||
+                        (
+                            empty($this->{$soleField})
+                            && isset($this->{$soleField})
+                            && !is_numeric($this->{$soleField})
+                        )
+                    )
                     && $this->_error->add([
-                        'field' => $field,
+                        'field' => $soleField,
                         'message' => $message
                     ]);
                 }
@@ -2225,7 +2243,7 @@ abstract class Page extends Core_General_Class {
                 header('Pragma: no-cache');
             }
 
-            $this->_outputContent = $this->respondToAJAX();
+            $this->_outputContent = $this->_respondToAJAX;
             if (!is_string($this->_outputContent)) {
                 throw new Exception('The output content for JSON should be an string.', HTTP_500);
             }
@@ -2301,13 +2319,9 @@ abstract class Page extends Core_General_Class {
         $params !== null && ($this->params = $params);
         return $this->params;
     }
-    public function respondToAJAX($val = null) {
-        if ($val === null):
-            return $this->_respondToAJAX;
-        else :
-            $this->_respondToAJAX    = $val;
-            $this->_canrespondtoajax = true;
-        endif;
+    public function respondToAJAX($val) {
+        $this->_respondToAJAX    = $val;
+        $this->_canrespondtoajax = !empty($val);
     }
     public function canRespondToAJAX() {
         return $this->_canrespondtoajax;
