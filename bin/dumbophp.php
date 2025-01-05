@@ -942,7 +942,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
     public $_error              = null;
     public $_sqlQuery           = '';
     public $candump             = true;
-    public ?int $id = null;
+    public ?int $id = 0;
     public $has_many                = [];
     public $has_one                 = [];
     public $belongs_to              = [];
@@ -1007,6 +1007,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             foreach($fields as $field => $value) {
                 $this->{$field} = $value;
             }
+            $this->id = $fields['id'] ?? 0;
         }
     }
     /**
@@ -1088,27 +1089,29 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
 
             $cols = $sh->columnCount();
 
-            // $sh->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, get_class($this));
             $sh->setFetchMode(PDO::FETCH_ASSOC);
-            $resultset = $sh->fetchAll();
+            $resultset = $n = $sh->fetchAll();
             $rowsCount = sizeof($resultset);
-
+            
+            $obj = new $this();
+            
             if($rowsCount > 0):
                 $cols = array_keys($resultset[0]);
-                $obj = new $this($resultset[0]);
+                $i = 0;
                 while (null !== ($row = array_shift($resultset))):
-                    $obj[] = new $this($row);
+                    $obj->offsetSet($i, new $this($row));
+                    $i++;
                 endwhile;
-            else:
-                $obj = new $this();
             endif;
-
-            $sh->closeCursor();
-            if ($obj->count() === 1):
-                foreach($cols as $col):
+            
+            if ($obj->count() === 1) {
+                foreach($cols as $col) {
                     $obj->{$col} = $obj[0]->{$col};
-                endforeach;
-            endif;
+                }
+            }
+            
+            $sh->closeCursor();
+            
         } catch (PDOException $e) {
             throw new Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
@@ -1189,7 +1192,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param array|integer $paramsIn
      * @return ActiveRecord
      */
-    public function Find($paramsIn = null): ActiveRecord {
+    public function Find($paramsIn = null) {
         $this->__setGlobals();
 
         if (sizeof($this->before_find) > 0) {
@@ -1235,6 +1238,8 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
                 $x->{$functiontoRun}();
             }
         }
+
+        $x->setFlags(ArrayObject::STD_PROP_LIST);
 
         return $x;
     }
@@ -1306,27 +1311,9 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @return ActiveRecord
      */
     public function Niu(array $contents = []): ActiveRecord {
-        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field) {
-            unset($this->{$field['Field']});
-        }
+        $obj = new $this($contents);
 
-        for ($i = 0; $i < $this->count(); $i++) {
-            unset($this[$i]);
-            $this->offsetUnset($i);
-        }
-
-        $this->__construct();
-        $this->_setInitialCols();
-        $this->{$this->pk} = null;
-        $this->_setValues($contents);
-        $keys = array_keys($contents);
-        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field) {
-            if (!in_array($field['Field'], $keys)) {
-                unset($this->{$field['Field']});
-            }
-        }
-
-        return clone $this;
+        return $obj;
     }
     /**
      * Performs an update data into the table
