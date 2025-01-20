@@ -1029,7 +1029,11 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
             
         }
         foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field):
-            $this->{$field['Field']} = $field['Cast'] ? 0 : '';
+            if ($field['Field'] === 'id') {
+                $this->{$field['Field']} = 0;
+            } else {
+                $this->{$field['Field']} = $field['Cast'] ? 0 : '';
+            }
             $this->_fields = array_merge($this->_fields, [$field['Field'] => $field['Cast']]);
         endforeach;
         $this->{$this->pk} = 0;
@@ -1916,7 +1920,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param array $params
      * @return ActiveRecord
      */
-    public function Paginate($params = null) {
+    public function Paginate(string $url, array $params = null): ActiveRecord {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
         }
@@ -1929,7 +1933,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
         $queryCount = $GLOBALS['driver']->RowCountOnQuery($fullquery['query']);
         $regs = $this->Find_by_SQL($queryCount);
 
-        $request = parse_url(_FULL_URL);
+        $request = parse_url($url);
         $per_page = empty($params['per_page'])? 10 : (int)$params['per_page'];
         isset($params['prevChar']) && ($this->_paginatePrevChar = $params['prevChar']);
         isset($params['nextChar']) && ($this->_paginateNextChar = $params['nextChar']);
@@ -1970,13 +1974,13 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param array $params
      * @return string
      */
-    public function WillPaginate($params = null) {
+    public function WillPaginate($url, $params = null) {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
         }
 
         $vars = [];
-        $request = parse_url(_FULL_URL);
+        $request = parse_url($url);
         empty($request['query']) || parse_str($request['query'], $vars);
 
         $str  = '';
@@ -2183,6 +2187,11 @@ abstract class Page extends Core_General_Class {
     private $_respondToAJAX   = '';
     private $_canrespondtoajax= false;
     private $_preventLoad = false;
+    private $_willRedirect = false;
+    private $_redirectsTo = '';
+    private $_headers = [];
+    private $_http_response_code = HTTP_200;
+    private string $_full_url = '';
 
     public function __construct() {
         $this->Vendor = new Vendor();
@@ -2216,24 +2225,53 @@ abstract class Page extends Core_General_Class {
         $this->action = $action;
     }
 
-    public function display() {
-        $renderPage  = TRUE;
-        empty($this->action) and ($this->action = _ACTION);
-        empty($this->controller) and ($this->controller = _CONTROLLER);
-        if (property_exists($this, 'noTemplate') and in_array($this->action, $this->noTemplate)) $renderPage = FALSE;
-        if ($this->canRespondToAJAX()) {
-            if (!headers_sent()) {
-                header('Cache-Control: max-age=0, no-cache, no-store, must-revalidate');
-                header('Content-type: "application/json; charset=utf-8"');
-                header('ETag: 123');
-                header('Expires: Wed, 11 Jan 1984 05:00:00 GMT');
-                header('Pragma: no-cache');
-            }
+    public function setHeader(string $header): void {
+        $this->_headers[] = $header;
+    }
 
-            $this->_outputContent = $this->_respondToAJAX;
+    public function redirect(string $path): void {
+        $this->_willRedirect = true;
+        $this->_redirectsTo = $path;
+        $this->_http_response_code = HTTP_302;
+    }
+
+    public function willRedirect(): bool {
+        return $this->_willRedirect;
+    }
+
+    public function fullUrl(string | null $url = null): string {
+        if (!empty($url)) {
+            $this->_full_url = $url;
+        }
+
+        return $this->_full_url;
+    }
+
+    public function display() {
+        http_response_code($this->_http_response_code);
+        if ($this->_willRedirect) {
+            header("Location: {$this->_redirectsTo}");
+        } else {
+            if (!headers_sent()) {
+                while(null !== ($header = array_shift($this->_headers))):
+                    header($header);
+                endwhile;
+            }
+            if ($this->_exposeContent) echo $this->_outputContent;
+        }
+    }
+
+    public function parseContent(): void {
+        $renderPage  = TRUE;
+        if (property_exists($this, 'noTemplate') and in_array($this->action, $this->noTemplate)) $renderPage = FALSE;
+
+        
+        if ($this->canRespondToAJAX()) {
+
             if (!is_string($this->_outputContent)) {
                 throw new Exception('The output content for JSON should be an string.', HTTP_500);
             }
+            $this->_outputContent = $this->_respondToAJAX;
 
             if (!empty($this->params['callback'])) $this->_outputContent = "({$this->_outputContent}));";
 
@@ -2281,7 +2319,6 @@ abstract class Page extends Core_General_Class {
                 $this->_outputContent = ob_get_clean();
             }
         }
-        if ($this->_exposeContent) echo $this->_outputContent;
     }
     /**
      * Sets or retrieve if should or not to load the view/action
@@ -2309,6 +2346,19 @@ abstract class Page extends Core_General_Class {
     public function respondToAJAX($val) {
         $this->_respondToAJAX    = $val;
         $this->_canrespondtoajax = !empty($val);
+
+        $this->_headers = [];
+        $this->_headers[] = 'Cache-Control: max-age=0, no-cache, no-store, must-revalidate';
+        $this->_headers[] = 'Content-type: "application/json; charset=utf-8"';
+        $this->_headers[] = 'ETag: 123';
+        $this->_headers[] = 'Expires: Wed, 11 Jan 1984 05:00:00 GMT';
+        $this->_headers[] = 'Pragma: no-cache';
+        $this->_outputContent = $val;
+        $this->_exposeContent = true;
+    }
+
+    public function setResponseCode(int $code): void {
+        $this->_http_response_code = $code;
     }
     public function canRespondToAJAX() {
         return $this->_canrespondtoajax;
@@ -2607,6 +2657,7 @@ class index {
             }
         }
         $canGo = true;
+        
         if (!file_exists($path.$controllerFile) && defined('USE_ALTER_URL') && USE_ALTER_URL) {
             $params['alter_controller'] = $controller;
             $params['alter_action']     = $action;
@@ -2619,12 +2670,10 @@ class index {
             http_response_code(HTTP_404);
             echo 'Missing Controller';
         }
-        defined('_CONTROLLER') || define('_CONTROLLER', $controller);
-        defined('_ACTION') || define('_ACTION', $action);
         $queryparams = http_build_query($params);
         empty($queryparams) || ($queryparams = "?{$queryparams}");
-        defined('_FULL_URL') || define('_FULL_URL', INST_URI."{$controller}/{$action}/{$queryparams}");
 
+        
         if ($canGo) {
             $classPage = Camelize($controller)."Controller";
             class_exists($classPage) || require_once ($path.$controllerFile);
@@ -2632,6 +2681,7 @@ class index {
             $this->page->params($params);
             $this->page->_setAction_($action);
             $this->page->_setController_($controller);
+            $this->page->fullUrl(INST_URI."{$controller}/{$action}/{$queryparams}");
             //loads of helpers
             if (isset($this->page->helper) and sizeof($this->page->helper) > 0) {
                 $this->page->LoadHelper($this->page->helper);
@@ -2639,6 +2689,7 @@ class index {
             //before filter, executed before the action execution
             if (method_exists($this->page, "before_filter")) {
                 $actionsToExclude = $controllersToExclude = [];
+
                 if (!empty($this->page->exceptsBeforeFilter) && is_array($this->page->exceptsBeforeFilter)) {
                     if (!empty($this->page->exceptsBeforeFilter['actions']) && is_string($this->page->exceptsBeforeFilter['actions'])) {
                         $actionsToExclude = explode(',', $this->page->exceptsBeforeFilter['actions']);
@@ -2653,64 +2704,69 @@ class index {
                         }
                     }
                 }
+
                 if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
                     $this->page->before_filter();
                 }
             }
-            $action = $this->page->_getAction_();
-            if (method_exists($this->page, "{$action}Action")) {
-                if(!$this->page->PreventLoad()){
-                    $actionToRun = "{$action}Action";
-                    $this->page->{$actionToRun}();
-                    //before render, executed after the action execution and before the data renderize
-                    if (method_exists($this->page, "before_render")) {
-                        $actionsToExclude = $controllersToExclude = [];
-                        if (!empty($this->page->excepts_before_render) && is_array($this->page->excepts_before_render)) {
-                            if (!empty($this->page->excepts_before_render['actions']) && is_string($this->page->excepts_before_render['actions'])) {
-                                $actionsToExclude = explode(',', $this->page->excepts_before_render['actions']);
-                                foreach ($actionsToExclude as $index => $act) {
-                                    $actionsToExclude[$index] = trim($act);
+            if (!$this->page->willRedirect()) {
+                
+                $action = $this->page->_getAction_();
+    
+                if (method_exists($this->page, "{$action}Action")) {
+                    if(!$this->page->PreventLoad()){
+                        $actionToRun = "{$action}Action";
+                        $this->page->{$actionToRun}();
+                        //before render, executed after the action execution and before the data renderize
+                        if (method_exists($this->page, "before_render")) {
+                            $actionsToExclude = $controllersToExclude = [];
+                            if (!empty($this->page->excepts_before_render) && is_array($this->page->excepts_before_render)) {
+                                if (!empty($this->page->excepts_before_render['actions']) && is_string($this->page->excepts_before_render['actions'])) {
+                                    $actionsToExclude = explode(',', $this->page->excepts_before_render['actions']);
+                                    foreach ($actionsToExclude as $index => $act) {
+                                        $actionsToExclude[$index] = trim($act);
+                                    }
+                                }
+                                if (!empty($this->page->excepts_before_render['controllers']) && is_string($this->page->excepts_before_render['controllers'])) {
+                                    $controllersToExclude = explode(',', $this->page->excepts_before_render['controllers']);
+                                    foreach ($controllersToExclude as $index => $cont) {
+                                        $controllersToExclude[$index] = trim($cont);
+                                    }
                                 }
                             }
-                            if (!empty($this->page->excepts_before_render['controllers']) && is_string($this->page->excepts_before_render['controllers'])) {
-                                $controllersToExclude = explode(',', $this->page->excepts_before_render['controllers']);
-                                foreach ($controllersToExclude as $index => $cont) {
-                                    $controllersToExclude[$index] = trim($cont);
-                                }
+                            if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
+                                $this->page->before_render();
                             }
                         }
-                        if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
-                            $this->page->before_render();
+    
+                        $this->page->parseContent();
+    
+                        if (method_exists($this->page, 'after_render')) {
+                            $actionsToExclude = $controllersToExclude = [];
+                            if (!empty($this->page->excepts_after_render) && is_array($this->page->excepts_after_render)) {
+                                if (!empty($this->page->excepts_after_render['actions']) && is_string($this->page->excepts_after_render['actions'])) {
+                                    $actionsToExclude = explode(',', $this->page->excepts_after_render['actions']);
+                                    foreach ($actionsToExclude as $index => $act) {
+                                        $actionsToExclude[$index] = trim($act);
+                                    }
+                                }
+                                if (!empty($this->page->excepts_after_render['controllers']) && is_string($this->page->excepts_after_render['controllers'])) {
+                                    $controllersToExclude = explode(',', $this->page->excepts_after_render['controllers']);
+                                    foreach ($controllersToExclude as $index => $cont) {
+                                        $controllersToExclude[$index] = trim($cont);
+                                    }
+                                }
+                            }
+                            if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
+                                $this->page->after_render();
+                            }
                         }
                     }
-
-                    $this->page->display();
-                    if (method_exists($this->page, 'after_render')) {
-                        $actionsToExclude = $controllersToExclude = [];
-                        if (!empty($this->page->excepts_after_render) && is_array($this->page->excepts_after_render)) {
-                            if (!empty($this->page->excepts_after_render['actions']) && is_string($this->page->excepts_after_render['actions'])) {
-                                $actionsToExclude = explode(',', $this->page->excepts_after_render['actions']);
-                                foreach ($actionsToExclude as $index => $act) {
-                                    $actionsToExclude[$index] = trim($act);
-                                }
-                            }
-                            if (!empty($this->page->excepts_after_render['controllers']) && is_string($this->page->excepts_after_render['controllers'])) {
-                                $controllersToExclude = explode(',', $this->page->excepts_after_render['controllers']);
-                                foreach ($controllersToExclude as $index => $cont) {
-                                    $controllersToExclude[$index] = trim($cont);
-                                }
-                            }
-                        }
-                        if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
-                            $this->page->after_render();
-                        }
-                    }
+                } else {
+                    http_response_code(HTTP_404);
+                    echo 'Missing Action';
                 }
-            } else {
-                http_response_code(HTTP_404);
-                echo 'Missing Action';
             }
-            $this->page->_response_code = http_response_code();
         }
     }
 

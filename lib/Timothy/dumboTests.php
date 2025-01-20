@@ -17,6 +17,7 @@ class dumboTests extends Page {
         'filename' => '',
         'filepathname' => ''
     ];
+    private $_actionContent = null;
 
     public function __construct($logFile = INST_PATH.'tmp/dumbotests.log') {
         parent::__construct();
@@ -42,6 +43,14 @@ class dumboTests extends Page {
         return $this->_data;
     }
 
+    public function _getActionContent() {
+        return $this->_actionContent;
+    }
+
+    public function _registerContent($content) {
+        $this->_actionContent = $content;
+    }
+
     public function _runAction(string $action) {
         $_GET = [];
         $action = explode('?', $action);
@@ -55,8 +64,10 @@ class dumboTests extends Page {
         endif;
         session_status() === PHP_SESSION_DISABLED and ($_SESSION = []);
         isset($_SESSION) or (session_status() === PHP_SESSION_NONE) and session_start();
+
         ob_start();
         $index = new index();
+        $index->page->display();
         $buf = ob_get_clean();
         $index->page->_rawOutput = $buf;
         return $index->page;

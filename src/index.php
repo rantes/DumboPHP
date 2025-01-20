@@ -23,4 +23,4 @@ require_once INST_PATH.'config/host.php';
 if (file_exists(INST_PATH.'vendor/autoload.php')) require_once INST_PATH.'vendor/autoload.php';
 
 $index = new index();
-?>
+$index->page->display();
