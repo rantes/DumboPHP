@@ -1920,7 +1920,7 @@ abstract class ActiveRecord extends Core_General_Class implements JsonSerializab
      * @param array $params
      * @return ActiveRecord
      */
-    public function Paginate(string $url, array $params = null): ActiveRecord {
+    public function Paginate(string $url, array | null $params = null): ActiveRecord {
         if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
             $params = $params[0];
         }
