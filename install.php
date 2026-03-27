@@ -97,6 +97,29 @@ while (false !== ($entry = $d->read())) {
 }
 $d->close();
 
+file_exists($dumboSystemPathLib.'/ShellCommands') || mkdir($dumboSystemPathLib.'/ShellCommands', 0777, TRUE);
+
+$d = dir($pathLib.'/ShellCommands');
+while (false !== ($entry = $d->read())) {
+    if($entry !== '.' && $entry !== '..' && !is_dir("{$pathLib}/ShellCommands/{$entry}")){
+        fwrite(STDOUT, 'copying '.$pathLib.'/ShellCommands/'.$entry.' to '.$dumboSystemPathLib.'/ShellCommands/'.$entry.PHP_EOL);
+        file_exists($dumboSystemPathLib.'/ShellCommands/'.$entry) && unlink($dumboSystemPathLib.'/ShellCommands/'.$entry);
+        copy($pathLib.'/ShellCommands/'.$entry, $dumboSystemPathLib.'/ShellCommands/'.$entry) or die('Could not copy file.');
+    }
+}
+$d->close();
+
+file_exists($dumboSystemPathLib.'/ShellCommands/Interfaces') || mkdir($dumboSystemPathLib.'/ShellCommands/Interfaces', 0777, TRUE);
+$d = dir($pathLib.'/ShellCommands/Interfaces');
+while (false !== ($entry = $d->read())) {
+    if($entry !== '.' && $entry !== '..' && !is_dir("{$pathLib}/ShellCommands/Interfaces/{$entry}")){
+        fwrite(STDOUT, 'copying '.$pathLib.'/ShellCommands/Interfaces/'.$entry.' to '.$dumboSystemPathLib.'/ShellCommands/Interfaces/'.$entry.PHP_EOL);
+        file_exists($dumboSystemPathLib.'/ShellCommands/Interfaces/'.$entry) && unlink($dumboSystemPathLib.'/ShellCommands/Interfaces/'.$entry);
+        copy($pathLib.'/ShellCommands/Interfaces/'.$entry, $dumboSystemPathLib.'/ShellCommands/Interfaces/'.$entry) or die('Could not copy file.');
+    }
+}
+$d->close();
+
 fwrite(STDOUT, 'Creating bin files.'.PHP_EOL);
 file_exists($binPath.'/dumbo') && unlink($binPath.'/dumbo');
 file_exists($binPath.'/dumboTest') && unlink($binPath.'/dumboTest');

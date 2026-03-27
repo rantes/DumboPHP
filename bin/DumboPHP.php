@@ -1,6 +1,8 @@
 <?php
 namespace DumboPHP;
 
+use DumboPHP\lib\ShellCommands\Interfaces\DBDriver;
+
 defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty($_SERVER['REMOTE_ADDR']));
 define('SQLITE_PREG', '@sqlite@');
 
@@ -78,7 +80,53 @@ function uuidV4() {
     );
 }
 
-use DumboPHP\lib\ShellCommands\Interfaces\DBDriver;
+// class Container {
+//     private array $instances = [];
+//     private array $factories = [];
+
+//     public function set(string $name, callable $factory): void {
+//         $this->factories[$name] = $factory;
+//     }
+
+//     public function get(string $name): object {
+//         if (isset($this->instances[$name])) {
+//             return $this->instances[$name];
+//         }
+
+//         if (isset($this->factories[$name])) {
+//             $this->instances[$name] = $this->factories[$name]($this);
+//             return $this->instances[$name];
+//         }
+
+//         return $this->instances[$name] = $this->build($name);
+//     }
+
+//     private function build(string $class): object {
+//         $reflection = new \ReflectionClass($class);
+//         if (!$reflection->isInstantiable()) {
+//             throw new \Exception("Class {$class} is not instantiable.");
+//         }
+
+//         $constructor = $reflection->getConstructor();
+//         if (!$constructor) {
+//             return new $class;
+//         }
+
+//         $dependencies = [];
+
+//         foreach($constructor->getParameters() as $param) {
+//             $type = $param->getType();
+
+//             if (!$type) {
+//                 throw new \Exception("Cannot resolve class {$param->getName()} in class {$class}");
+//             }
+
+//             $dependencies[] = $this->get($type->getName());
+//         }
+
+//         return $reflection->newInstanceArgs($dependencies);
+//     }
+// }
 
 class QueryConditionException extends \Exception {}
 /**
@@ -731,7 +779,8 @@ class Connection extends \PDO {
             $this->_secrets = null;
             unset($this->_secrets);
 
-            $driver = "DumboPHP\\lib\\db_drivers\\{$this->engine}";
+            require_once dirname(__FILE__).'/../lib/db_drivers/'.$this->engine.'.php';
+            $driver = $this->engine.'Driver';
             $this->driver = new $driver();
 
         } catch (\Exception $e) {
@@ -941,55 +990,57 @@ $GLOBALS['models'] = [];
  *
  */
 abstract class ActiveRecord extends Core_General_Class implements \JsonSerializable {
-    private $_name = '';
+    private $_paginatePrevChar  = '&lt;';
+    private $_paginateNextChar  = '&gt;';
     private $_paginateFirstChar  = '|&lt;&lt;';
     private $_paginateLastChar  = '&gt;&gt;|';
-    private $_paginateNextChar  = '&gt;';
-    private $_paginatePrevChar  = '&lt;';
+    private $_validate = true;
     private $_queryConditions = [];
     private $_queryFields = null;
-    private $_validate = true;
-    protected $_counter = 0;
-    protected $_dataAttributes = [];
-    protected $_fields = [];
+    private $_name = '';
+    // private DBDriver $_driver;
+    // private Connection $_connection;
     protected $_ObjTable;
-    protected $_params = ['fields' => '*', 'conditions' => ''];
-    protected $_preparedQuery = [];
     protected $_singularName;
-    protected $after_delete = [];
-    protected $after_find = [];
-    protected $after_insert = [];
-    protected $after_save = [];
-    protected $after_update = [];
-    protected $before_delete = [];
-    protected $before_find = [];
+    protected $_counter = 0;
     protected $before_insert = [];
-    protected $before_save = [];
+    protected $after_insert = [];
     protected $before_update = [];
+    protected $after_update = [];
+    protected $before_find = [];
+    protected $after_find = [];
+    protected $before_save = [];
+    protected $after_save = [];
+    protected $before_delete = [];
+    protected $after_delete = [];
     protected $dependents = '';
-    protected $escapeField = [];
+    protected $_dataAttributes = [];
+    protected $_params = ['fields' => '*', 'conditions' => ''];
     protected $pk = 'id';
-    public ?int $id = 0;
-    public $_error = null;
-    public $_sqlQuery = '';
-    public $belongs_to = [];
-    public $candump = true;
-    public $created_at = 0;
-    public $disableCast = false;
-    public $driver = null;
-    public $has_many = [];
-    public $has_many_and_belongs_to = [];
-    public $has_one = [];
-    public $PaginateEndReg = 0;
-    public $PaginatePageNumber = 1;
+    protected $escapeField = [];
+    protected $_fields = [];
+    protected $_preparedQuery = [];
     public $PaginatePageVarName = 'page';
-    public $PaginateStartReg = 0;
     public $PaginateTotalItems = 0;
     public $PaginateTotalPages = 0;
+    public $PaginatePageNumber = 1;
+    public $PaginateStartReg = 0;
+    public $PaginateEndReg = 0;
     public $paginateURL = '/';
-    public $rowid = 0;
-    public $updated_at = 0;
+    public $driver = null;
+    public $_error = null;
+    public $_sqlQuery = '';
+    public $candump = true;
+    public ?int $id = 0;
+    public $has_many = [];
+    public $has_one = [];
+    public $belongs_to = [];
+    public $has_many_and_belongs_to = [];
     public $validate = [];
+    public $disableCast = false;
+    public $rowid = 0;
+    public $created_at = 0;
+    public $updated_at = 0;
 
 
     /**
@@ -998,15 +1049,12 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function _init_() {}
 
-    public final function __construct(array $fields = []) {
-        // parent::__construct($fields);
+    public final function __construct(?array $fields = null) {
         $this->_error = new Errors;
         $this->_init_();
         $this->_counter = 0;
-        $this->setFlags(\ArrayObject::ARRAY_AS_PROPS);
 
-        $p = explode('\\', get_class($this));
-        $this->_name = $p[sizeof($p)-1];
+        $this->_name = get_class($this);
 
         if (empty($GLOBALS['models'][$this->_name])) {
             $className       = unCamelize($this->_name);
@@ -1027,9 +1075,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             $this->rowid = null;
         endif;
 
-        if(empty($fields)) {
-            $this->_setInitialCols();
-        } else {
+        if(!empty($fields)) {
             $this->_fields = $fields;
             foreach($fields as $field => $value) {
                 $this->{$field} = $value;
@@ -1048,10 +1094,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     /**
      * Sets the initial col names (attrs)
      */
-    private function _setInitialCols(): bool {
+    private function _setInitialCols(): bool { //array $override = []
         $this->_fields = [];
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
-            $fields = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
+            $fields = DB->getColumnFields(DB->getColumns($this->_ObjTable));
             $GLOBALS['models'][$this->_ObjTable]['fields'] = $fields;
         }
 
@@ -1117,9 +1163,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         try {
             $sh = DB->prepare($prepared);
             $sh->execute($data);
-            $className = get_class($this);
 
-            $resultset = $sh->fetchAll(\PDO::FETCH_ASSOC);
+            $resultset = $n = $sh->fetchAll(\PDO::FETCH_ASSOC);
             $rowsCount = sizeof($resultset);
             $columncount = $sh->columnCount();
             $isSqlite = DB->engine === 'sqlite';
@@ -1133,21 +1178,21 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $cols[] = [$colMeta['name'], $colMeta['native_type']];
             }
 
-            $obj = new $className();
             if ($rowsCount > 0) {
+                $obj = new $this($resultset[0]);
                 $i = 0;
 
                 while (null !== ($row = array_shift($resultset))) {
-                    $obj->offsetSet($i, new $className($row));
+                    $obj->offsetSet($i, new $this($row));
                     $i++;
                 }
                 if ($obj->count() === 1) {
                     foreach($cols as $col) {
-                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? (int)$obj[0]->{$col[0]} : $obj[0]->{$col[0]};
+                        $obj->{$col[0]} = in_array(strtoupper($col[0]), $willCast) ? 0 + $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
                     }
                 }
             } else {
-                $obj = new $className();
+                $obj = new $this();
                 foreach($cols as $col) {
                     $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? 0 : '';
                 }
@@ -1282,7 +1327,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         }
 
-        // $x->setFlags(\ArrayObject::STD_PROP_LIST);
+        $x->setFlags(\ArrayObject::STD_PROP_LIST);
 
         return $x;
     }
@@ -1354,9 +1399,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return ActiveRecord
      */
     public function Niu(array $contents = []): ActiveRecord {
-        $className = get_class($this);
-        $obj = new $className($contents);
-        $obj->setFlags(\ArrayObject::ARRAY_AS_PROPS);
+        $obj = new $this($contents);
 
         return $obj;
     }
@@ -1372,8 +1415,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
         if (empty($params['data']) || !is_array($params['data']))
             throw new \Exception('The param data should not be empty and must be array.');
-        
-        $prepared = DB->driver->Update($params, $this->_ObjTable);
+
+        $prepared = DB->Update($params, $this->_ObjTable);
         $this->_sqlQuery = $prepared['query'];
         $sh = DB->prepare($this->_sqlQuery);
         if (!$sh->execute($prepared['prepared'])) {
@@ -1511,7 +1554,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $field !== $this->pk && isset($this->{$field}) && $field !== 'created_at' && ($data[$field] = $this->{$field});
             }
 
-            $prepared = DB->driver->Update(['data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" .$this->{$this->pk}."'"], $this->_ObjTable);
+            $prepared = DB->Update(['data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" .$this->{$this->pk}."'"], $this->_ObjTable);
         } else {
             foreach ($this->before_insert as $functiontoRun) {
                 $this->{$functiontoRun}();
@@ -1527,10 +1570,9 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             while (null !== ($field = array_shift($fields))) {
                 $field != $this->pk && isset($this->{$field}) && ($data[$field] = $this->{$field});
             }
-
             if (preg_match(SQLITE_PREG, DB->engine) and isset($data['id'])) unset($data['id']);
 
-            $prepared = DB->driver->Insert($data, $this->_ObjTable);
+            $prepared = DB->Insert($data, $this->_ObjTable);
         }
 
         $this->_sqlQuery = $prepared['query'];
@@ -1540,7 +1582,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             if (!$sh->execute($prepared['prepared'])) {
                 $e = DB->errorInfo();
                 $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
-                return false;
+                return FALSE;
             }
 
             if (empty($this->{$this->pk})) {
@@ -1560,11 +1602,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         } catch (\PDOException $e) {
             echo 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage();
-            return false;
+            return FALSE;
         }
 
         $this->count() === 0 && $this->offsetSet(0, $this);
-        $this->_counter = 1;
 
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
@@ -1734,13 +1775,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
     #[\ReturnTypeWillChange]
     public function __debugInfo() {
-        $fields = $this->getRawFields();
-        $data = [];
-
-        while (null !== ($field = array_shift($fields))) {
-            $data[$field] = $this->{$field} ?? null;
-        }
-        return $data;
+        return [];
     }
     /**
      * Dumps out the data contained in the model.
@@ -1755,7 +1790,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
     protected function ListProperties_ToString($i = 0) {
         $listProperties = "{\n";
-        $fields = $this->getRawFields();
+        $fields = array_keys($this->_fields);
 
         if ($this->count() <= 1) {
             foreach ($fields as $field) {
@@ -2255,9 +2290,11 @@ abstract class Controller extends Core_General_Class {
         $model = unCamelize($var);
 
         if (file_exists(INST_PATH.'app/models/'.$model.'.php')) {
-            $className = "App\\Models\\{$var}";
+            if (!class_exists($var)) {
+                require INST_PATH.'app/models/'.$model.'.php';
+            }
 
-            $this->{$var} = new $className();
+            $this->{$var} = new $var();
             return $this->{$var};
         }
     }
@@ -2720,6 +2757,7 @@ class index {
             $classPage = 'App\\Controllers\\'.Camelize($controller).'Controller';
 
             $this->page = new $classPage();
+            // $this->page->_setConnection($connection);
             $this->page->params($params);
             $this->page->_setAction_($action);
             $this->page->_setController_($controller);

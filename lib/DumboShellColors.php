@@ -1,7 +1,8 @@
 <?php
+namespace DumboPHP\lib;
 class DumboShellColors {
-    private $foreground_colors = array();
-    private $background_colors = array();
+    private array $foreground_colors = array();
+    private array $background_colors = array();
 
     public function __construct() {
         $this->foreground_colors['black'] = '0;30';

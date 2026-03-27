@@ -43,9 +43,9 @@ $GLOBALS['dbTypes'] = [
 
 class FieldObject {
 
-    public $name = '';
-    public $type = '';
-    public $isNull = 'false';
+    public string $name = '';
+    public string $type = '';
+    public string $isNull = 'false';
 
     public function __construct($field) {
         $args = explode(':', $field);
@@ -105,13 +105,13 @@ class FieldObject {
 
 class DumboGeneratorClass {
 
-    public $args = null;
-    public $tblName = '';
-    public $camelized = '';
-    public $singularized = '';
-    private $fields = array();
-    private $colors = null;
-    private $_scaffoldFolder = '';
+    public ?array $args = null;
+    public ?string $tblName = '';
+    public ?string $camelized = '';
+    public ?string $singularized = '';
+    private array $fields = array();
+    private ?DumboShellColors $colors = null;
+    private string $_scaffoldFolder = '';
 
     public function __construct($env = '') {
         empty($env) || ($GLOBALS['env'] = $env);
@@ -119,19 +119,19 @@ class DumboGeneratorClass {
         $this->_scaffoldFolder = INST_PATH.'scaffold/';
     }
 
-    public function showError($errorMessage) {
+    public function showError(string $errorMessage): void {
         fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'red') . "\n");
     }
 
-    public function showMessage($errorMessage) {
+    public function showMessage(string $errorMessage): void {
         fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'white', 'green') . "\n");
     }
 
-    public function showNotice($errorMessage) {
+    public function showNotice(string $errorMessage): void {
         fwrite(STDOUT, $this->colors->getColoredString($errorMessage, 'blue', 'yellow') . "\n");
     }
 
-    public function setNames($name) {
+    public function setNames(string $name): bool {
         $this->tblName = $name;
         $this->singularized = Singulars($this->tblName);
         $this->camelized = Camelize($this->singularized);
@@ -142,7 +142,7 @@ class DumboGeneratorClass {
      * Will handle the model files generator.
      * will attempt to create a migration then will set the table up in database.
      */
-    public function model(array $params) {
+    public function model(array $params): bool {
         $this->showMessage('Building: Creating model...');
         $noSet = ['id','created_at', 'updated_at'];
         $attributes = '';
@@ -196,7 +196,7 @@ DUMBOPHP;
         return true;
     }
 
-    public function controller($params, $isScaffold = false) {
+    public function controller(array $params, bool $isScaffold = false): void {
         $this->showMessage('Building: Creating controller...');
 
         empty($this->tblName) and $this->setNames($params[0]);
@@ -272,7 +272,7 @@ DUMBOPHP;
         $this->showNotice("Controller created at: {$path}{$file}");
     }
 
-    public function views($params, $isScaffold = false) {
+    public function views(array $params, bool $isScaffold = false): void {
         $this->showMessage('Building: Creating views...');
 
         empty($this->tblName) and $this->setNames($params[0]);
@@ -364,7 +364,7 @@ DUMBOPHP;
         endif;
     }
 
-    public function migration($params) {
+    public function migration(array $params): bool {
         $this->showMessage('Building: Creating migration...');
 
         empty($params[1]) and die('Error on Building: fields params are mandatory.'.PHP_EOL);
@@ -413,7 +413,7 @@ DUMBOPHP;
         return true;
     }
 
-    public function scaffold($params) {
+    public function scaffold(array $params): bool {
         $this->model($params);
         $this->controller($params, true);
         $this->views($params, true);
@@ -421,7 +421,7 @@ DUMBOPHP;
         return true;
     }
 
-    public function seed() {
+    public function seed(): bool {
         $this->showMessage('Building: Creating seed...');
 
         $path = INST_PATH.'migrations/';

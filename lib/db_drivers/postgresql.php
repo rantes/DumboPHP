@@ -1,17 +1,19 @@
 <?php
+namespace DumboPHP\lib\db_drivers;
+use DumboPHP\lib\ShellCommands\Interfaces\DBDriver;
 /**
 *
 */
-class mysqlDriver {
-    private $_params = null;
-    public $tableName = null;
-    public $pk = 'id';
+class postgresqlDriver implements DBDriver {
+    private ?array $_params = null;
+    public ?string $tableName = null;
+    public string $pk = 'id';
 
     public function getColumns($table) {
         $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG'];
         $fields = array();
         $result1 = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$table}");
-        $result1->setFetchMode(PDO::FETCH_ASSOC);
+        $result1->setFetchMode(\PDO::FETCH_ASSOC);
         $resultset1 = $result1->fetchAll();
         foreach ($resultset1 as $res) {
             $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
@@ -191,7 +193,7 @@ class mysqlDriver {
         }elseif(!empty($conditions['conditions']) && is_string($conditions['conditions'])){
             $query .= 'WHERE '.$conditions['conditions'];
         } else {
-            throw new Exception("Invalid conditions for delete.", 1);
+            throw new \Exception("Invalid conditions for delete.", 1);
         }
 
         return $query;
@@ -205,7 +207,7 @@ class mysqlDriver {
             'INT' => 'INTEGER'
         ];
         while (null !== ($field = array_shift($fields))) {
-            if (empty($field['field']) || empty($field['type'])) throw new Exception('Field and type values are mandatory.', 1);
+            if (empty($field['field']) || empty($field['type'])) throw new \Exception('Field and type values are mandatory.', 1);
             array_key_exists($field['type'], $parsed) and ($field['type'] = $parsed[$field['type']]);
 
             $field['type'] === 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
@@ -239,7 +241,7 @@ WHERE table_name = '{$table}'
     AND column_name = '{$field}';
 DUMBO;
         $res = $GLOBALS['Connection']->query($getinfo);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $res->setFetchMode(\PDO::FETCH_ASSOC);
         return 0 + $res->fetchAll()[0]['counter'];
     }
 
@@ -249,10 +251,10 @@ DUMBO;
             $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
             $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":null;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":null;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":null;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":null;
         }
 
         return $query;
@@ -261,7 +263,7 @@ DUMBO;
      * Alters a specific column on the table.
      * @param string $table
      * @param array $params
-     * @return string|NULL
+     * @return string|null The query to run or null if the field doesn't exists
      */
     public function AlterColumn($table, array $params) {
         $query = '';
@@ -270,10 +272,10 @@ DUMBO;
             $params['type'] == 'INTEGER' && empty($field['limit']) && ($params['limit'] = 11);
 
             $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+            $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":null;
+            $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":null;
+            $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":null;
+            $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":null;
         }
 
         return $query;
@@ -320,7 +322,7 @@ SELECT COUNT(INDEX_NAME) AS indexes FROM information_schema.statistics WHERE tab
 DUMBO;
 
         $res = $GLOBALS['Connection']->query($query);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $res->setFetchMode(\PDO::FETCH_ASSOC);
         $c = $res->fetchAll();
         return 0 + $c[0]['indexes'];
     }
@@ -360,7 +362,7 @@ SELECT INDEX_NAME FROM information_schema.statistics WHERE table_schema = '{$GLO
 DUMBO;
 
         $res = $GLOBALS['Connection']->query($query);
-        $res->setFetchMode(PDO::FETCH_ASSOC);
+        $res->setFetchMode(\PDO::FETCH_ASSOC);
         $c = $res->fetchAll();
         return $c;
     }

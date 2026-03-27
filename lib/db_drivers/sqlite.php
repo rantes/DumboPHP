@@ -1,11 +1,13 @@
 <?php
+namespace DumboPHP\lib\db_drivers;
+use DumboPHP\lib\ShellCommands\Interfaces\DBDriver;
 /**
 *
 */
-class sqliteDriver {
-    private $_params = null;
-    public $tableName = null;
-    public $pk = 'rowid';
+class sqliteDriver implements DBDriver {
+    private ?array $_params = null;
+    public ?string $tableName = null;
+    public string $pk = 'rowid';
 
     public function getColumns($table) {
         return "PRAGMA table_info({$table})";
@@ -140,7 +142,7 @@ class sqliteDriver {
         }elseif(!empty($conditions['conditions']) && is_string($conditions['conditions'])){
             $query .= 'WHERE '.$conditions['conditions'];
         } else {
-            throw new Exception('Invalid conditions for delete.', 1);
+            throw new \Exception('Invalid conditions for delete.', 1);
         }
 
         return $query;
@@ -198,10 +200,10 @@ DUMBO;
         $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
         $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")": null;
+        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL": null;
+        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":null;
+        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'": null;
 
         return $query;
     }
@@ -209,17 +211,17 @@ DUMBO;
      * Alters a specific column on the table.
      * @param string $table
      * @param array $params
-     * @return string|NULL
+     * @return string|null
      */
     public function AlterColumn($table, array $params) {
         $query = '';
         $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
         $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":NULL;
-        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":NULL;
-        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":NULL;
-        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":NULL;
+        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":null;
+        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":null;
+        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":null;
+        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":null;
 
         return $query;
     }
