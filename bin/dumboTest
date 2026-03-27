@@ -33,11 +33,32 @@ set_include_path(
     '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
     INST_PATH.'DumboPHP'
 );
-
-require_once 'lib/DumboShellColors.php';
 require_once 'dumbophp.php';
-require_once 'lib/Timothy/dumboTests.php';
-require_once 'lib/Timothy/testDispatcher.php';
+
+spl_autoload_register(function($className) {
+    $path = explode('\\', $className);
+    if ($path[0] === 'DumboPHP'):
+        require_once implode('/', array_slice($path, 1)).'.php';
+    elseif ($path[0] === 'App'):
+        for ($i = 0; $i < sizeof($path); $i++):
+            $path[$i] = DumboPHP\unCamelize($path[$i]);
+        endfor;
+        $path = implode('/', $path);
+        require_once INST_PATH."{$path}.php";
+    else:
+
+        $path = implode('/', $path);
+        require_once INST_PATH."{$path}.php";
+    endif;
+});
+
+// require_once 'lib/DumboShellColors.php';
+// require_once 'lib/Timothy/dumboTests.php';
+// require_once 'lib/Timothy/testDispatcher.php';
+
+use DumboPHP\lib\DumboShellColors;
+// use DumboPHP\lib\Timothy\dumboTests;
+use DumboPHP\lib\Timothy\testDispatcher;
 
 class dumboShell{
     private $_options = [
@@ -286,7 +307,7 @@ DUMBO;
             $testCounter = 0;
             $tests = $this->arguments;
             $result = null;
-            $testReport = new DOMDocument('1.0', 'UTF-8');
+            $testReport = new \DOMDocument('1.0', 'UTF-8');
             $testReport->formatOutput = true;
 
             $testSuites = $testReport->createElement('testsuites');
@@ -362,7 +383,7 @@ DUMBO;
             $this->showNotice("\nGenerating coverage report...");
 
             $generated = time();
-            $coverageReport = new DOMDocument('1.0', 'UTF-8');
+            $coverageReport = new \DOMDocument('1.0', 'UTF-8');
             $coverageReport->formatOutput = true;
             $coverageTag = $coverageReport->createElement('coverage');
             $coverageTag->setAttribute('generated', $generated);
@@ -439,7 +460,7 @@ DUMBO;
 
             file_put_contents(INST_PATH.'coverage.xml', $coverageReport->saveXML());
             $this->showNotice('Coverage report generated at coverage.xml');
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->_failed = true;
             $this->showError("\n{$e}");
             exit(1);

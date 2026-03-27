@@ -1,10 +1,16 @@
 <?php
+namespace DumboPHP\lib\Timothy;
+
+use DumboPHP\ActiveRecord;
+use DumboPHP\Controller;
+use DumboPHP\Seed;
+use DumboPHP\lib\DumboShellColors;
 /**
  *
  * @author rantes <rantes.javier@gmail.com> https://latuteca.com
  *
  */
-class dumboTests extends Page {
+class dumboTests extends Controller {
     public $assertions = 0;
     public $testName = '';
     public $_failed = 0;
@@ -264,7 +270,7 @@ DUMBO;
      */
     public function describe($message) {
         if (!is_string($message)) {
-            throw new Exception('The message for the description must be string.');
+            throw new \Exception('The message for the description must be string.');
         }
 
         $this->_log($message);
@@ -295,11 +301,11 @@ DUMBO;
     /**
      * Redefines a method to set an spy
      * @todo Implements object spy
-     * @param Page $controller
+     * @param Controller $controller
      * @param string $method
      * @return void
      */
-    public function spyOn(Page $controller, $method) {
+    public function spyOn(Controller $controller, $method) {
        /**NOOP */
     }
     /**
@@ -333,7 +339,7 @@ DUMBO;
      * @return mixed Method return.
      */
     public function invokeMethod(&$object, $methodName, array $parameters = []) {
-        $reflection = new ReflectionClass(get_class($object));
+        $reflection = new \ReflectionClass(get_class($object));
         $method = $reflection->getMethod($methodName);
         $method->isPublic() or $method->setAccessible(true);
 
@@ -348,7 +354,7 @@ DUMBO;
      */
     public function setSysconfigValue(&$object, $property, $value) {
         $current = [];
-        $reflection = new ReflectionObject($object);
+        $reflection = new \ReflectionObject($object);
         $confs = $reflection->getProperty('__sys_conf_values__');
         $confs->setAccessible(true);
         $current = $confs->getValue($object);

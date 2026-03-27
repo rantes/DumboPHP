@@ -1,4 +1,6 @@
 <?php
+namespace DumboPHP\lib\Timothy;
+
 class ActionTest {
     public $name = '';
     public $line = '';
@@ -45,10 +47,10 @@ class testDispatcher {
                 $exploded = explode('/', $test);
                 $class = array_pop($exploded);
                 $pathname = "{$this->_testsPath}{$file}";
-                require $pathname;
-                $this->_tests[$class] = new $class("{$this->_logPath}{$this->_logFile}");
+                $testClass = "tests\\{$class}";
+                $this->_tests[$class] = new $testClass("{$this->_logPath}{$this->_logFile}");
             endwhile;
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->_failed = true;
             fwrite(STDERR, (string)$e);
             exit(1);
@@ -66,7 +68,8 @@ class testDispatcher {
         try {
             $exploded = explode('/', $test);
             $class = array_pop($exploded);
-            $reflectedClass = new ReflectionClass($class);
+            $testClass = "tests\\{$class}";
+            $reflectedClass = new \ReflectionClass($testClass);
             $methods = get_class_methods($this->_tests[$class]);
             $this->tests = 0;
             while (null !== ($method = array_shift($methods))):
@@ -112,7 +115,7 @@ class testDispatcher {
 
             $objtest->_end_();
             $objtest->_summary();
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->_failed = true;
             fwrite(STDERR, (string)$e);
             exit(1);
