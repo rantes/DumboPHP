@@ -876,6 +876,7 @@ abstract class Core_General_Class extends \ArrayObject {
     public function __call($ClassName, $val = NULL) {
         $field = Singulars(strtolower($ClassName));
         $classFromCall = Camelize($ClassName);
+        $className = "App\\Models\\{$classFromCall}";
         $conditions = '';
         $params = [];
 
@@ -897,10 +898,8 @@ abstract class Core_General_Class extends \ArrayObject {
             }
             $foreign = strtolower($field)."_id";
             $prefix  = unCamelize(get_class($this));
-            if (!class_exists($classFromCall)) {
-                require_once INST_PATH.'app/models/'.$field.'.php';
-            }
-            $obj1       = new $classFromCall();
+
+            $obj1       = new $className();
             $conditions = '1=1';
             if (method_exists($obj1, 'Find')) {
                 if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)) {
