@@ -2445,14 +2445,14 @@ abstract class Migrations extends Core_General_Class {
     public $_fields;
 
     private function _runQuery($query) {
-        echo 'Running query: ', $query, PHP_EOL;
+        echo '» Running query: ', $query, PHP_EOL;
         if (DB->exec($query) === false) {
             fwrite(STDERR, DB->errorInfo() . PHP_EOL);
         }
     }
 
     private function _fetchQuery($query) {
-        echo 'Running query: ', $query, PHP_EOL;
+        echo '» Running query: ', $query, PHP_EOL;
         $st = DB->prepare($query);
         $st->execute();
         return $st->fetchAll();

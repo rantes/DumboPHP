@@ -56,7 +56,8 @@ class MigrationCommand extends BaseShell implements Interfaces\DumboCommand {
         switch ($args[0]) {
             case 'sow':
                 $this->showNotice('Sowing the seeds of this project...');
-                $Seeds = new Migrations\Seed();
+                $seeds = 'Migrations\\seeds';
+                $Seeds = new $seeds();
                 $Seeds->sow();
             break;
             case 'reset':
