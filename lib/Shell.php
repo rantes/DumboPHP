@@ -2,24 +2,15 @@
 namespace DumboPHP\lib;
 
 use Exception;
-use DumboPHP\lib\Exceptions\noCommandGiven;
 use DumboPHP\lib\ShellCommands\Interfaces\DumboCommand;
 use DumboPHP\lib\ShellCommands\BaseShell;
 use DumboPHP\lib\ShellCommands\CreateCommand;
 use DumboPHP\lib\ShellCommands\HelpCommand;
 use DumboPHP\lib\ShellCommands\MigrationCommand;
+use DumboPHP\lib\ShellCommands\AutocompleteCommand;
 
 class Shell extends BaseShell {
-    private array $commands = [
-        'autocomplete',
-        'help',
-        'create',
-        'run',
-        'db',
-        'generate',
-        'destroy',
-        'migration'
-    ];
+
     private array $_options = [
         'env' => ['value' => null, 'cast' => 'string'],
         'halt' => ['value' => false, 'cast' => 'boolean'],
@@ -35,11 +26,13 @@ class Shell extends BaseShell {
     private ?DumboCommand $_createCommand = null;
     private ?DumboCommand $_helpCommand = null;
     private ?DumboCommand $_migrationCommand = null;
+    private ?DumboCommand $_autocompleteCommand = null;
 
     public function __construct() {
         parent::__construct();
         $this->_createCommand = new CreateCommand();
         $this->_helpCommand = new HelpCommand();
+        $this->_autocompleteCommand = new AutocompleteCommand();
         $this->_migrationCommand = new MigrationCommand();
     }
 
@@ -81,7 +74,9 @@ class Shell extends BaseShell {
 
         try {
             if(empty($argv[1]) || sizeof($argv) < 2) {
-                throw new noCommandGiven();
+                $this->_helpCommand->execute([], []);
+                $this->showError('No command given.');
+                die();
             }
 
             array_shift($argv);
@@ -125,56 +120,6 @@ class Shell extends BaseShell {
 
     }
 
-    private function _getControllers() {
-        file_exists('./config/host.php') or die();
-        require_once './config/host.php';
-        $controllersPath = INST_PATH.'app/controllers';
-        $controllersDir = dir($controllersPath);
-        $controllersList = [];
-        while (($file = $controllersDir->read()) != false):
-            if($file != "." and $file != ".." and preg_match('/(.+)_controller\.php/', $file, $matches) === 1):
-                $file = preg_replace('/(_controller\.php)/', '', $file);
-                $controllersList[] = $file;
-            endif;
-        endwhile;
-
-        return $controllersList;
-    }
-
-    private function _getActions($controller) {
-        file_exists('./config/host.php') or die();
-        require_once './config/host.php';
-        require_once "{$this->dumboBin}/dumbophp.php";
-
-        $controllerFile = INST_PATH."app/controllers/{$controller}_controller.php";
-        file_exists($controllerFile) or die();
-        $className = ucfirst("{$controller}Controller");
-        $actions = [];
-
-        require_once $controllerFile;
-        $methods = get_class_methods($className);
-        while(null !== ($method = array_shift($methods))):
-            if(preg_match('/^[^_](.+)Action/', $method)):
-                $actions[] = str_replace('Action', '', $method);
-            endif;
-        endwhile;
-
-        return $actions;
-    }
-
-    private function _getFullActions() {
-        $list = [];
-        $controllers = $this->_getControllers();
-        while(null !== ($controller = array_shift($controllers))):
-            $actions = $this->_getActions($controller);
-            while(null !== ($action = array_shift($actions))):
-                $list[] = "{$controller}/{$action}";
-            endwhile;
-        endwhile;
-
-        return $list;
-    }
-
     private function _autocomplete() {
         array_shift($this->commands);
         $output = implode("\n", $this->commands);
@@ -209,7 +154,7 @@ class Shell extends BaseShell {
 
     private function generateScripts() {
         if(empty($this->arguments[0]) || $this->arguments[0] !== 'seed' && sizeof($this->arguments) < 2) {
-            $this->help();
+            $this->_helpCommand->execute([], []);
             $this->showError('Error: Missing params.');
             die();
         }
@@ -241,21 +186,21 @@ class Shell extends BaseShell {
             break;
 
             default:
-                $this->help();
-                die($this->showError('Option no valid for generate.'));
+                $this->_helpCommand();
+                die($this->showError('No valid option.'));
             break;
         }
     }
 
     private function destroyScripts() {
         if(empty($this->arguments[0]) or empty($this->arguments[1])) {
-            $this->help();
+            $this->_helpCommand->execute([], []);
             $this->showError('Error: Missing params.');
             die();
         }
 
         if(sizeof($this->arguments) > 2) {
-            $this->help();
+            $this->_helpCommand->execute([], []);
             $this->showError('Error: Only one model for delete at once.');
             die();
         }
@@ -318,7 +263,7 @@ class Shell extends BaseShell {
                 unlink($controller);
             break;
             default:
-                $this->help();
+                $this->_helpCommand->execute([], []);
                 $this->showError('Option no valid for generate.');
                 die();
             break;
@@ -327,7 +272,7 @@ class Shell extends BaseShell {
 
     private function dbScripts() {
         if(empty($this->arguments[0]) or empty($this->arguments[1])) {
-            $this->help();
+            $this->_helpCommand->execute([], []);
             $this->showError('Error: Missing params.');
             die();
         }
@@ -399,68 +344,5 @@ class Shell extends BaseShell {
         }
 
         require_once('app/webroot/index.php');
-    }
-
-    private function migrationScripts() {
-        file_exists('./config/host.php') or die($this->showError('Migration actions must be executed at the top level of project path.'.PHP_EOL));
-
-        require_once './config/host.php';
-        require_once "{$this->dumboBin}/dumbophp.php";
-
-        for ($i=1; $i < sizeof($this->arguments); $i++) {
-            $this->params[] = $this->arguments[$i];
-        }
-
-        empty($this->arguments[0]) && die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
-
-        ($this->arguments[0] === 'sow' || sizeof($this->params) > 0) or die($this->showError('Error: Not enough arguments; the migrations to affect must be defined.'));
-
-        empty($this->_options['env']['value']) || ($GLOBALS['env'] = $this->_options['env']['value']);
-        $migrationsPath = INST_PATH.'migrations/';
-        $objects = [];
-
-        if($this->arguments[0] !== 'sow') {
-            if(sizeof($this->params) === 1 and $this->params[0] === 'all') {
-                $migrationsDir = dir($migrationsPath);
-                while (($file = $migrationsDir->read()) != false) {
-                    if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
-                        echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $matches[1], PHP_EOL;
-                        require_once $migrationsPath.$matches[0];
-                        $class = 'Create'.Camelize(Singulars($matches[1]));
-                        $objects[] = new $class();
-                    }
-                }
-            } else {
-                foreach ($this->params as $migration) {
-                    $file = $migrationsPath.'create_'.$migration.'.php';
-                    file_exists($file) or die('Migration file '.$migration.', does not exists.'.PHP_EOL);
-                    echo PHP_EOL, 'Running action ', $this->arguments[0], ' for: ', $migration, PHP_EOL;
-                    require_once $file;
-                    $class = 'Create'.Camelize(Singulars($migration));
-                    $objects[] = new $class();
-                }
-            }
-        }
-
-        switch ($this->arguments[0]) {
-            case 'sow':
-                $this->showNotice('Sowing the seeds of this project...');
-                file_exists($migrationsPath.'seeds.php')  or die($this->showError('Error: No seeds file exists.'));
-                require_once $migrationsPath.'seeds.php';
-                $Seeds = new Seed();
-                $Seeds->sow();
-            break;
-            case 'reset':
-                foreach($objects as $obj) {
-                    $obj->down();
-                    $obj->up();
-                }
-            break;
-            default:
-                foreach($objects as $obj) {
-                    $obj->{$this->arguments[0]}();
-                }
-            break;
-        }
     }
 }

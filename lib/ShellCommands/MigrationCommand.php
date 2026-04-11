@@ -16,8 +16,6 @@ class MigrationCommand extends BaseShell implements Interfaces\DumboCommand {
         if (!file_exists('./config/host.php')) {
             throw new Exception('Migration actions must be executed at the top level of project path.');
         }
-        // require_once './config/host.php';
-        // require_once "{$this->dumboBin}/dumbophp.php";
 
         for ($i=1; $i < sizeof($args); $i++) {
             $this->params[] = $args[$i];
@@ -27,9 +25,6 @@ class MigrationCommand extends BaseShell implements Interfaces\DumboCommand {
             throw new Exception('Error: Not enough arguments; the migrations to affect must be defined.');
         }
 
-
-
-        // empty($this->_options['env']['value']) || ($GLOBALS['env'] = $this->_options['env']['value']);
         $migrationsPath = INST_PATH.'migrations/';
         $objects = [];
 
