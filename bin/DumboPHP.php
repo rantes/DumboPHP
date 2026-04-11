@@ -1281,8 +1281,6 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         }
 
-        // $x->setFlags(\ArrayObject::STD_PROP_LIST);
-
         return $x;
     }
     /**

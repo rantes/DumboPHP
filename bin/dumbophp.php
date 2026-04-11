@@ -998,11 +998,11 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public function _init_() {}
 
     public final function __construct(array $fields = []) {
-        // parent::__construct($fields);
+        parent::__construct($fields);
         $this->_error = new Errors;
         $this->_init_();
         $this->_counter = 0;
-        $this->setFlags(\ArrayObject::ARRAY_AS_PROPS);
+        // $this->setFlags(\ArrayObject::ARRAY_AS_PROPS | \ArrayObject::STD_PROP_LIST);
 
         $p = explode('\\', get_class($this));
         $this->_name = $p[sizeof($p)-1];
@@ -1103,7 +1103,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @see \ArrayObject::getIterator()
      */
     public function getIterator(): \ArrayIterator {
-        return new \ArrayIterator($this);
+        return new \ArrayIterator($this, \ArrayIterator::STD_PROP_LIST);
     }
     /**
      * Fetch the data with the providen query
@@ -1172,6 +1172,23 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         return $this;
     }
 
+    /**
+     * Helper to build conditions in SQL.
+     *
+     * ways to set the conditions:
+     * 
+     * 'conditions'=>[
+     *      ['field', 'value'],
+     *      ['field2', 'value2']
+     * ] // will be field = value, joint with 'AND' condition
+     * 'conditions'=>[
+     *      ['field', 'value'],
+     *      ['field2', 'BETWEEN', 'value1', 'value2']
+     * ] // will be field BETWEEN value1 AND value2, joint with 'AND' condition
+     *
+     * @param array $mainConditions
+     * @return void
+     */
     private function _buildConditions(array $mainConditions): void {
         $operator = '=';
         $_condition = '';
@@ -1281,8 +1298,6 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         }
 
-        // $x->setFlags(\ArrayObject::STD_PROP_LIST);
-
         return $x;
     }
     /**
@@ -1355,7 +1370,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public function Niu(array $contents = []): ActiveRecord {
         $className = get_class($this);
         $obj = new $className($contents);
-        $obj->setFlags(\ArrayObject::ARRAY_AS_PROPS);
+        // $obj->setFlags(\ArrayObject::ARRAY_AS_PROPS);
 
         return $obj;
     }
@@ -1745,10 +1760,14 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * Dumps out the data contained in the model.
      */
     public function inspect($tabs = 0) {
+        $name = get_class($this);
+        $reflection = new \ReflectionClass($name);
+        var_dump($reflection->getProperties(\ReflectionProperty::IS_PUBLIC));
+        $output = $name . " ActiveRecord ({$this->count()}): " . $this->ListProperties_ToString($tabs);
         if (_IN_SHELL_):
-            fwrite(STDOUT, get_class($this) . " ActiveRecord ({$this->count()}): " . $this->ListProperties_ToString($tabs));
+            fwrite(STDOUT, $output);
         else:
-            echo get_class($this), " ActiveRecord ({$this->count()}): ", $this->ListProperties_ToString($tabs);
+            echo $output;
         endif;
     }
 
@@ -2439,8 +2458,9 @@ abstract class Migrations extends Core_General_Class {
         return $st->fetchAll();
     }
 
-    public final function __construct(protected Connection $connection) {
-        $this->_table = Plurals(unCamelize(substr(get_class($this), 6)));
+    public final function __construct() {
+        $path = explode('\\', get_class($this));
+        $this->_table = unCamelize(str_replace('Create', '', end($path)));
 
         $this->_init_();
     }
@@ -2492,14 +2512,12 @@ abstract class Migrations extends Core_General_Class {
      * @param array $table
      */
     protected function Create_Table() {
-        $this->connect();
-        $query = DB->CreateTable($this->_table, $this->_fields);
+        $query = DB->driver->CreateTable($this->_table, $this->_fields);
         empty($query) || $this->_runQuery($query);
     }
 
     protected function Drop_Table() {
-        $this->connect();
-        $query = DB->DropTable($this->_table);
+        $query = DB->driver->DropTable($this->_table);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2510,12 +2528,11 @@ abstract class Migrations extends Core_General_Class {
      * $this->AddColumn(['field' => 'additional', 'type'=>'INT', 'null'=>'false']);
      */
     protected function Add_Column(array $params) {
-        $this->connect();
-        $query = DB->validateField($this->_table, $params['field']);
-        $res = DB->validateField($query, $params['field']);
+        $query = DB->driver->validateField($this->_table, $params['field']);
+        $res = DB->driver->validateField($query, $params['field']);
 
         if ($res < 1) {
-            $query = DB->AddColumn($this->_table, $params);
+            $query = DB->driver->AddColumn($this->_table, $params);
             $this->_runQuery($query);
         }
 
@@ -2526,8 +2543,6 @@ abstract class Migrations extends Core_General_Class {
      * @throws \Exception Each attribute is mandatory
      */
     protected function Add_Index(array $params) {
-        $this->connect();
-
         if (empty($params['name'])) {
             throw new \Exception("name param can not be empty", 1);
         }
@@ -2540,7 +2555,7 @@ abstract class Migrations extends Core_General_Class {
             throw new \Exception("fields param must be an array", 1);
         }
 
-        $query = DB->AddIndex($this->_table, $params['name'], implode(',', $params['fields']));
+        $query = DB->driver->AddIndex($this->_table, $params['name'], implode(',', $params['fields']));
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2549,8 +2564,7 @@ abstract class Migrations extends Core_General_Class {
      * @param string $field
      */
     protected function Add_Single_Index($field) {
-        $this->connect();
-        $query = DB->AddSingleIndex($this->_table, $field);
+        $query = DB->driver->AddSingleIndex($this->_table, $field);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2559,8 +2573,7 @@ abstract class Migrations extends Core_General_Class {
      * @param string $index
      */
     protected function Remove_Index($index) {
-        $this->connect();
-        $query = DB->RemoveIndex($this->_table, $index);
+        $query = DB->driver->RemoveIndex($this->_table, $index);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2570,8 +2583,7 @@ abstract class Migrations extends Core_General_Class {
      * @return void
      */
     protected function Remove_All_indexes() {
-        $this->connect();
-        $query = DB->GetAllIndexes($this->_table);
+        $query = DB->driver->GetAllIndexes($this->_table);
         $indexes = $this->_fetchQuery($query);
 
         if (!empty($indexes)):
@@ -2591,13 +2603,12 @@ abstract class Migrations extends Core_General_Class {
      * @throws \Exception
      */
     protected function Add_Primary($field, $autoIncrement = false) {
-        $this->connect();
 
         if (empty($field)) throw new \Exception("fields param can not be empty", 1);
 
         if (!is_string($field)) throw new \Exception("fields param must be a string", 1);
 
-        $query = DB->AddPrimaryKey($this->_table, $field);
+        $query = DB->driver->AddPrimaryKey($this->_table, $field);
 
         if (!empty($query)) {
             $this->_runQuery($query);
@@ -2609,10 +2620,9 @@ abstract class Migrations extends Core_General_Class {
      * @param array $params Array with the column attributes
      */
     protected function Alter_Column(array $params) {
-        $this->connect();
-        $query = DB->validateField($this->_table, $params['field']);
-        if (DB->validateField($query) > 0) {
-            $query = DB->AlterColumn($this->_table, $params);
+        $query = DB->driver->validateField($this->_table, $params['field']);
+        if (DB->driver->validateField($query) > 0) {
+            $query = DB->driver->AlterColumn($this->_table, $params);
             $this->_runQuery($query);
         }
     }
@@ -2626,8 +2636,7 @@ abstract class Migrations extends Core_General_Class {
             throw new \Exception('fields param must be a string', 1);
         }
 
-        $this->connect();
-        $query = DB->RemoveColumn($this->_table, $field);
+        $query = DB->driver->RemoveColumn($this->_table, $field);
 
         empty($query) || $this->_runQuery($query);
     }

@@ -7,6 +7,7 @@ use DumboPHP\lib\ShellCommands\Interfaces\DumboCommand;
 use DumboPHP\lib\ShellCommands\BaseShell;
 use DumboPHP\lib\ShellCommands\CreateCommand;
 use DumboPHP\lib\ShellCommands\HelpCommand;
+use DumboPHP\lib\ShellCommands\MigrationCommand;
 
 class Shell extends BaseShell {
     private array $commands = [
@@ -33,11 +34,13 @@ class Shell extends BaseShell {
 
     private ?DumboCommand $_createCommand = null;
     private ?DumboCommand $_helpCommand = null;
+    private ?DumboCommand $_migrationCommand = null;
 
     public function __construct() {
         parent::__construct();
         $this->_createCommand = new CreateCommand();
         $this->_helpCommand = new HelpCommand();
+        $this->_migrationCommand = new MigrationCommand();
     }
 
     private function _parseOptions() {

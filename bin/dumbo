@@ -28,17 +28,41 @@ set_include_path(
     INST_PATH
 );
 
-spl_autoload_register(function ($class) {
-    $class = str_replace('\\', '/', $class);
-    $class = str_replace('DumboPHP/', '', $class);
-    $file = INST_PATH."{$class}.php";
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
+require_once 'dumbophp.php';
 
 use DumboPHP\lib\Shell;
+use function DumboPHP\unCamelize;
+use DumboPHP\Config;
+use DumboPHP\Connection;
+
+
+spl_autoload_register(function ($class) {
+    $path = explode('\\', $class);
+
+    switch ($path[0]) {
+        case 'DumboPHP':
+            require_once implode('/', array_slice($path, 1)).'.php';
+        break;
+        case 'App':
+            for ($i = 0; $i < sizeof($path); $i++):
+                $path[$i] = unCamelize($path[$i]);
+            endfor;
+            $path = implode('/', $path);
+            require_once INST_PATH."{$path}.php";
+        break;
+        case 'Migrations':
+            $file = unCamelize($path[1]);
+            require_once INST_PATH."migrations/{$file}.php";
+        break;
+        default:
+            $path = implode('/', $path);
+            require_once INST_PATH."{$path}.php";
+    }
+
+});
+
+defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
+defined('DB') || define('DB', new Connection());
 
 $shell = new Shell();
 $shell->run($argv);
