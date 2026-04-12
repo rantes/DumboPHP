@@ -1,13 +1,15 @@
 <?php
 namespace DumboPHP\lib\db_drivers;
 use DumboPHP\lib\ShellCommands\Interfaces\DBDriver;
+
 /**
-*
-*/
+ *
+ */
 class sqliteDriver implements DBDriver {
-    private ?array $_params = null;
+    private ?array $_params   = null;
     public ?string $tableName = null;
-    public string $pk = 'rowid';
+    public ?string $schema    = null;
+    public string $pk         = 'rowid';
 
     public function getColumns($table) {
         return "PRAGMA table_info({$table})";
@@ -16,77 +18,76 @@ class sqliteDriver implements DBDriver {
     public function Select($params, $table, $pk = 'rowid') {
         $this->_params = $params;
 
-        $tail = '';
+        $tail     = '';
         $prepared = '';
-        $values = [];
-        $head = 'SELECT ';
-        $body = " FROM {$table} ";
+        $values   = [];
+        $head     = 'SELECT ';
+        $body     = " FROM {$table} ";
 
-
-        if(!empty($this->_params)){
+        if (! empty($this->_params)) {
             is_numeric($this->_params) && ($this->_params = (integer) $this->_params);
             $type = gettype($this->_params);
 
-            switch($type){
-                case 'integer':
-                    $tail = "{$tail} WHERE `{$pk}` = {$this->_params}";
-                    $prepared = "{$prepared} WHERE `{$pk}` = ?";
-                    $values = [$this->_params];
+            switch ($type) {
+            case 'integer':
+                $tail     = "{$tail} WHERE `{$pk}` = {$this->_params}";
+                $prepared = "{$prepared} WHERE `{$pk}` = ?";
+                $values   = [$this->_params];
                 break;
-                case 'string':
-                    $ids = explode(',', $this->_params);
-                    $tail = "{$tail} WHERE `{$pk}` in ( ";
-                    while(null !== ($id = array_shift($ids))) {
-                        $id = (integer) $id;
-                        $values[] = $id;
-                        $tail .= '?,';
-                    }
-                    $tail = substr($tail, -1);
-                    $tail = "{$tail})";
+            case 'string':
+                $ids  = explode(',', $this->_params);
+                $tail = "{$tail} WHERE `{$pk}` in ( ";
+                while (null !== ($id = array_shift($ids))) {
+                    $id        = (integer) $id;
+                    $values[]  = $id;
+                    $tail     .= '?,';
+                }
+                $tail = substr($tail, -1);
+                $tail = "{$tail})";
                 break;
-                case 'array':
-                    $tail = ' WHERE 1=1';
-                    $operator = '=';
-                    $conditions = ' ';
-                    if(!empty($this->_params['conditions']) and is_string($this->_params['conditions']) and strlen(trim($this->_params['conditions'])) > 0) {
-                        $prepared = $tail = "{$tail} {$this->_params['conditions']}";
-                    }
+            case 'array':
+                $tail       = ' WHERE 1=1';
+                $operator   = '=';
+                $conditions = ' ';
+                if (! empty($this->_params['conditions']) and is_string($this->_params['conditions']) and strlen(trim($this->_params['conditions'])) > 0) {
+                    $prepared = $tail = "{$tail} {$this->_params['conditions']}";
+                }
 
-                    if(!empty($this->_params['join'])) {
-                        $body .= $this->_params['join'];
-                    }
+                if (! empty($this->_params['join'])) {
+                    $body .= $this->_params['join'];
+                }
 
-                    if(isset($this->_params['group'])){
-                        $tail .= " GROUP BY {$this->_params['group']}";
-                        $prepared .= " GROUP BY {$this->_params['group']}";
-                    }
+                if (isset($this->_params['group'])) {
+                    $tail     .= " GROUP BY {$this->_params['group']}";
+                    $prepared .= " GROUP BY {$this->_params['group']}";
+                }
 
-                    if(isset($this->_params['sort'])){
-                        switch (gettype($this->_params['sort'])){
-                            case 'string':
-                                $tail .= " ORDER BY {$this->_params['sort']}";
-                                $prepared .= " ORDER BY {$this->_params['sort']}";
-                            break;
-                        }
+                if (isset($this->_params['sort'])) {
+                    switch (gettype($this->_params['sort'])) {
+                    case 'string':
+                        $tail     .= " ORDER BY {$this->_params['sort']}";
+                        $prepared .= " ORDER BY {$this->_params['sort']}";
+                        break;
                     }
+                }
 
-                    if(isset($this->_params['limit'])){
-                        $tail .= " LIMIT {$this->_params['limit']}";
-                        $prepared .= " LIMIT {$this->_params['limit']}";
+                if (isset($this->_params['limit'])) {
+                    $tail     .= " LIMIT {$this->_params['limit']}";
+                    $prepared .= " LIMIT {$this->_params['limit']}";
+                }
+                if (isset($this->_params[0])) {
+                    switch ($this->_params[0]) {
+                    case ':first':
+                        $tail     .= " LIMIT 1";
+                        $prepared .= " LIMIT 1";
+                        break;
                     }
-                    if(isset($this->_params[0])){
-                        switch($this->_params[0]){
-                            case ':first':
-                                $tail .= " LIMIT 1";
-                                $prepared .= " LIMIT 1";
-                            break;
-                        }
-                    }
+                }
                 break;
             }
         }
-        $fields = (!is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields'])))? "{$this->pk}, *" : $this->_params['fields'];
-        $sql = "{$head}{$fields}{$body}{$tail}";
+        $fields   = (! is_array($this->_params) || (is_array($this->_params) && empty($this->_params['fields']))) ? "{$this->pk}, *" : $this->_params['fields'];
+        $sql      = "{$head}{$fields}{$body}{$tail}";
         $prepared = "{$head}{$fields}{$body}{$prepared}";
 
         return ['query' => $sql, 'prepared' => $prepared, 'data' => $values];
@@ -94,33 +95,33 @@ class sqliteDriver implements DBDriver {
 
     public function Update($params, $table, $pk = 'id') {
         $prepared = [];
-        $query = 'UPDATE `'.$table.'` SET ';
+        $query    = 'UPDATE `' . $table . '` SET ';
         foreach ($params['data'] as $field => $value) {
-            if($field != $pk &&  $value !== null){
-                $query .= "`$field`=:$field,";
-                $prepared[':'.$field] = $value;
+            if ($field != $pk && $value !== null) {
+                $query                  .= "`$field`=:$field,";
+                $prepared[':' . $field]  = $value;
             }
         }
 
-        $query = substr($query, 0, -1);
+        $query  = substr($query, 0, -1);
 
-        $query .= ' WHERE '.$params['conditions'];
+        $query .= ' WHERE ' . $params['conditions'];
 
-        return array('query'=>$query, 'prepared'=>$prepared);
+        return ['query' => $query, 'prepared' => $prepared];
     }
 
     public function Insert($params, $table) {
         $prepared = [];
-        $fields = '';
-        $values = '';
-        $action = 'INSERT';
+        $fields   = '';
+        $values   = '';
+        $action   = 'INSERT';
 
         $query = "{$action} INTO `{$table}` ";
-        foreach($params as $field => $value){
-            if(is_string($value) || is_numeric($value)) {
-                $fields .= "`$field`,";
-                $values .= ":".$field.",";
-                $prepared[':'.$field] = $value;
+        foreach ($params as $field => $value) {
+            if (is_string($value) || is_numeric($value)) {
+                $fields                 .= "`$field`,";
+                $values                 .= ":" . $field . ",";
+                $prepared[':' . $field]  = $value;
             }
         }
 
@@ -132,15 +133,15 @@ class sqliteDriver implements DBDriver {
         return ['query' => $query, 'prepared' => $prepared];
     }
 
-    public function Delete($conditions, $table, $pk ='rowid') {
+    public function Delete($conditions, $table, $pk = 'rowid') {
         $query = "DELETE FROM `{$table}` ";
-        if(is_numeric($conditions)){
-            $this->{$pk} = $conditions;
-            $query .= "WHERE ".$pk."='$conditions'";
-        }elseif(is_array($conditions) && empty($conditions['conditions'])){
-            $query .= 'WHERE `'.$pk.'` IN ('.implode(',', $conditions).')';
-        }elseif(!empty($conditions['conditions']) && is_string($conditions['conditions'])){
-            $query .= 'WHERE '.$conditions['conditions'];
+        if (is_numeric($conditions)) {
+            $this->{$pk}  = $conditions;
+            $query       .= "WHERE " . $pk . "='$conditions'";
+        } elseif (is_array($conditions) && empty($conditions['conditions'])) {
+            $query .= 'WHERE `' . $pk . '` IN (' . implode(',', $conditions) . ')';
+        } elseif (! empty($conditions['conditions']) && is_string($conditions['conditions'])) {
+            $query .= 'WHERE ' . $conditions['conditions'];
         } else {
             throw new \Exception('Invalid conditions for delete.', 1);
         }
@@ -149,14 +150,17 @@ class sqliteDriver implements DBDriver {
     }
 
     public function CreateTable($table, $fields) {
-        $query = "CREATE TABLE IF NOT EXISTS `{$table}` (";
+        $query       = "CREATE TABLE IF NOT EXISTS `{$table}` (";
         $queryFields = [];
-        $parsed = [
-            'INT' => 'INTEGER',
-            'BIGINT' => 'INTEGER'
+        $parsed      = [
+            'INT'    => 'INTEGER',
+            'BIGINT' => 'INTEGER',
         ];
         while (null !== ($field = array_shift($fields))) {
-            if (empty($field['field']) || empty($field['type'])) throw new Exception('Field and type values are mandatory.', 1);
+            if (empty($field['field']) || empty($field['type'])) {
+                throw new Exception('Field and type values are mandatory.', 1);
+            }
+
             array_key_exists($field['type'], $parsed) and ($field['type'] = $parsed[$field['type']]);
             $extra = ' ';
             $field['type'] == 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
@@ -164,7 +168,7 @@ class sqliteDriver implements DBDriver {
             empty($field['primary']) || ($extra = "{$extra} PRIMARY KEY");
             empty($field['autoincrement']) || ($extra = "{$extra} AUTOINCREMENT");
 
-            $limit = empty($field['limit']) ? '' : "({$field['limit']})";
+            $limit   = empty($field['limit']) ? '' : "({$field['limit']})";
             $notNull = (isset($field['null']) && ($field['null'] === false || $field['null'] === 'false')) ? ' NOT NULL' : '';
             $default = isset($field['default']) ? " DEFAULT '{$field['default']}'" : '';
             $comment = isset($field['comment']) ? " COMMENT '{$field['comment']}'" : '';
@@ -189,7 +193,7 @@ class sqliteDriver implements DBDriver {
      * @return string query
      */
     public function validateField($table, $field) {
-        $query =<<<DUMBO
+        $query = <<<DUMBO
 PRAGMA table_info({$table})
 DUMBO;
         return $query;
@@ -199,11 +203,11 @@ DUMBO;
         $query = '';
         $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-        $query = "ALTER TABLE `".$table."` ADD COLUMN `".$params['field']."` ".strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")": null;
-        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL": null;
-        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":null;
-        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'": null;
+        $query  = "ALTER TABLE `" . $table . "` ADD COLUMN `" . $params['field'] . "` " . strtoupper($params['type']);
+        $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
+        $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
+        $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
+        $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
 
         return $query;
     }
@@ -217,11 +221,11 @@ DUMBO;
         $query = '';
         $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-        $query = "ALTER TABLE `".$table."` MODIFY `".$params['field']."` ".strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '')?"(".$params['limit'].")":null;
-        $query .= (isset($params['null']) && $params['null'] != '')?" NOT NULL":null;
-        $query .= (isset($params['default']) && $params['default'] != '')?" DEFAULT '".$params['default']."'":null;
-        $query .= (!empty($params['comments']))?" COMMENT '".$params['comment']."'":null;
+        $query  = "ALTER TABLE `" . $table . "` MODIFY `" . $params['field'] . "` " . strtoupper($params['type']);
+        $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
+        $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
+        $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
+        $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
 
         return $query;
     }
@@ -234,7 +238,7 @@ DUMBO;
     public function RemoveColumn($table, $field) {
         $query = '';
         if ($this->validateField($table, $field) > 0) {
-            $query = "ALTER TABLE `".$table."` DROP `".$field."`";
+            $query = "ALTER TABLE `" . $table . "` DROP `" . $field . "`";
         }
 
         return $query;
@@ -249,7 +253,7 @@ DUMBO;
     public function AddIndex($table, $name, $fields) {
         $query = '';
 
-        if (!$this->ValidateIndex($table, $name)) {
+        if (! $this->ValidateIndex($table, $name)) {
             $query = "CREATE INDEX {$name} ON {$table} ({$fields})";
         }
 
@@ -270,7 +274,7 @@ DUMBO;
         $res->setFetchMode(PDO::FETCH_ASSOC);
         $c = $res->fetchAll();
 
-        return (int)$c[0]['indexes'];
+        return (int) $c[0]['indexes'];
     }
     /**
      * Adds single index or index which is nothing but the field name
@@ -279,7 +283,7 @@ DUMBO;
      * @return string The query to run
      */
     public function AddSingleIndex($table, $field) {
-        $query = '';
+        $query     = '';
         $indexName = "idx_{$table}_{$field}";
 
         $x = $this->ValidateIndex($table, $indexName);

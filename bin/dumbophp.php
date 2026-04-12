@@ -4,44 +4,46 @@ namespace DumboPHP;
 defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty($_SERVER['REMOTE_ADDR']));
 define('SQLITE_PREG', '@sqlite@');
 
-if (_IN_SHELL_ && !empty($argv)) parse_str(implode('&', array_slice($argv, 1)), $_GET);
+if (_IN_SHELL_ && ! empty($argv)) {
+    parse_str(implode('&', array_slice($argv, 1)), $_GET);
+}
 
 for ($i = 1; $i <= 5; $i++) {
     for ($j = 0; $j < 100; $j++) {
-        $code = ($i*100)+$j;
-        defined('HTTP_'.$code) || define('HTTP_'.$code, $code);
+        $code = ($i * 100) + $j;
+        defined('HTTP_' . $code) || define('HTTP_' . $code, $code);
     }
 }
 
-if (!function_exists('getallheaders')) {
+if (! function_exists('getallheaders')) {
     /**
      * Get all HTTP header key/values as an associative array for the current request.
      *
      * @return string[string] The HTTP header key/value pairs.
      */
     function getallheaders() {
-        $headers = [];
-        $copy_server = array(
+        $headers     = [];
+        $copy_server = [
             'CONTENT_TYPE'   => 'Content-Type',
             'CONTENT_LENGTH' => 'Content-Length',
             'CONTENT_MD5'    => 'Content-Md5',
-        );
+        ];
         foreach ($_SERVER as $key => $value) {
             if (substr($key, 0, 5) === 'HTTP_') {
                 $key = substr($key, 5);
-                if (!isset($copy_server[$key]) || !isset($_SERVER[$key])) {
-                    $key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
+                if (! isset($copy_server[$key]) || ! isset($_SERVER[$key])) {
+                    $key           = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
                     $headers[$key] = $value;
                 }
             } elseif (isset($copy_server[$key])) {
                 $headers[$copy_server[$key]] = $value;
             }
         }
-        if (!isset($headers['Authorization'])) {
+        if (! isset($headers['Authorization'])) {
             if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
                 $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
             } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
-                $basic_pass = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
+                $basic_pass               = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
                 $headers['Authorization'] = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass);
             } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
                 $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
@@ -59,22 +61,22 @@ function uuidV4() {
     return sprintf(
         '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
         // 32 bits for "time_low"
-        mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
 
         // 16 bits for "time_mid"
-        mt_rand( 0, 0xffff ),
+        mt_rand(0, 0xffff),
 
         // 16 bits for "time_hi_and_version",
         // four most significant bits holds version number 4
-        mt_rand( 0, 0x0fff ) | 0x4000,
+        mt_rand(0, 0x0fff) | 0x4000,
 
         // 16 bits, 8 bits for "clk_seq_hi_res",
         // 8 bits for "clk_seq_low",
         // two most significant bits holds zero and one for variant DCE1.1
-        mt_rand( 0, 0x3fff ) | 0x8000,
+        mt_rand(0, 0x3fff) | 0x8000,
 
         // 48 bits for "node"
-        mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
     );
 }
 
@@ -87,7 +89,7 @@ class QueryConditionException extends \Exception {}
 class QueryCondition {
     private $_connector = 'AND';
     private $_condition = '';
-    private $_key = '';
+    private $_key       = '';
 
     public function __construct(string $condition, string $connector = 'AND') {
         $connector = strtoupper(trim($connector));
@@ -98,7 +100,7 @@ class QueryCondition {
         }
         $this->_connector = $connector;
         $this->_condition = preg_replace('@[\s]{2,}@i', ' ', str_replace("\n", ' ', trim($condition)));
-        $this->_key = md5("{$this->_connector} {$this->_condition}");
+        $this->_key       = md5("{$this->_connector} {$this->_condition}");
     }
     /**
      * Magic function to expose as string
@@ -342,52 +344,52 @@ final class IrregularNouns {
         $this->plural[]   = 'women';
     }
 }
-$GLOBALS['IN'] = new IrregularNouns();
+$GLOBALS['IN']       = new IrregularNouns();
 $GLOBALS['PDOCASTS'] = [
-    'BLOB' => false,
+    'BLOB'        => false,
     'MEDIUM_BLOB' => false,
-    'LONG_BLOB' => false,
-    'DATETIME' => false,
-    'DATE' => false,
-    'DOUBLE' => false,
-    'FLOAT' => true,
-    'BIGINT' => true,
-    'INT' => true,
-    'INTEGER' => true,
-    'LONGLONG' => true,
-    'LONG' => true,
-    'NEWDECIMAL' => false,
-    'SHORT' => true,
-    'STRING' => false,
-    'TEXT' => false,
-    'TIME' => false,
-    'TIMESTAMP' => true,
-    'TINY' => true,
-    'VAR_CHAR' => false,
-    'VARCHAR' => false,
-    'VAR_STRING' => false,
-    'blob' => false,
+    'LONG_BLOB'   => false,
+    'DATETIME'    => false,
+    'DATE'        => false,
+    'DOUBLE'      => false,
+    'FLOAT'       => true,
+    'BIGINT'      => true,
+    'INT'         => true,
+    'INTEGER'     => true,
+    'LONGLONG'    => true,
+    'LONG'        => true,
+    'NEWDECIMAL'  => false,
+    'SHORT'       => true,
+    'STRING'      => false,
+    'TEXT'        => false,
+    'TIME'        => false,
+    'TIMESTAMP'   => true,
+    'TINY'        => true,
+    'VAR_CHAR'    => false,
+    'VARCHAR'     => false,
+    'VAR_STRING'  => false,
+    'blob'        => false,
     'medium_blob' => false,
-    'long_blob' => false,
-    'datetime' => false,
-    'date' => false,
-    'double' => false,
-    'float' => true,
-    'bigint' => true,
-    'int' => true,
-    'integer' => true,
-    'longlong' => true,
-    'long' => true,
-    'newdecimal' => false,
-    'short' => true,
-    'string' => false,
-    'text' => false,
-    'time' => false,
-    'timestamp' => true,
-    'tiny' => true,
-    'var_char' => false,
-    'varchar' => false,
-    'var_string' => false,
+    'long_blob'   => false,
+    'datetime'    => false,
+    'date'        => false,
+    'double'      => false,
+    'float'       => true,
+    'bigint'      => true,
+    'int'         => true,
+    'integer'     => true,
+    'longlong'    => true,
+    'long'        => true,
+    'newdecimal'  => false,
+    'short'       => true,
+    'string'      => false,
+    'text'        => false,
+    'time'        => false,
+    'timestamp'   => true,
+    'tiny'        => true,
+    'var_char'    => false,
+    'varchar'     => false,
+    'var_string'  => false,
 ];
 /**
  * Turns a singular word into its plural
@@ -408,11 +410,11 @@ function Plurals($params, &$obj = NULL) {
     } elseif (in_array($string, $GLOBALS['IN']->plural)) {
         $strconv = $string;
     } else {
-        $vowels = array('a', 'e', 'i', 'o', 'u');
+        $vowels = ['a', 'e', 'i', 'o', 'u'];
         if (substr($string, -1, 1) == 'y') {
             $prec = substr($string, -2, 1);
             if (in_array($prec, $vowels)) {
-                $strconv = $string.'s';
+                $strconv = $string . 's';
             } else {
                 $strconv = str_replace('y', 'ies', $string);
             }
@@ -423,9 +425,9 @@ function Plurals($params, &$obj = NULL) {
             or substr($string, -2, 2) == 'sh'
             or substr($string, -2, 2) == 'ss'
         ) {
-            $strconv = $string.'es';
+            $strconv = $string . 'es';
         } else {
-            $strconv = $string.'s';
+            $strconv = $string . 's';
         }
     }
 
@@ -524,8 +526,7 @@ function unCamelize($params, &$obj = NULL) {
  * @todo Checks sometimes does not match the unicode char to change
  */
 function cleanToSEO($params, &$obj = NULL) {
-    if ($obj === NULL) {$string = $params;
-    } else {
+    if ($obj === NULL) {$string = $params;} else {
         $string = $params[0];
     }
 
@@ -557,34 +558,34 @@ function strGenerate($params = null) {
     $numberChars    = '0123456789';
     $primaryString  = '';
     $result         = '';
-    if (!empty($params) && is_array($params)) {
-        if (!empty($params['case'])) {
+    if (! empty($params) && is_array($params)) {
+        if (! empty($params['case'])) {
             $case = $params['case'];
         }
         if (isset($params['includeNumbers'])) {
             $includeNumbers = $params['includeNumbers'];
         }
-        if (!empty($params['length'])) {
+        if (! empty($params['length'])) {
             $length = $params['length'];
         }
     }
     switch ($case) {
-        case 'lower':
-            $primaryString = $lowerChars;
-            break;
-        case 'upper':
-            $primaryString = $upperChars;
-            break;
-        case 'both':
-            $primaryString = $lowerChars.$upperChars;
-            break;
+    case 'lower':
+        $primaryString = $lowerChars;
+        break;
+    case 'upper':
+        $primaryString = $upperChars;
+        break;
+    case 'both':
+        $primaryString = $lowerChars . $upperChars;
+        break;
     }
     if ($includeNumbers) {
         $primaryString .= $numberChars;
     }
-    $max = strlen($primaryString)-1;
+    $max = strlen($primaryString) - 1;
     do {
-        $pos = mt_rand(0, $max);
+        $pos     = mt_rand(0, $max);
         $result .= $primaryString[$pos];
     } while (strlen($result) < $length);
     return $result;
@@ -610,7 +611,7 @@ function GetInput($type, &$obj = NULL) {
 
 class Config {
     private array $data;
-    protected string $file = INST_PATH.'.env';
+    protected string $file = INST_PATH . '.env';
 
     function __construct() {
         $this->data = parse_ini_file($this->file);
@@ -623,7 +624,7 @@ class Config {
 
 class Secrets extends Config {
     private array $data;
-    protected string $file = INST_PATH.'.env.secrets';
+    protected string $file = INST_PATH . '.env.secrets';
 }
 
 /**
@@ -634,52 +635,52 @@ class Secrets extends Config {
  */
 #[\AllowDynamicProperties]
 class Connection extends \PDO {
-    public string $engine = '';
+    public string $engine  = '';
     public const PDO_CASTS = [
-        'BLOB' => false,
+        'BLOB'        => false,
         'MEDIUM_BLOB' => false,
-        'LONG_BLOB' => false,
-        'DATETIME' => false,
-        'DATE' => false,
-        'DOUBLE' => false,
-        'FLOAT' => true,
-        'BIGINT' => true,
-        'INT' => true,
-        'INTEGER' => true,
-        'LONGLONG' => true,
-        'LONG' => true,
-        'NEWDECIMAL' => false,
-        'SHORT' => true,
-        'STRING' => false,
-        'TEXT' => false,
-        'TIME' => false,
-        'TIMESTAMP' => true,
-        'TINY' => true,
-        'VAR_CHAR' => false,
-        'VARCHAR' => false,
-        'VAR_STRING' => false,
-        'blob' => false,
+        'LONG_BLOB'   => false,
+        'DATETIME'    => false,
+        'DATE'        => false,
+        'DOUBLE'      => false,
+        'FLOAT'       => true,
+        'BIGINT'      => true,
+        'INT'         => true,
+        'INTEGER'     => true,
+        'LONGLONG'    => true,
+        'LONG'        => true,
+        'NEWDECIMAL'  => false,
+        'SHORT'       => true,
+        'STRING'      => false,
+        'TEXT'        => false,
+        'TIME'        => false,
+        'TIMESTAMP'   => true,
+        'TINY'        => true,
+        'VAR_CHAR'    => false,
+        'VARCHAR'     => false,
+        'VAR_STRING'  => false,
+        'blob'        => false,
         'medium_blob' => false,
-        'long_blob' => false,
-        'datetime' => false,
-        'date' => false,
-        'double' => false,
-        'float' => true,
-        'bigint' => true,
-        'int' => true,
-        'integer' => true,
-        'longlong' => true,
-        'long' => true,
-        'newdecimal' => false,
-        'short' => true,
-        'string' => false,
-        'text' => false,
-        'time' => false,
-        'timestamp' => true,
-        'tiny' => true,
-        'var_char' => false,
-        'varchar' => false,
-        'var_string' => false
+        'long_blob'   => false,
+        'datetime'    => false,
+        'date'        => false,
+        'double'      => false,
+        'float'       => true,
+        'bigint'      => true,
+        'int'         => true,
+        'integer'     => true,
+        'longlong'    => true,
+        'long'        => true,
+        'newdecimal'  => false,
+        'short'       => true,
+        'string'      => false,
+        'text'        => false,
+        'time'        => false,
+        'timestamp'   => true,
+        'tiny'        => true,
+        'var_char'    => false,
+        'varchar'     => false,
+        'var_string'  => false,
     ];
     private ?Secrets $_secrets;
     public DBDriver $driver;
@@ -687,39 +688,42 @@ class Connection extends \PDO {
     function __construct() {
         try {
 
-            $databases = [];
+            $databases      = [];
             $this->_secrets = new Secrets();
 
-            require INST_PATH.'config/db_settings.php';
-            if(empty($databases[APP_ENV])) throw new \Exception('There is no DB settings for the choosen env.');
+            require INST_PATH . 'config/db_settings.php';
+            if (empty($databases[APP_ENV])) {
+                throw new \Exception('There is no DB settings for the choosen env.');
+            }
+
             $this->_settings = $databases[APP_ENV];
-            $this->engine = $this->_settings['driver'];
-            $host = '';
-            $protocol = '';
+            $this->engine    = $this->_settings['driver'];
+            $host            = '';
+            $protocol        = '';
 
             switch ($this->engine) {
-                case 'firebird':
-                    $dsn = "'firebird:dbname={$this->_settings['host']}/{$this->_settings['port']}:{$this->_settings['schema']}";
+            case 'firebird':
+                $dsn = "'firebird:dbname={$this->_settings['host']}/{$this->_settings['port']}:{$this->_settings['schema']}";
                 break;
-                case 'sqlite':
-                case 'sqlite2':
-                case 'sqlite3':
-                    $dsn = "{$this->engine}:{$this->_settings['schema']}";
-                    $this->_settings['schema'] === 'memory' and ($dsn = "{$this->engine}::memory:");
+            case 'sqlite':
+            case 'sqlite2':
+            case 'sqlite3':
+                $dsn = "{$this->engine}:{$this->_settings['schema']}";
+                $this->_settings['schema'] === 'memory' and ($dsn = "{$this->engine}::memory:");
                 break;
-                default:
-                    empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
-                    empty($this->_settings['port'])
-                        or ($host = ':host=' . $this->_settings['host'].';port=' . $this->_settings['port']);
-                    empty($this->_settings['protocol'])
-                        or ($protocol = ';protocol=' . $this->_settings['protocol']);
+            default:
+                empty($this->_settings['unix_socket']) or ($host = ':unix_socket=' . $this->_settings['unix_socket']);
+                empty($this->_settings['port'])
+                    or ($host = ':host=' . $this->_settings['host'] . ';port=' . $this->_settings['port']);
+                empty($this->_settings['protocol'])
+                    or ($protocol = ';protocol=' . $this->_settings['protocol']);
 
-                    $charset = $dialect = '';
+                $charset = $dialect = '';
 
-                    empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
-                    empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
+                empty($this->_settings['dialect']) or ($dialect = ";dialect={$this->_settings['dialect']}");
+                empty($this->_settings['charset']) or ($charset = ";charset={$this->_settings['charset']}");
 
-                    $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}{$protocol}";
+                $dsn = "{$this->engine}{$host};dbname={$this->_settings['schema']}{$dialect}{$charset}{$protocol}";
                 break;
             }
             parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [\PDO::ATTR_PERSISTENT => true]);
@@ -731,11 +735,12 @@ class Connection extends \PDO {
             $this->_secrets = null;
             unset($this->_secrets);
 
-            $driver = "DumboPHP\\lib\\db_drivers\\{$this->engine}";
-            $this->driver = new $driver();
+            $driver               = "DumboPHP\\lib\\db_drivers\\{$this->engine}";
+            $this->driver         = new $driver();
+            $this->driver->schema = $this->_settings['schema'];
 
         } catch (\Exception $e) {
-            throw new \Exception('Internal Server: '.$e->getMessage());
+            throw new \Exception('Internal Server: ' . $e->getMessage());
         }
     }
 
@@ -747,31 +752,31 @@ class Connection extends \PDO {
      */
     public function getColumnFields($query) {
         $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER'];
-        $norm = [
-            'INT' => 'INTEGER'
+        $norm     = [
+            'INT' => 'INTEGER',
         ];
         try {
             $result1 = $this->query($query);
             $result1->setFetchMode(\PDO::FETCH_ASSOC);
             $resultset1 = $result1->fetchAll();
-            $ret = [];
+            $ret        = [];
 
-            while(null !== ($res = array_shift($resultset1))) {
+            while (null !== ($res = array_shift($resultset1))) {
                 $rtype = $res['type'] ?? $res['Type'];
                 $rname = $res['name'] ?? $res['Field'];
-                $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $rtype));
+                $type  = strtoupper(preg_replace('@\([0-9]+\)@', '', $rtype));
                 $ret[] = [
-                    'Cast' => in_array($type, $numerics),
+                    'Cast'  => in_array($type, $numerics),
                     'Field' => $rname,
-                    'Type' => $norm[$type] ?? $type,
-                    'Value' => null
+                    'Type'  => $norm[$type] ?? $type,
+                    'Value' => null,
                 ];
             }
             return $ret;
         } catch (\PDOException $e) {
-            die("Error to run query: -- {$query} -- due to: ".$e->getMessage());
+            die("Error to run query: -- {$query} -- due to: " . $e->getMessage());
         } catch (\Exception $e) {
-            die('Internal error: '.$e->getMessage());
+            die('Internal error: ' . $e->getMessage());
         }
     }
     /**
@@ -782,23 +787,23 @@ class Connection extends \PDO {
      */
     public function validateField($query, $field = '') {
         $count = 0;
-        $res = $this->query($query);
+        $res   = $this->query($query);
         $res->setFetchMode(\PDO::FETCH_ASSOC);
         $result = $res->fetchAll();
 
         switch ($this->engine) {
-            case 'sqlite':
-            case 'sqlite2':
-            case 'sqlite3':
-                while(null !== ($reg = array_shift($result))) {
-                    if ($reg['name'] === $field) {
-                        $count = 1;
-                        break;
-                    }
+        case 'sqlite':
+        case 'sqlite2':
+        case 'sqlite3':
+            while (null !== ($reg = array_shift($result))) {
+                if ($reg['name'] === $field) {
+                    $count = 1;
+                    break;
                 }
+            }
             break;
-            default:
-                $count = (integer)$result[0]['counter'];
+        default:
+            $count = (integer) $result[0]['counter'];
             break;
         }
 
@@ -816,14 +821,14 @@ class Errors {
     private $messages = [];
     private $counter  = 0;
     public function add($params) {
-        if ($params === NULL or !is_array($params)):
+        if ($params === NULL or ! is_array($params)):
             throw new \Exception('Must to give an array with the params to add.');
-        else :
+        else:
             if (isset($params['field']) and isset($params['message'])):
-                $this->messages[$params['field']][] = array('message' => $params['message'], 'code' => isset($params['code'])?$params['code']:'');
+                $this->messages[$params['field']][] = ['message' => $params['message'], 'code' => isset($params['code']) ? $params['code'] : ''];
                 $this->counter++;
                 $this->actived = TRUE;
-            else :
+            else:
                 throw new \Exception('Must to give an array with the params to add.');
             endif;
         endif;
@@ -874,29 +879,29 @@ abstract class Core_General_Class extends \ArrayObject {
      * @return void
      */
     public function __call($ClassName, $val = NULL) {
-        $field = Singulars(strtolower($ClassName));
+        $field         = Singulars(strtolower($ClassName));
         $classFromCall = Camelize($ClassName);
-        $className = "App\\Models\\{$classFromCall}";
-        $conditions = '';
-        $params = [];
+        $className     = "App\\Models\\{$classFromCall}";
+        $conditions    = '';
+        $params        = [];
 
-        if (file_exists(INST_PATH.'app/models/'.$field.'.php')) {
+        if (file_exists(INST_PATH . 'app/models/' . $field . '.php')) {
             $way = 'down';
-            if (!empty($val[0])) {
+            if (! empty($val[0])) {
                 switch ($val[0]) {
-                    case 'up':
-                    case 'down':
-                        $way = $val[0];
-                        break;
-                    case ':first':
-                        $params = [':first'];
-                        break;
-                    default:
-                        $params = $val[0];
-                        break;
+                case 'up':
+                case 'down':
+                    $way = $val[0];
+                    break;
+                case ':first':
+                    $params = [':first'];
+                    break;
+                default:
+                    $params = $val[0];
+                    break;
                 }
             }
-            $foreign = strtolower($field)."_id";
+            $foreign = strtolower($field) . "_id";
             $prefix  = unCamelize(get_class($this));
 
             $obj1       = new $className();
@@ -904,24 +909,24 @@ abstract class Core_General_Class extends \ArrayObject {
             if (method_exists($obj1, 'Find')) {
                 if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)) {
                     $conditions = ($way == 'up') ?
-                        "`{$this->pk}`='".$this->{$foreign} ."'"
-                        : "`{$foreign}`='".$this->{$this->pk}."'";
-                } elseif (in_array($ClassName, $this->belongs_to) && !empty($this->{$foreign})) {
-                    $conditions = "`{$this->pk}`='".$this->{$foreign} ."'";
-                } elseif (in_array($ClassName, $this->has_many) ) {
+                    "`{$this->pk}`='" . $this->{$foreign} . "'"
+                        : "`{$foreign}`='" . $this->{$this->pk} . "'";
+                } elseif (in_array($ClassName, $this->belongs_to) && ! empty($this->{$foreign})) {
+                    $conditions = "`{$this->pk}`='" . $this->{$foreign} . "'";
+                } elseif (in_array($ClassName, $this->has_many)) {
                     $conditions = "`{$prefix}_id`='{$this->{$this->pk}}'";
                 }
                 $params['conditions'] = $conditions;
-                return ($conditions !== NULL)?$obj1->Find($params):$obj1->Niu();
+                return ($conditions !== NULL) ? $obj1->Find($params) : $obj1->Niu();
             }
             return NULL;
         } elseif (preg_match('/Find_by_/', $ClassName)) {
             $nustring = str_replace('Find_by_', '', $ClassName);
             return $this->Find([
-                    'conditions' => [
-                        [$nustring, $val[0]]
-                    ]
-                ]);
+                'conditions' => [
+                    [$nustring, $val[0]],
+                ],
+            ]);
         } else {
             return $ClassName($val, $this);
         }
@@ -940,56 +945,55 @@ $GLOBALS['models'] = [];
  *
  */
 abstract class ActiveRecord extends Core_General_Class implements \JsonSerializable {
-    private $_name = '';
-    private $_paginateFirstChar  = '|&lt;&lt;';
+    private $_name              = '';
+    private $_paginateFirstChar = '|&lt;&lt;';
     private $_paginateLastChar  = '&gt;&gt;|';
     private $_paginateNextChar  = '&gt;';
     private $_paginatePrevChar  = '&lt;';
-    private $_queryConditions = [];
-    private $_queryFields = null;
-    private $_validate = true;
-    protected $_counter = 0;
-    protected $_dataAttributes = [];
-    protected $_fields = [];
+    private $_queryConditions   = [];
+    private $_queryFields       = null;
+    private $_validate          = true;
+    protected $_counter         = 0;
+    protected $_dataAttributes  = [];
+    protected $_fields          = [];
     protected $_ObjTable;
-    protected $_params = ['fields' => '*', 'conditions' => ''];
+    protected $_params        = ['fields' => '*', 'conditions' => ''];
     protected $_preparedQuery = [];
     protected $_singularName;
-    protected $after_delete = [];
-    protected $after_find = [];
-    protected $after_insert = [];
-    protected $after_save = [];
-    protected $after_update = [];
-    protected $before_delete = [];
-    protected $before_find = [];
-    protected $before_insert = [];
-    protected $before_save = [];
-    protected $before_update = [];
-    protected $dependents = '';
-    protected $escapeField = [];
-    protected $pk = 'id';
-    public ?int $id = 0;
-    public $_error = null;
-    public $_sqlQuery = '';
-    public $belongs_to = [];
-    public $candump = true;
-    public $created_at = 0;
-    public $disableCast = false;
-    public $driver = null;
-    public $has_many = [];
+    protected $after_delete         = [];
+    protected $after_find           = [];
+    protected $after_insert         = [];
+    protected $after_save           = [];
+    protected $after_update         = [];
+    protected $before_delete        = [];
+    protected $before_find          = [];
+    protected $before_insert        = [];
+    protected $before_save          = [];
+    protected $before_update        = [];
+    protected $dependents           = '';
+    protected $escapeField          = [];
+    protected $pk                   = 'id';
+    public ?int $id                 = 0;
+    public $_error                  = null;
+    public $_sqlQuery               = '';
+    public $belongs_to              = [];
+    public $candump                 = true;
+    public $created_at              = 0;
+    public $disableCast             = false;
+    public $driver                  = null;
+    public $has_many                = [];
     public $has_many_and_belongs_to = [];
-    public $has_one = [];
-    public $PaginateEndReg = 0;
-    public $PaginatePageNumber = 1;
-    public $PaginatePageVarName = 'page';
-    public $PaginateStartReg = 0;
-    public $PaginateTotalItems = 0;
-    public $PaginateTotalPages = 0;
-    public $paginateURL = '/';
-    public $rowid = 0;
-    public $updated_at = 0;
-    public $validate = [];
-
+    public $has_one                 = [];
+    public $PaginateEndReg          = 0;
+    public $PaginatePageNumber      = 1;
+    public $PaginatePageVarName     = 'page';
+    public $PaginateStartReg        = 0;
+    public $PaginateTotalItems      = 0;
+    public $PaginateTotalPages      = 0;
+    public $paginateURL             = '/';
+    public $rowid                   = 0;
+    public $updated_at              = 0;
+    public $validate                = [];
 
     /**
      * Will run after construction and set all model behavior
@@ -1004,14 +1008,14 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $this->_counter = 0;
         // $this->setFlags(\ArrayObject::ARRAY_AS_PROPS | \ArrayObject::STD_PROP_LIST);
 
-        $p = explode('\\', get_class($this));
-        $this->_name = $p[sizeof($p)-1];
+        $p           = explode('\\', get_class($this));
+        $this->_name = $p[sizeof($p) - 1];
 
         if (empty($GLOBALS['models'][$this->_name])) {
-            $className       = unCamelize($this->_name);
-            $words           = explode('_', $className);
-            $i               = sizeof($words)-1;
-            $words[$i]       = Plurals($words[$i]);
+            $className                                    = unCamelize($this->_name);
+            $words                                        = explode('_', $className);
+            $i                                            = sizeof($words) - 1;
+            $words[$i]                                    = Plurals($words[$i]);
             $GLOBALS['models'][$this->_name]['tableName'] = implode('_', $words);
         }
 
@@ -1021,16 +1025,16 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
 
-        if(preg_match(SQLITE_PREG, DB->engine)):
-            $this->pk = 'rowid';
+        if (preg_match(SQLITE_PREG, DB->engine)):
+            $this->pk    = 'rowid';
             $this->rowid = null;
         endif;
 
-        if(empty($fields)) {
+        if (empty($fields)) {
             $this->_setInitialCols();
         } else {
             $this->_fields = $fields;
-            foreach($fields as $field => $value) {
+            foreach ($fields as $field => $value) {
                 $this->{$field} = $value;
             }
             $this->id = $fields['id'] ?? 0;
@@ -1050,11 +1054,11 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     private function _setInitialCols(): bool {
         $this->_fields = [];
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
-            $fields = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
+            $fields                                        = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
             $GLOBALS['models'][$this->_ObjTable]['fields'] = $fields;
         }
 
-        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field):
+        foreach ($GLOBALS['models'][$this->_ObjTable]['fields'] as $field):
             if ($field['Field'] === 'id') {
                 $this->{$field['Field']} = 0;
             } else {
@@ -1078,7 +1082,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public function getRawFields() {
         empty($GLOBALS['models'][$this->_ObjTable]['fields']) && $this->_setInitialCols();
         $fields = [];
-        foreach($GLOBALS['models'][$this->_ObjTable]['fields'] as $field):
+        foreach ($GLOBALS['models'][$this->_ObjTable]['fields'] as $field):
             $fields[] = $field['Field'];
         endforeach;
         return $fields;
@@ -1118,13 +1122,13 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             $sh->execute($data);
             $className = get_class($this);
 
-            $resultset = $sh->fetchAll(\PDO::FETCH_ASSOC);
-            $rowsCount = sizeof($resultset);
+            $resultset   = $sh->fetchAll(\PDO::FETCH_ASSOC);
+            $rowsCount   = sizeof($resultset);
             $columncount = $sh->columnCount();
-            $isSqlite = DB->engine === 'sqlite';
-            $cols = [];
+            $isSqlite    = DB->engine === 'sqlite';
+            $cols        = [];
 
-            for($i = 0; $i < $columncount; $i++) {
+            for ($i = 0; $i < $columncount; $i++) {
                 $colMeta = $sh->getColumnMeta($i);
                 if ($isSqlite) {
                     $colMeta['native_type'] = strtoupper(preg_replace('/(\(\d+\))/i', '', $colMeta['sqlite:decl_type'] ?? 'TEXT'));
@@ -1141,17 +1145,16 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                     $i++;
                 }
                 if ($obj->count() === 1) {
-                    foreach($cols as $col) {
-                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? (int)$obj[0]->{$col[0]} : $obj[0]->{$col[0]};
+                    foreach ($cols as $col) {
+                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? (int) $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
                     }
                 }
             } else {
                 $obj = new $className();
-                foreach($cols as $col) {
+                foreach ($cols as $col) {
                     $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? 0 : '';
                 }
             }
-
 
             $sh->closeCursor();
 
@@ -1159,15 +1162,15 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             throw new \Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
 
-        $this->_queryFields = "{$this->_ObjTable}.*";
+        $this->_queryFields     = "{$this->_ObjTable}.*";
         $this->_queryConditions = [];
         return $obj;
     }
-    public function and(string $condition): ActiveRecord {
+    public function  and (string $condition): ActiveRecord {
         $this->_queryConditions[] = new QueryCondition($condition, 'AND');
         return $this;
     }
-    public function or(string $condition): ActiveRecord {
+    public function  or (string $condition): ActiveRecord {
         $this->_queryConditions[] = new QueryCondition($condition, 'OR');
         return $this;
     }
@@ -1176,7 +1179,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * Helper to build conditions in SQL.
      *
      * ways to set the conditions:
-     * 
+     *
      * 'conditions'=>[
      *      ['field', 'value'],
      *      ['field2', 'value2']
@@ -1190,39 +1193,39 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return void
      */
     private function _buildConditions(array $mainConditions): void {
-        $operator = '=';
+        $operator   = '=';
         $_condition = '';
-        $connector = 'AND';
+        $connector  = 'AND';
 
-        foreach($mainConditions as $conn => $condition) {
+        foreach ($mainConditions as $conn => $condition) {
             $operator = '=';
             is_numeric($conn) or ($connector = strtoupper($conn));
-            if(sizeof($condition) > 2) {
+            if (sizeof($condition) > 2) {
                 $operator = strtoupper($condition[1]);
                 unset($condition[1]);
             }
-            $field = array_shift($condition);
+            $field      = array_shift($condition);
             $_condition = "{$field} {$operator} ";
 
-            if(preg_match('@BETWEEN@i', $operator) === 1) {
+            if (preg_match('@BETWEEN@i', $operator) === 1) {
                 $_condition = "{$_condition}{$condition[0]} AND {$condition[1]}";
-                $values[] = $condition[0];
-                $values[] = $condition[1];
-            } elseif(preg_match('@IN@i', $operator) === 1) {
+                $values[]   = $condition[0];
+                $values[]   = $condition[1];
+            } elseif (preg_match('@IN@i', $operator) === 1) {
                 $_condition = "{$_condition}(";
-                $condition = $condition[0];
+                $condition  = $condition[0];
 
                 $conditionsArr = [];
-                while(null !== ($item = array_shift($condition))) {
+                while (null !== ($item = array_shift($condition))) {
                     $conditionsArr[] = "'{$item}'";
-                    $values[] = $item;
+                    $values[]        = $item;
                 }
                 $_condition .= implode(',', $conditionsArr);
                 $_condition = "{$_condition})";
             } else {
-                $value = array_shift($condition);
+                $value      = array_shift($condition);
                 $_condition = "{$_condition}'{$value}'";
-                $values[] = $value;
+                $values[]   = $value;
             }
 
             $this->_queryConditions[] = new QueryCondition($_condition, $connector);
@@ -1236,7 +1239,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         if (is_array($params)) {
             $this->_queryFields = $params['fields'] ?? "{$this->_ObjTable}.*";
 
-            if (!empty($params['conditions'])) {
+            if (! empty($params['conditions'])) {
                 if (is_array($params['conditions'])) {
                     $this->_buildConditions($params['conditions']);
                 } else {
@@ -1263,10 +1266,9 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $this->_prepareSelectParams($paramsIn);
 
         $params = [
-            'fields' => $this->_queryFields,
-            'conditions' => trim(implode(' ', $this->_queryConditions))
+            'fields'     => $this->_queryFields,
+            'conditions' => trim(implode(' ', $this->_queryConditions)),
         ];
-
 
         if (isset($paramsIn[0])) {
             $params[0] = $paramsIn[0];
@@ -1288,8 +1290,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             $params['limit'] = $paramsIn['limit'];
         }
 
-        $prepared = DB->driver->Select($params, $this->_ObjTable, $this->pk);
-        $x = $this->getData($prepared['prepared'], $prepared['data'], $params['fields']);
+        $prepared     = DB->driver->Select($params, $this->_ObjTable, $this->pk);
+        $x            = $this->getData($prepared['prepared'], $prepared['data'], $params['fields']);
         $x->_sqlQuery = $prepared['query'];
 
         if (sizeof($x->after_find) > 0) {
@@ -1306,22 +1308,22 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return ActiveRecord
      */
     public function Find_by_SQL($query) {
-        if (!is_string($query)) {
+        if (! is_string($query)) {
             throw new \Exception('The query must be an string');
         } else {
             $this->_sqlQuery = $query;
-            $x = $this->getData($query, []);
+            $x               = $this->getData($query, []);
             return $x;
         }
     }
     private function _set_attributes($resultset) {
-        if (!empty($resultset)) {
+        if (! empty($resultset)) {
             foreach ($resultset[0] as $key => $value) {
-                if (!array_key_exists($key, $this->_fields)) {
-                    $this->_fields[$key] = is_numeric($value);
-                    $this->{$key} = null;
-                    $this->_dataAttributes[$key]['native_type'] = is_numeric($value)?'NUMERIC':'STRING';
-                    $this->_dataAttributes[$key]['cast'] = $this->_fields[$key];
+                if (! array_key_exists($key, $this->_fields)) {
+                    $this->_fields[$key]                        = is_numeric($value);
+                    $this->{$key}                               = null;
+                    $this->_dataAttributes[$key]['native_type'] = is_numeric($value) ? 'NUMERIC' : 'STRING';
+                    $this->_dataAttributes[$key]['cast']        = $this->_fields[$key];
                 }
             }
         }
@@ -1356,7 +1358,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public function flatten(): array {
         $result = [];
         $fields = $this->getRawFields();
-        foreach($this as $row) {
+        foreach ($this as $row) {
             $result[$row->{$fields[0]}] = $row->{$fields[1]};
         }
 
@@ -1369,7 +1371,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function Niu(array $contents = []): ActiveRecord {
         $className = get_class($this);
-        $obj = new $className($contents);
+        $obj       = new $className($contents);
         // $obj->setFlags(\ArrayObject::ARRAY_AS_PROPS);
 
         return $obj;
@@ -1381,17 +1383,19 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return boolean
      */
     public function Update(array $params) {
-        if (empty($params['conditions']) || !is_string($params['conditions']))
+        if (empty($params['conditions']) || ! is_string($params['conditions'])) {
             throw new \Exception('The param conditions should not be empty and must be string.');
+        }
 
-        if (empty($params['data']) || !is_array($params['data']))
+        if (empty($params['data']) || ! is_array($params['data'])) {
             throw new \Exception('The param data should not be empty and must be array.');
-        
-        $prepared = DB->driver->Update($params, $this->_ObjTable);
+        }
+
+        $prepared        = DB->driver->Update($params, $this->_ObjTable);
         $this->_sqlQuery = $prepared['query'];
-        $sh = DB->prepare($this->_sqlQuery);
-        if (!$sh->execute($prepared['prepared'])) {
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => DB->errorInfo()[2]."\n {$this->_sqlQuery}"));
+        $sh              = DB->prepare($this->_sqlQuery);
+        if (! $sh->execute($prepared['prepared'])) {
+            $this->_error->add(['field' => $this->_ObjTable, 'message' => DB->errorInfo()[2] . "\n {$this->_sqlQuery}"]);
             return false;
         }
         return true;
@@ -1414,36 +1418,40 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @throws \Exception
      */
     private function _ValidateOnSave($action = 'insert') {
-        if ($this->_validate && !empty($this->validate)) {
-            if (!empty($this->validate['email'])) {
+        if ($this->_validate && ! empty($this->validate)) {
+            if (! empty($this->validate['email'])) {
                 foreach ($this->validate['email'] as $field) {
                     $message = 'The email provided is not a valid email address.';
                     $matches = [];
                     if (is_array($field)) {
-                        if (empty($field['field'])) throw new \Exception('Field key must be defined in array.');
+                        if (empty($field['field'])) {
+                            throw new \Exception('Field key must be defined in array.');
+                        }
 
                         empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    if (!empty($this->{$field})) {
+                    if (! empty($this->{$field})) {
                         preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
                         empty($matches) && $this->_error->add(['field' => $field, 'message' => $message]);
                     }
                 }
             }
-            if (!empty($this->validate['numeric'])) {
+            if (! empty($this->validate['numeric'])) {
                 foreach ($this->validate['numeric'] as $field) {
                     $message = 'This Field must be numeric.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) throw new \Exception('Field key must be defined in array.');
+                        if (empty($field['field'])) {
+                            throw new \Exception('Field key must be defined in array.');
+                        }
 
                         empty($field['message']) || ($message = $field['message']);
                         $field = $field['field'];
                     }
-                    isset($this->{$field}) && (!is_numeric($this->{$field})) && $this->_error->add(['field' => $field, 'message' => $message]);
+                    isset($this->{$field}) && (! is_numeric($this->{$field})) && $this->_error->add(['field' => $field, 'message' => $message]);
                 }
             }
-            if (!empty($this->validate['unique'])) {
+            if (! empty($this->validate['unique'])) {
                 foreach ($this->validate['unique'] as $field) {
                     $message = 'This field can not be duplicated.';
                     if (is_array($field)) {
@@ -1452,23 +1460,25 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                         empty($field['message']) || ($message = $field['message']);
                         $field['field'];
                     }
-                    if (!empty($this->{$field['field']})) {
+                    if (! empty($this->{$field['field']})) {
                         $thisclass = get_class($this);
-                        $obj1 = new $thisclass();
+                        $obj1      = new $thisclass();
                         $resultset = $obj1->Find([
-                            'fields' => $field['field'],
-                            'conditions' => "{$field['field']}='" .$this->{$field['field']} ."' AND {$this->pk}<>'" .$this->{$this->pk} ."'"
+                            'fields'     => $field['field'],
+                            'conditions' => "{$field['field']}='" . $this->{$field['field']} . "' AND {$this->pk}<>'" . $this->{$this->pk} . "'",
                         ]);
                         $resultset->counter() > 0 && $this->_error->add(['field' => $field['field'], 'message' => $message]);
                     }
                 }
             }
 
-            if (!empty($this->validate['presence_of'])) {
+            if (! empty($this->validate['presence_of'])) {
                 foreach ($this->validate['presence_of'] as $field) {
                     $message = 'This field can not be empty or null.';
                     if (is_array($field)) {
-                        if (empty($field['field'])) throw new \Exception('Field key must be defined in array.');
+                        if (empty($field['field'])) {
+                            throw new \Exception('Field key must be defined in array.');
+                        }
 
                         empty($field['message']) or ($message = $field['message']);
                         $soleField = $field['field'];
@@ -1476,18 +1486,18 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                     (
                         (
                             $action === 'insert'
-                            && !isset($this->{$soleField})
+                            && ! isset($this->{$soleField})
                         )
                         ||
                         (
                             empty($this->{$soleField})
                             && isset($this->{$soleField})
-                            && !is_numeric($this->{$soleField})
+                            && ! is_numeric($this->{$soleField})
                         )
                     )
                     && $this->_error->add([
-                        'field' => $soleField,
-                        'message' => $message
+                        'field'   => $soleField,
+                        'message' => $message,
                     ]);
                 }
             }
@@ -1500,23 +1510,33 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function Save() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        AUTO_AUDITS && !($this->updated_at = 0) && !($this->created_at = 0);
+        AUTO_AUDITS && ! ($this->updated_at = 0) && ! ($this->created_at = 0);
         $fields = $this->getRawFields();
 
-        foreach($this->before_save as $functiontoRun) {
+        foreach ($this->before_save as $functiontoRun) {
             $this->{$functiontoRun}();
-            if ($this->_error->isActived()) return false;
+            if ($this->_error->isActived()) {
+                return false;
+            }
+
         }
 
-        if (preg_match(SQLITE_PREG, DB->engine) and isset($this->id)) $this->{$this->pk} = $this->id;
+        if (preg_match(SQLITE_PREG, DB->engine) and isset($this->id)) {
+            $this->{$this->pk} = $this->id;
+        }
 
-        if (!empty($this->{$this->pk})) {
-            foreach($this->before_update as $functiontoRun) {
+        if (! empty($this->{$this->pk})) {
+            foreach ($this->before_update as $functiontoRun) {
                 $this->{$functiontoRun}();
-                if ($this->_error->isActived()) return false;
+                if ($this->_error->isActived()) {
+                    return false;
+                }
+
             }
             $this->_ValidateOnSave('update');
-            if ($this->_error->isActived()) return false;
+            if ($this->_error->isActived()) {
+                return false;
+            }
 
             AUTO_AUDITS && ($this->updated_at = time());
             $data = [];
@@ -1525,15 +1545,20 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $field !== $this->pk && isset($this->{$field}) && $field !== 'created_at' && ($data[$field] = $this->{$field});
             }
 
-            $prepared = DB->driver->Update(['data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" .$this->{$this->pk}."'"], $this->_ObjTable);
+            $prepared = DB->driver->Update(['data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" . $this->{$this->pk} . "'"], $this->_ObjTable);
         } else {
             foreach ($this->before_insert as $functiontoRun) {
                 $this->{$functiontoRun}();
-                if ($this->_error->isActived()) return false;
+                if ($this->_error->isActived()) {
+                    return false;
+                }
+
             }
 
             $this->_ValidateOnSave();
-            if ($this->_error->isActived()) return false;
+            if ($this->_error->isActived()) {
+                return false;
+            }
 
             AUTO_AUDITS && ($this->created_at = time());
             $data = [];
@@ -1542,7 +1567,9 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $field != $this->pk && isset($this->{$field}) && ($data[$field] = $this->{$field});
             }
 
-            if (preg_match(SQLITE_PREG, DB->engine) and isset($data['id'])) unset($data['id']);
+            if (preg_match(SQLITE_PREG, DB->engine) and isset($data['id'])) {
+                unset($data['id']);
+            }
 
             $prepared = DB->driver->Insert($data, $this->_ObjTable);
         }
@@ -1551,25 +1578,31 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
         try {
             $sh = DB->prepare($this->_sqlQuery);
-            if (!$sh->execute($prepared['prepared'])) {
+            if (! $sh->execute($prepared['prepared'])) {
                 $e = DB->errorInfo();
-                $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
+                $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2] . "\n {$this->_sqlQuery}"]);
                 return false;
             }
 
             if (empty($this->{$this->pk})) {
-                $name = preg_match(SQLITE_PREG, DB->engine) ? 'rowid' : null;
-                $this->id = $this->{$this->pk} = (int)DB->lastInsertId($name);
+                $name     = preg_match(SQLITE_PREG, DB->engine) ? 'rowid' : null;
+                $this->id = $this->{$this->pk} = (int) DB->lastInsertId($name);
                 if (sizeof($this->after_insert) > 0) {
                     foreach ($this->after_insert as $functiontoRun) {
                         $this->{$functiontoRun}();
-                        if ($this->_error->isActived()) return false;
+                        if ($this->_error->isActived()) {
+                            return false;
+                        }
+
                     }
                 }
             } elseif (sizeof($this->after_update) > 0) {
                 foreach ($this->after_update as $functiontoRun) {
                     $this->{$functiontoRun}();
-                    if ($this->_error->isActived()) return false;
+                    if ($this->_error->isActived()) {
+                        return false;
+                    }
+
                 }
             }
         } catch (\PDOException $e) {
@@ -1583,7 +1616,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
                 $this->{$functiontoRun}();
-                if ($this->_error->isActived()) return false;
+                if ($this->_error->isActived()) {
+                    return false;
+                }
+
             }
         }
 
@@ -1596,21 +1632,29 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function Insert() {
         defined('AUTO_AUDITS') or define('AUTO_AUDITS', true);
-        AUTO_AUDITS && !($this->updated_at = 0) && !($this->created_at = 0);
+        AUTO_AUDITS && ! ($this->updated_at = 0) && ! ($this->created_at = 0);
         $fields = array_keys($this->_fields);
 
-        foreach($this->before_save as $functiontoRun) {
+        foreach ($this->before_save as $functiontoRun) {
             $this->{$functiontoRun}();
-            if ($this->_error->isActived()) return false;
+            if ($this->_error->isActived()) {
+                return false;
+            }
+
         }
 
         foreach ($this->before_insert as $functiontoRun) {
             $this->{$functiontoRun}();
-            if ($this->_error->isActived()) return false;
+            if ($this->_error->isActived()) {
+                return false;
+            }
+
         }
 
         $this->_ValidateOnSave();
-        if ($this->_error->isActived()) return false;
+        if ($this->_error->isActived()) {
+            return false;
+        }
 
         AUTO_AUDITS && ($this->created_at = time());
         $data = [];
@@ -1624,17 +1668,20 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
         try {
             $sh = DB->prepare($prepared['query']);
-            if (!$sh->execute($prepared['prepared'])) {
+            if (! $sh->execute($prepared['prepared'])) {
                 $e = DB->errorInfo();
-                $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"]);
+                $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2] . "\n {$this->_sqlQuery}"]);
                 return FALSE;
             }
 
-            $this->{$this->pk} = (integer)DB->lastInsertId();
+            $this->{$this->pk} = (integer) DB->lastInsertId();
             if (sizeof($this->after_insert) > 0) {
                 foreach ($this->after_insert as $functiontoRun) {
                     $this->{$functiontoRun}();
-                    if ($this->_error->isActived()) return false;
+                    if ($this->_error->isActived()) {
+                        return false;
+                    }
+
                 }
             }
         } catch (\PDOException $e) {
@@ -1647,7 +1694,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         if (sizeof($this->after_save) > 0) {
             foreach ($this->after_save as $functiontoRun) {
                 $this->{$functiontoRun}();
-                if ($this->_error->isActived()) return false;
+                if ($this->_error->isActived()) {
+                    return false;
+                }
+
             }
         }
 
@@ -1665,36 +1715,36 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $conditions[] = $ele->{$this->pk};
             }
         }
-        if ($conditions === NULL and !empty($this->{$this->pk})) {
-            $conditions = (int)$this->{$this->pk};
+        if ($conditions === NULL and ! empty($this->{$this->pk})) {
+            $conditions = (int) $this->{$this->pk};
         }
 
         if ($conditions === NULL and empty($this->{$this->pk})) {
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => "Must specify a register to delete"));
+            $this->_error->add(['field' => $this->_ObjTable, 'message' => "Must specify a register to delete"]);
             return FALSE;
         }
         if (sizeof($this->before_delete) > 0) {
             foreach ($this->before_delete as $functiontoRun) {
                 $this->{$functiontoRun}();
-                if (!empty($this->_error) && $this->_error->isActived()) {
+                if (! empty($this->_error) && $this->_error->isActived()) {
                     return false;
                 }
             }
         }
-        if (!$this->_delete_or_nullify_dependents($conditions)) {
+        if (! $this->_delete_or_nullify_dependents($conditions)) {
             return false;
         }
         $this->_sqlQuery = DB->Delete($conditions, $this->_ObjTable);
 
         if (DB->exec($this->_sqlQuery) === false) {
             $e = DB->errorInfo();
-            $this->_error->add(array('field' => $this->_ObjTable, 'message' => $e[2]."\n {$this->_sqlQuery}"));
+            $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2] . "\n {$this->_sqlQuery}"]);
             return FALSE;
         }
         if (sizeof($this->after_delete) > 0) {
             foreach ($this->after_delete as $functiontoRun) {
                 $this->{$functiontoRun}();
-                if (!empty($this->_error) && $this->_error->isActived()) {
+                if (! empty($this->_error) && $this->_error->isActived()) {
                     return false;
                 }
             }
@@ -1707,36 +1757,36 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return boolean
      */
     protected function _delete_or_nullify_dependents($id) {
-        if (!empty($this->dependents) && !empty($id)) {
+        if (! empty($this->dependents) && ! empty($id)) {
             foreach ($this->has_many as $model) {
                 $s = Singulars($model);
                 $m = Camelize($s);
-                class_exists($m) or require_once INST_PATH.'app/models/'.strtolower($s).'.php';
-                $model1   = new $m();
-                $condition = is_numeric($id)? " = '{$id}'" : " IN (".implode(',', $id).")";
-                $children = $model1->Find([
-                    'conditions' => Singulars($this->_ObjTable)."_id{$condition}"
+                class_exists($m) or require_once INST_PATH . 'app/models/' . strtolower($s) . '.php';
+                $model1    = new $m();
+                $condition = is_numeric($id) ? " = '{$id}'" : " IN (" . implode(',', $id) . ")";
+                $children  = $model1->Find([
+                    'conditions' => Singulars($this->_ObjTable) . "_id{$condition}",
                 ]);
                 if ($children->count() > 0) {
                     foreach ($children as $child) {
                         switch ($this->dependents) {
-                            case 'destroy':
-                                if (!$child->Delete()) {
-                                    $this->_error->add([
-                                        'field' => $this->_ObjTable,
-                                        'message' => 'Cannot delete dependents'
-                                    ]);
-                                    return false;
-                                }
+                        case 'destroy':
+                            if (! $child->Delete()) {
+                                $this->_error->add([
+                                    'field'   => $this->_ObjTable,
+                                    'message' => 'Cannot delete dependents',
+                                ]);
+                                return false;
+                            }
                             break;
-                            case 'nullify':
-                                $child->{$this->_ObjTable.'_id'} = '';
-                                if (!$child->Save()) {
-                                    $this->_error->add(
-                                        ['field' => $this->_ObjTable, 'message' => 'Cannot nullify dependents']
-                                    );
-                                    return false;
-                                }
+                        case 'nullify':
+                            $child->{$this->_ObjTable . '_id'} = '';
+                            if (! $child->Save()) {
+                                $this->_error->add(
+                                    ['field' => $this->_ObjTable, 'message' => 'Cannot nullify dependents']
+                                );
+                                return false;
+                            }
                             break;
                         }
                     }
@@ -1749,7 +1799,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     #[\ReturnTypeWillChange]
     public function __debugInfo() {
         $fields = $this->getRawFields();
-        $data = [];
+        $data   = [];
 
         while (null !== ($field = array_shift($fields))) {
             $data[$field] = $this->{$field} ?? null;
@@ -1760,7 +1810,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * Dumps out the data contained in the model.
      */
     public function inspect($tabs = 0) {
-        $name = get_class($this);
+        $name       = get_class($this);
         $reflection = new \ReflectionClass($name);
         var_dump($reflection->getProperties(\ReflectionProperty::IS_PUBLIC));
         $output = $name . " ActiveRecord ({$this->count()}): " . $this->ListProperties_ToString($tabs);
@@ -1773,15 +1823,15 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
     protected function ListProperties_ToString($i = 0) {
         $listProperties = "{\n";
-        $fields = $this->getRawFields();
+        $fields         = $this->getRawFields();
 
         if ($this->count() <= 1) {
             foreach ($fields as $field) {
-                $buffer = 'NULL'.PHP_EOL;
+                $buffer = 'NULL' . PHP_EOL;
                 if (isset($this->{$field})) {
                     $buffer = print_r($this->{$field}, true);
                 }
-                for ($j = 0; $j < $i+1; $j++) {
+                for ($j = 0; $j < $i + 1; $j++) {
                     $listProperties .= "\t";
                 }
                 $listProperties .= "{$field} => {$buffer}";
@@ -1789,9 +1839,9 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         } else {
             ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
             for ($j = 0; $j < $this->count(); $j++) {
-                $this[$j]->inspect($i+1);
+                $this[$j]->inspect($i + 1);
             }
-            $buffer = ob_get_clean();
+            $buffer          = ob_get_clean();
             $listProperties .= $buffer;
         }
 
@@ -1818,14 +1868,14 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             for ($j = 0; $j < $this->count(); $j++) {
                 foreach ($fields as $field) {
                     if (isset($this[$j]->{$field})) {
-                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord')?$this[$j]->{$field}->getArray():$this[$j]->{$field};
+                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord') ? $this[$j]->{$field}->getArray() : $this[$j]->{$field};
                     }
                 }
             }
         } else {
             foreach ($fields as $field) {
                 if (isset($this->{$field})) {
-                    $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord')?$this->{$field}->getArray():$this->{$field};
+                    $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord') ? $this->{$field}->getArray() : $this->{$field};
                 }
             }
         }
@@ -1839,11 +1889,11 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * Dumps the table data into a xml file
      */
     public function Dump() {
-        $model    = $this->_ObjTable;
-        $dom      = new \DOMDocument('1.0', 'utf-8');
-        $path     = defined('DUMPS_PATH')?DUMPS_PATH:INST_PATH.'migrations/dumps/';
+        $model = $this->_ObjTable;
+        $dom   = new \DOMDocument('1.0', 'utf-8');
+        $path  = defined('DUMPS_PATH') ? DUMPS_PATH : INST_PATH . 'migrations/dumps/';
         file_exists($path) || mkdir($path);
-        $sroot    = $dom->appendChild(new \DOMElement('table_'.$model));
+        $sroot = $dom->appendChild(new \DOMElement('table_' . $model));
         foreach ($this as $reg) {
             $root = $sroot->appendChild(new \DOMElement($model));
             foreach (array_keys($this->_fields) as $field) {
@@ -1856,7 +1906,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 }
             }
         }
-        file_put_contents($path.$model.'.xml', $dom->saveXML());
+        file_put_contents($path . $model . '.xml', $dom->saveXML());
     }
     /**
      * Prepares the field to build the query before a mass insert from an xml dump data
@@ -1864,7 +1914,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return \Generator
      */
     private function _prepareFromXML($items) {
-        $row = [];
+        $row        = [];
         $regenerate = false;
         empty($this->_insertionFields) && ($regenerate = true) && ($this->_insertionFields = []);
         for ($i = 0; $i < $items->length; $i++) {
@@ -1888,18 +1938,18 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function LoadDump() {
         $doc  = new \DOMDocument;
-        $path = defined('DUMPS_PATH')? DUMPS_PATH : INST_PATH.'migrations/dumps/';
-        if (file_exists($path.$this->_ObjTable.'.xml')) {
-            $doc->load($path.$this->_ObjTable.'.xml');
+        $path = defined('DUMPS_PATH') ? DUMPS_PATH : INST_PATH . 'migrations/dumps/';
+        if (file_exists($path . $this->_ObjTable . '.xml')) {
+            $doc->load($path . $this->_ObjTable . '.xml');
             $items = $doc->getElementsByTagName($this->_ObjTable);
             $query = '';
             empty($this->_fields) && $this->_setInitialCols();
             foreach ($this->_prepareFromXML($items) as $row) {
-                $query .= "(".implode(',', $row)."),";
+                $query .= "(" . implode(',', $row) . "),";
             }
             if (strlen($query) > 1) {
                 $this->_sqlQuery = "INSERT INTO `{$this->_ObjTable}` (" . implode(',', $this->_insertionFields) . ") VALUES ";
-                $query = substr($query, 0, -1);
+                $query           = substr($query, 0, -1);
                 $this->_sqlQuery .= $query;
 
                 try {
@@ -1909,17 +1959,17 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                     DB->commit();
                     DB->setAttribute(\PDO::ATTR_AUTOCOMMIT, 1);
                 } catch (\PDOException $e) {
-                    fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
+                    fwrite(STDERR, $e->getMessage() . '. On : ' . $this->_sqlQuery . PHP_EOL);
                     DB->rollback();
                     return false;
                 } catch (\Exception $e) {
-                    fwrite(STDERR,  $e->getMessage(). '. On : '.$this->_sqlQuery . PHP_EOL);
+                    fwrite(STDERR, $e->getMessage() . '. On : ' . $this->_sqlQuery . PHP_EOL);
                     DB->rollback();
                     return false;
                 }
-                fwrite(STDOUT, "Inserted {$sh} Regs.". PHP_EOL);
+                fwrite(STDOUT, "Inserted {$sh} Regs." . PHP_EOL);
             } else {
-                fwrite(STDOUT, "Inserted 0 Regs. Empty dump.". PHP_EOL);
+                fwrite(STDOUT, "Inserted 0 Regs. Empty dump." . PHP_EOL);
             }
         }
 
@@ -1928,17 +1978,17 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public function WriteSchema($tableName) {
         $createFile  = FALSE;
         $stringtoINI = '';
-        $file        = INST_PATH.'migrations/Schema.ini';
+        $file        = INST_PATH . 'migrations/Schema.ini';
         file_exists($file) or file_put_contents($file, '');
-        if (!$schema = parse_ini_file($file, TRUE)) {
+        if (! $schema = parse_ini_file($file, TRUE)) {
             $createFile = TRUE;
         }
         if ($createFile) {
             $stringtoINI .= "[$tableName] \n";
-            $fp = fopen($file, "w+b");
+            $fp           = fopen($file, "w+b");
             fwrite($fp, $stringtoINI);
             fclose($fp);
-        } elseif (!in_array($tableName, $schema)) {
+        } elseif (! in_array($tableName, $schema)) {
             $schema[$tableName] = "";
             $stringtoINI        = "";
             foreach ($schema as $table => $val) {
@@ -1990,51 +2040,51 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return ActiveRecord
      */
     public function Paginate(string $url, array | null $params = null): ActiveRecord {
-        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
+        if (is_array($params) && sizeof($params) === 1 && ! empty($params[0])) {
             $params = $params[0];
         }
 
         $this->_prepareSelectParams($params);
-        $params['fields'] = $this->_queryFields ?? "{$this->_ObjTable}.*";
+        $params['fields']     = $this->_queryFields ?? "{$this->_ObjTable}.*";
         $params['conditions'] = trim(implode(' ', $this->_queryConditions));
 
-        $fullquery = DB->driver->Select($params, $this->_ObjTable);
+        $fullquery  = DB->driver->Select($params, $this->_ObjTable);
         $queryCount = DB->driver->RowCountOnQuery($fullquery['query']);
-        $regs = $this->Find_by_SQL($queryCount);
+        $regs       = $this->Find_by_SQL($queryCount);
 
-        $request = parse_url($url);
-        $per_page = empty($params['per_page'])? 10 : (int)$params['per_page'];
+        $request  = parse_url($url);
+        $per_page = empty($params['per_page']) ? 10 : (int) $params['per_page'];
         isset($params['prevChar']) && ($this->_paginatePrevChar = $params['prevChar']);
         isset($params['nextChar']) && ($this->_paginateNextChar = $params['nextChar']);
         isset($params['forwardChar']) && ($this->_paginateLastChar = $params['forwardChar']);
         isset($params['backwardChar']) && ($this->_paginateFirstChar = $params['backwardChar']);
 
-        $this->paginateURL = empty($params['url'])?
-            "{$request['scheme']}://{$request['host']}{$request['path']}" : $params['url'];
+        $this->paginateURL = empty($params['url']) ?
+        "{$request['scheme']}://{$request['host']}{$request['path']}" : $params['url'];
 
         empty($params['varPageName']) or $this->PaginatePageVarName = $params['varPageName'];
-        if (!empty($_GET[$this->PaginatePageVarName])) {
+        if (! empty($_GET[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName] = $_GET[$this->PaginatePageVarName];
         }
-        if (!empty($params[$this->PaginatePageVarName])) {
+        if (! empty($params[$this->PaginatePageVarName])) {
             $this->PaginatePageNumber = $params[$this->PaginatePageVarName];
         }
-        $this->PaginatePageNumber = (int)$this->PaginatePageNumber;
-        $start = ($this->PaginatePageNumber - 1) * $per_page;
+        $this->PaginatePageNumber = (int) $this->PaginatePageNumber;
+        $start                    = ($this->PaginatePageNumber - 1) * $per_page;
 
-        $params['limit'] = $start.",".$per_page;
+        $params['limit'] = $start . "," . $per_page;
 
-        if (!empty($params['conditions'])) {
+        if (! empty($params['conditions'])) {
             $params['conditions'] = preg_replace('@^and\s@i', '', $params['conditions']);
         }
         $data = $this->Find($params);
 
-        $data->paginateURL = $this->paginateURL;
+        $data->paginateURL        = $this->paginateURL;
         $data->PaginatePageNumber = $this->PaginatePageNumber;
         $data->PaginateTotalItems = $regs->rows;
-        $data->PaginateTotalPages = ceil($data->PaginateTotalItems/$per_page);
-        $data->PaginateStartReg = $start;
-        $data->PaginateEndReg = $start + $per_page;
+        $data->PaginateTotalPages = ceil($data->PaginateTotalItems / $per_page);
+        $data->PaginateStartReg   = $start;
+        $data->PaginateEndReg     = $start + $per_page;
 
         return $data;
     }
@@ -2044,11 +2094,11 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return string
      */
     public function WillPaginate($url, $params = null) {
-        if (is_array($params) && sizeof($params) === 1 && !empty($params[0])) {
+        if (is_array($params) && sizeof($params) === 1 && ! empty($params[0])) {
             $params = $params[0];
         }
 
-        $vars = [];
+        $vars    = [];
         $request = parse_url($url);
         empty($request['query']) || parse_str($request['query'], $vars);
 
@@ -2057,32 +2107,32 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $i    = 1;
 
         if ($this->PaginatePageNumber > 1) {
-            $vars[$this->PaginatePageVarName] = 1;
-            $str .= "<a class=\"paginate paginate-page paginate-page-first\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateFirstChar}</a>";
-            $vars[$this->PaginatePageVarName] = $this->PaginatePageNumber - 1;
-            $str .= "<a class=\"paginate paginate-page paginate-page-prev\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginatePrevChar}</a>";
+            $vars[$this->PaginatePageVarName]  = 1;
+            $str                              .= "<a class=\"paginate paginate-page paginate-page-first\" href=\"{$this->paginateURL}?" . http_build_query($vars) . "\">{$this->_paginateFirstChar}</a>";
+            $vars[$this->PaginatePageVarName]  = $this->PaginatePageNumber - 1;
+            $str                              .= "<a class=\"paginate paginate-page paginate-page-prev\" href=\"{$this->paginateURL}?" . http_build_query($vars) . "\">{$this->_paginatePrevChar}</a>";
         }
         $top = $this->PaginateTotalPages;
         if ($this->PaginateTotalPages > 10) {
-            $top  = ($this->PaginatePageNumber-1)+10;
+            $top = ($this->PaginatePageNumber - 1) + 10;
             if ($top > $this->PaginateTotalPages) {
                 $top = $this->PaginateTotalPages;
             }
 
-            $i = $top-10;
+            $i = $top - 10;
             if ($i < 1) {
                 $i = 1;
             }
         }
         if ($this->PaginatePageNumber < $this->PaginateTotalPages) {
-            $vars[$this->PaginatePageVarName] = $this->PaginatePageNumber + 1;
-            $tail .= "<a class=\"paginate paginate-page paginate-page-next\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateNextChar}</a>";
-            $vars[$this->PaginatePageVarName] = $this->PaginateTotalPages;
-            $tail .= "<a class=\"paginate paginate-page paginate-page-last\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$this->_paginateLastChar}</a>";
+            $vars[$this->PaginatePageVarName]  = $this->PaginatePageNumber + 1;
+            $tail                             .= "<a class=\"paginate paginate-page paginate-page-next\" href=\"{$this->paginateURL}?" . http_build_query($vars) . "\">{$this->_paginateNextChar}</a>";
+            $vars[$this->PaginatePageVarName]  = $this->PaginateTotalPages;
+            $tail                             .= "<a class=\"paginate paginate-page paginate-page-last\" href=\"{$this->paginateURL}?" . http_build_query($vars) . "\">{$this->_paginateLastChar}</a>";
         }
         for (; $i <= $top; $i++) {
-            $vars[$this->PaginatePageVarName] = $i;
-            $str .= "<a class=\"paginate paginate-page".($this->PaginatePageNumber == $i?" paginate-page-active":"")."\" href=\"{$this->paginateURL}?".http_build_query($vars)."\">{$i}</a>";
+            $vars[$this->PaginatePageVarName]  = $i;
+            $str                              .= "<a class=\"paginate paginate-page" . ($this->PaginatePageNumber == $i ? " paginate-page-active" : "") . "\" href=\"{$this->paginateURL}?" . http_build_query($vars) . "\">{$i}</a>";
         }
         $str .= $tail;
         return $str;
@@ -2096,76 +2146,90 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return null|string
      */
     public function input_for($field, array $attributes = [], array $list = [], array $params = []) {
-        $types = new stdClass();
-        $types->input = 'input';
+        $types           = new stdClass();
+        $types->input    = 'input';
         $types->textarea = 'textarea';
-        $types->select = 'select';
-        $types->label = 'label';
+        $types->select   = 'select';
+        $types->label    = 'label';
 
-        $_scaffoldFolder = INST_PATH.'scaffold/';
+        $_scaffoldFolder = INST_PATH . 'scaffold/';
 
-        if (empty($attributes['name'])) $attributes['name'] = Singulars(strtolower($this->_ObjTable)).'['.$field.']';
-        if (empty($attributes['value'])) $attributes['value'] = "<?=\$this->data->{$field};?>";
+        if (empty($attributes['name'])) {
+            $attributes['name'] = Singulars(strtolower($this->_ObjTable)) . '[' . $field . ']';
+        }
+
+        if (empty($attributes['value'])) {
+            $attributes['value'] = "<?=\$this->data->{$field};?>";
+        }
 
         file_exists("{$_scaffoldFolder}/tags.json") and $types = json_decode(file_get_contents("{$_scaffoldFolder}/tags.json"));
 
-        if ($field === 'id' and empty($attributes['type'])) $attributes['type'] = 'hidden';
+        if ($field === 'id' and empty($attributes['type'])) {
+            $attributes['type'] = 'hidden';
+        }
+
         if (empty($attributes['type'])):
             $type = strtoupper($this->_nativeType($field));
             switch ($type):
-                case 'INTEGER':
-                case 'LONG':
-                case 'STRING':
-                case 'INT':
-                case 'BIGINT':
-                case 'VAR_CHAR':
-                case 'VARCHAR':
-                case 'FLOAT':
-                case 'VAR_STRING';
-                    $attributes['type'] = 'text';
-                    break;
-                case 'BLOB':
-                case 'TEXT':
-                    $attributes['type'] = 'textarea';
-                    break;
+        case 'INTEGER':
+        case 'LONG':
+        case 'STRING':
+        case 'INT':
+        case 'BIGINT':
+        case 'VAR_CHAR':
+        case 'VARCHAR':
+        case 'FLOAT':
+        case 'VAR_STRING';
+            $attributes['type'] = 'text';
+            break;
+        case 'BLOB':
+        case 'TEXT':
+            $attributes['type'] = 'textarea';
+            break;
             endswitch;
         endif;
 
-        $doc = new \DOMDocument('1.0');
+        $doc   = new \DOMDocument('1.0');
         $input = null;
         $label = null;
 
         switch ($attributes['type']):
-            case 'checkbox':
-                if (!empty($this->{$field}) and empty($attributes['checked'])) $attributes['checked'] = 'checked';
-            case 'text':
-            case 'hidden':
-                $input = $doc->createElement($types->input);
-                break;
-            case 'textarea':
-                $input = $doc->createElement($types->textarea);
-                $input->appendChild($doc->createTextnode($this->{$field}));
-                break;
-            case 'select':
-                $input = $doc->createElement($types->textarea);
-                $optionTag = null;
+    case 'checkbox':
+        if (! empty($this->{$field}) and empty($attributes['checked'])) {
+            $attributes['checked'] = 'checked';
+        }
 
-                foreach ($params['list'] as $value => $option):
-                    $optionTag = $doc->createElement('option');
-                    if ($this->{$field} == $value) $optionTag->setAttribute('selected', 'selected');
-                    $optionTag->setAttribute('value', $value);
-                    $optionTag->appendChild($doc->createTextNode($option));
-                    $input->appendChild($optionTag);
-                    $optionTag = null;
-                endforeach;
-            break;
+    case 'text':
+    case 'hidden':
+        $input = $doc->createElement($types->input);
+        break;
+    case 'textarea':
+        $input = $doc->createElement($types->textarea);
+        $input->appendChild($doc->createTextnode($this->{$field}));
+        break;
+    case 'select':
+        $input     = $doc->createElement($types->textarea);
+        $optionTag = null;
+
+        foreach ($params['list'] as $value => $option):
+            $optionTag = $doc->createElement('option');
+            if ($this->{$field} == $value) {
+                $optionTag->setAttribute('selected', 'selected');
+            }
+
+            $optionTag->setAttribute('value', $value);
+            $optionTag->appendChild($doc->createTextNode($option));
+            $input->appendChild($optionTag);
+            $optionTag = null;
+        endforeach;
+        break;
         endswitch;
-        if (!empty($types->label)):
+        if (! empty($types->label)):
             $label = $doc->createElement($types->label);
             $label->appendChild($doc->createTextNode($field));
             $doc->appendChild($label);
         endif;
-        foreach($attributes as $attr => $value):
+        foreach ($attributes as $attr => $value):
             $input->setAttribute($attr, $value);
         endforeach;
 
@@ -2185,10 +2249,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $id     = '';
         $html   = '';
         $name   = singulars(strtolower($this->_ObjTable));
-        $action = !empty($params['action'])?$params['action']:INST_URI.strtolower($this->_ObjTable);
-        if (!empty($params['html']) and is_array($params['html'])) {
+        $action = ! empty($params['action']) ? $params['action'] : INST_URI . strtolower($this->_ObjTable);
+        if (! empty($params['html']) and is_array($params['html'])) {
             foreach ($params['html'] as $element => $value) {
-                $html .= $element.'="'.$value.'" ';
+                $html .= $element . '="' . $value . '" ';
             }
         }
         $html = trim($html);
@@ -2204,11 +2268,11 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     }
 }
 class Vendor {
-    private $_path = '';
+    private $_path    = '';
     private $_vendors = null;
 
     public function __construct() {
-        $this->_path = INST_PATH.'vendor/dumbophp/';
+        $this->_path    = INST_PATH . 'vendor/dumbophp/';
         $this->_vendors = new \stdClass();
     }
 
@@ -2216,7 +2280,7 @@ class Vendor {
         if (empty($this->_vendors->{$var})) {
             $lowerName = strtolower($var);
             $className = "DumboPHP{$var}";
-            $file = "{$this->_path}dumbophp_{$lowerName}.php";
+            $file      = "{$this->_path}dumbophp_{$lowerName}.php";
 
             require_once $file;
             $this->_vendors->{$var} = new $className();
@@ -2235,35 +2299,35 @@ class Vendor {
  *
  */
 abstract class Controller extends Core_General_Class {
-    public $exceptsBeforeFilter = [];
-    public $Vendor = null;
-    public $_outputContent = '';
-    public $metaDescription = '';
-    public $pageTitle = '';
-    public array $helper = [];
-    public array $noTemplate = [];
-    protected $layout = '';
-    protected $render = null;
-    protected $flash = '';
-    protected $yield = '';
-    protected $params = [];
-    protected $controller = '';
-    protected $action = '';
-    protected $excepts_after_filter  = [];
-    protected $excepts_after_render  = [];
-    protected $excepts_before_render = [];
-    protected $_exposeContent = true;
-    protected $_data_ = [];
-    protected $outputHtml = true;
+    public $exceptsBeforeFilter        = [];
+    public $Vendor                     = null;
+    public $_outputContent             = '';
+    public $metaDescription            = '';
+    public $pageTitle                  = '';
+    public array $helper               = [];
+    public array $noTemplate           = [];
+    protected $layout                  = '';
+    protected $render                  = null;
+    protected $flash                   = '';
+    protected $yield                   = '';
+    protected $params                  = [];
+    protected $controller              = '';
+    protected $action                  = '';
+    protected $excepts_after_filter    = [];
+    protected $excepts_after_render    = [];
+    protected $excepts_before_render   = [];
+    protected $_exposeContent          = true;
+    protected $_data_                  = [];
+    protected $outputHtml              = true;
     protected ?Connection $_connection = null;
-    private $_respondToAJAX   = '';
-    private $_canrespondtoajax= false;
-    private $_preventLoad = false;
-    private $_willRedirect = false;
-    private $_redirectsTo = '';
-    private $_headers = [];
-    private $_http_response_code = HTTP_200;
-    private string $_full_url = '';
+    private $_respondToAJAX            = '';
+    private $_canrespondtoajax         = false;
+    private $_preventLoad              = false;
+    private $_willRedirect             = false;
+    private $_redirectsTo              = '';
+    private $_headers                  = [];
+    private $_http_response_code       = HTTP_200;
+    private string $_full_url          = '';
 
     public function __construct() {
         $this->Vendor = new Vendor();
@@ -2272,7 +2336,7 @@ abstract class Controller extends Core_General_Class {
     public function __get($var) {
         $model = unCamelize($var);
 
-        if (file_exists(INST_PATH.'app/models/'.$model.'.php')) {
+        if (file_exists(INST_PATH . 'app/models/' . $model . '.php')) {
             $className = "App\\Models\\{$var}";
 
             $this->{$var} = new $className();
@@ -2301,8 +2365,8 @@ abstract class Controller extends Core_General_Class {
     }
 
     public function redirect(string $path): void {
-        $this->_willRedirect = true;
-        $this->_redirectsTo = $path;
+        $this->_willRedirect       = true;
+        $this->_redirectsTo        = $path;
         $this->_http_response_code = HTTP_302;
     }
 
@@ -2311,7 +2375,7 @@ abstract class Controller extends Core_General_Class {
     }
 
     public function fullUrl(string | null $url = null): string {
-        if (!empty($url)) {
+        if (! empty($url)) {
             $this->_full_url = $url;
         }
 
@@ -2323,28 +2387,34 @@ abstract class Controller extends Core_General_Class {
         if ($this->_willRedirect) {
             header("Location: {$this->_redirectsTo}");
         } else {
-            if (!headers_sent()) {
-                while(null !== ($header = array_shift($this->_headers))):
+            if (! headers_sent()) {
+                while (null !== ($header = array_shift($this->_headers))):
                     header($header);
                 endwhile;
             }
-            if ($this->_exposeContent) echo $this->_outputContent;
+            if ($this->_exposeContent) {
+                echo $this->_outputContent;
+            }
+
         }
     }
 
     public function parseContent(): void {
-        $renderPage  = TRUE;
-        if (property_exists($this, 'noTemplate') and in_array($this->action, $this->noTemplate)) $renderPage = FALSE;
-
+        $renderPage = TRUE;
+        if (property_exists($this, 'noTemplate') and in_array($this->action, $this->noTemplate)) {
+            $renderPage = FALSE;
+        }
 
         if ($this->canRespondToAJAX()) {
 
-            if (!is_string($this->_outputContent)) {
+            if (! is_string($this->_outputContent)) {
                 throw new \Exception('The output content for JSON should be an string.', HTTP_500);
             }
             $this->_outputContent = $this->_respondToAJAX;
 
-            if (!empty($this->params['callback'])) $this->_outputContent = "({$this->_outputContent}));";
+            if (! empty($this->params['callback'])) {
+                $this->_outputContent = "({$this->_outputContent}));";
+            }
 
             $renderPage   = false;
             $this->layout = '';
@@ -2352,31 +2422,35 @@ abstract class Controller extends Core_General_Class {
             if (isset($this->render) and is_array($this->render)) {
                 if (isset($this->render['action']) && $this->render['action'] === false) {
                     $this->yield = '';
-                    $view = null;
+                    $view        = null;
                     $renderPage  = false;
-                } elseif (!empty($this->render['file'])) {
+                } elseif (! empty($this->render['file'])) {
                     $view = $this->render['file'];
-                } elseif (!empty($this->render['partial'])) {
-                    $view = $this->controller.'/_'.$this->render['partial'].'.phtml';
-                } elseif (!empty($this->render['text'])) {
+                } elseif (! empty($this->render['partial'])) {
+                    $view = $this->controller . '/_' . $this->render['partial'] . '.phtml';
+                } elseif (! empty($this->render['text'])) {
                     $this->yield = $this->render['text'];
                     $renderPage  = false;
-                    $view = null;
-                } elseif (!empty($this->render['action'])) {
-                    $view = $this->controller.'/'.$this->render['action'].'.phtml';
+                    $view        = null;
+                } elseif (! empty($this->render['action'])) {
+                    $view = $this->controller . '/' . $this->render['action'] . '.phtml';
                 } else {
-                    $view = $this->controller.'/'.$this->action.'.phtml';
+                    $view = $this->controller . '/' . $this->action . '.phtml';
                 }
             } else {
-                $view = $this->controller.'/'.$this->action.'.phtml';
+                $view = $this->controller . '/' . $this->action . '.phtml';
             }
-            if (isset($this->render['layout']) && $this->render['layout'] !== false) $this->layout = $this->render['layout'];
+            if (isset($this->render['layout']) && $this->render['layout'] !== false) {
+                $this->layout = $this->render['layout'];
+            }
 
-            if (isset($this->render['layout']) && $this->render['layout'] === false) $this->layout = '';
+            if (isset($this->render['layout']) && $this->render['layout'] === false) {
+                $this->layout = '';
+            }
 
-            $viewsFolder = INST_PATH.'app/views/';
+            $viewsFolder = INST_PATH . 'app/views/';
 
-            if (!empty($view)) {
+            if (! empty($view)) {
                 ob_start();
                 include_once "{$viewsFolder}{$view}";
                 $this->yield = ob_get_clean();
@@ -2384,7 +2458,7 @@ abstract class Controller extends Core_General_Class {
 
             $this->_outputContent = $this->yield;
 
-            if (!empty($this->layout)) {
+            if (! empty($this->layout)) {
                 ob_start();
                 include_once "{$viewsFolder}{$this->layout}.phtml";
                 $this->_outputContent = ob_get_clean();
@@ -2397,17 +2471,17 @@ abstract class Controller extends Core_General_Class {
      * @return boolean
      */
     public function PreventLoad($prevent = null) {
-        $prevent !== null && ($this->_preventLoad = !!$prevent);
+        $prevent !== null && ($this->_preventLoad = ! ! $prevent);
 
         return $this->_preventLoad;
     }
     public function LoadHelper($helper = null) {
         if (isset($helper) and is_array($helper)) {
             foreach ($helper as $file) {
-                require_once (INST_PATH."app/helpers/{$file}_Helper.php");
+                require_once INST_PATH . "app/helpers/{$file}_Helper.php";
             }
         } elseif (isset($helper) and is_string($helper)) {
-            require_once (INST_PATH."app/helpers/{$helper}_Helper.php");
+            require_once INST_PATH . "app/helpers/{$helper}_Helper.php";
         }
     }
     public function params($params = null) {
@@ -2416,14 +2490,14 @@ abstract class Controller extends Core_General_Class {
     }
     public function respondToAJAX($val) {
         $this->_respondToAJAX    = $val;
-        $this->_canrespondtoajax = !empty($val);
+        $this->_canrespondtoajax = ! empty($val);
 
-        $this->_headers = [];
-        $this->_headers[] = 'Cache-Control: max-age=0, no-cache, no-store, must-revalidate';
-        $this->_headers[] = 'Content-type: "application/json; charset=utf-8"';
-        $this->_headers[] = 'ETag: 123';
-        $this->_headers[] = 'Expires: Wed, 11 Jan 1984 05:00:00 GMT';
-        $this->_headers[] = 'Pragma: no-cache';
+        $this->_headers       = [];
+        $this->_headers[]     = 'Cache-Control: max-age=0, no-cache, no-store, must-revalidate';
+        $this->_headers[]     = 'Content-type: "application/json; charset=utf-8"';
+        $this->_headers[]     = 'ETag: 123';
+        $this->_headers[]     = 'Expires: Wed, 11 Jan 1984 05:00:00 GMT';
+        $this->_headers[]     = 'Pragma: no-cache';
         $this->_outputContent = $val;
         $this->_exposeContent = true;
     }
@@ -2444,7 +2518,7 @@ abstract class Migrations extends Core_General_Class {
     private $_table = '';
     public $_fields;
 
-    private function _runQuery($query) {
+    private function _runQuery(string $query) {
         echo '» Running query: ', $query, PHP_EOL;
         if (DB->exec($query) === false) {
             fwrite(STDERR, DB->errorInfo() . PHP_EOL);
@@ -2459,7 +2533,7 @@ abstract class Migrations extends Core_General_Class {
     }
 
     public final function __construct() {
-        $path = explode('\\', get_class($this));
+        $path         = explode('\\', get_class($this));
         $this->_table = unCamelize(str_replace('Create', '', end($path)));
 
         $this->_init_();
@@ -2529,7 +2603,7 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Add_Column(array $params) {
         $query = DB->driver->validateField($this->_table, $params['field']);
-        $res = DB->driver->validateField($query, $params['field']);
+        $res   = DB->driver->validateField($query, $params['field']);
 
         if ($res < 1) {
             $query = DB->driver->AddColumn($this->_table, $params);
@@ -2543,6 +2617,8 @@ abstract class Migrations extends Core_General_Class {
      * @throws \Exception Each attribute is mandatory
      */
     protected function Add_Index(array $params) {
+        $query = '';
+
         if (empty($params['name'])) {
             throw new \Exception("name param can not be empty", 1);
         }
@@ -2551,11 +2627,15 @@ abstract class Migrations extends Core_General_Class {
             throw new \Exception("fields param can not be empty", 1);
         }
 
-        if (!is_array($params['fields'])) {
+        if (! is_array($params['fields'])) {
             throw new \Exception("fields param must be an array", 1);
         }
 
-        $query = DB->driver->AddIndex($this->_table, $params['name'], implode(',', $params['fields']));
+        $indexQuery = DB->driver->ValidateIndex($this->_table, $params['name'], DB->driver->schema);
+        $indexres   = $this->_fetchQuery($indexQuery);
+        if ($indexres[0]['indexes'] === 0) {
+            $query = DB->driver->AddIndex($this->_table, $params['name'], implode(',', $params['fields']));
+        }
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2564,7 +2644,14 @@ abstract class Migrations extends Core_General_Class {
      * @param string $field
      */
     protected function Add_Single_Index($field) {
-        $query = DB->driver->AddSingleIndex($this->_table, $field);
+        $query = '';
+
+        $indexQuery = DB->driver->ValidateIndex($this->_table, $field, DB->driver->schema);
+        $indexres   = $this->_fetchQuery($indexQuery);
+
+        if ($indexres[0]['indexes'] === 0) {
+            $query = DB->driver->AddSingleIndex($this->_table, $field);
+        }
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2573,7 +2660,14 @@ abstract class Migrations extends Core_General_Class {
      * @param string $index
      */
     protected function Remove_Index($index) {
-        $query = DB->driver->RemoveIndex($this->_table, $index);
+        $query = '';
+
+        $indexQuery = DB->driver->ValidateIndex($this->_table, $index, DB->driver->schema);
+        $indexres   = $this->_fetchQuery($indexQuery);
+
+        if ($indexres[0]['indexes'] === 1) {
+            $query = DB->driver->RemoveIndex($this->_table, $index);
+        }
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2583,17 +2677,17 @@ abstract class Migrations extends Core_General_Class {
      * @return void
      */
     protected function Remove_All_indexes() {
-        $query = DB->driver->GetAllIndexes($this->_table);
+        $query   = DB->driver->GetAllIndexes($this->_table, DB->driver->schema);
         $indexes = $this->_fetchQuery($query);
 
-        if (!empty($indexes)):
+        if (! empty($indexes)) {
             foreach ($indexes as $index) {
                 if (isset($index['INDEX_NAME']) && $index['INDEX_NAME'] !== 'PRIMARY') {
-                    $query = DB->RemoveIndex($this->_table, $index['INDEX_NAME']);
+                    $query = DB->driver->RemoveIndex($this->_table, $index['INDEX_NAME']);
                     empty($query) || $this->_runQuery($query);
                 }
             }
-        endif;
+        }
 
     }
     /**
@@ -2604,15 +2698,19 @@ abstract class Migrations extends Core_General_Class {
      */
     protected function Add_Primary($field, $autoIncrement = false) {
 
-        if (empty($field)) throw new \Exception("fields param can not be empty", 1);
+        if (empty($field)) {
+            throw new \Exception("fields param can not be empty", 1);
+        }
 
-        if (!is_string($field)) throw new \Exception("fields param must be a string", 1);
+        if (! is_string($field)) {
+            throw new \Exception("fields param must be a string", 1);
+        }
 
         $query = DB->driver->AddPrimaryKey($this->_table, $field);
 
-        if (!empty($query)) {
+        if (! empty($query)) {
             $this->_runQuery($query);
-            $autoIncrement && $this->Alter_Column(['field'=>$field, 'type'=>'AUTO_INCREMENT']);
+            $autoIncrement && $this->Alter_Column(['field' => $field, 'type' => 'AUTO_INCREMENT']);
         }
     }
     /**
@@ -2632,7 +2730,7 @@ abstract class Migrations extends Core_General_Class {
      * @throws \Exception If the param is not a string
      */
     protected function Remove_Column($field) {
-        if (!is_string($field)) {
+        if (! is_string($field)) {
             throw new \Exception('fields param must be a string', 1);
         }
 
@@ -2650,28 +2748,31 @@ class index {
         defined('DB') || define('DB', new Connection());
 
         http_response_code(HTTP_200);
-        if (!empty($_GET['url'])) {
+        if (! empty($_GET['url'])) {
             $_GET['url'][0] === '/' && ($_GET['url'] = substr($_GET['url'], 1));
             $request = explode('/', $_GET['url']);
             unset($_GET['url']);
         }
 
-        $path = INST_PATH.'app/controllers/';
+        $path = INST_PATH . 'app/controllers/';
 
         empty($request[0]) && ($request[0] = DEF_CONTROLLER);
         empty($request[1]) && ($request[1] = DEF_ACTION);
 
-        $controllerFile = $request[0]."_controller.php";
-        $controller = array_shift($request);
-        $action = array_shift($request);
+        $controllerFile = $request[0] . "_controller.php";
+        $controller     = array_shift($request);
+        $action         = array_shift($request);
 
         foreach ($request as $key => $value) {
-            if (empty($value)) unset($request[$key]);
+            if (empty($value)) {
+                unset($request[$key]);
+            }
+
         }
 
         $params = [];
 
-        if (sizeof($request) === 1 and !strstr($request[0], "=") and is_numeric($request[0])) {
+        if (sizeof($request) === 1 and ! strstr($request[0], "=") and is_numeric($request[0])) {
             $params['id'] = $request[0];
         } elseif (sizeof($request) > 0 and strstr($request[0], "=")) {
             while (null !== ($r = array_shift($request))) {
@@ -2697,26 +2798,26 @@ class index {
                 $replace = true;
             } else {
                 $locations = explode(',', LANDING_REPLACE);
-                if (in_array($controller.'/'.$action, $locations)) {
+                if (in_array($controller . '/' . $action, $locations)) {
                     $replace = true;
                 }
             }
             if ($replace) {
                 $controller     = $urlToLand[0];
                 $action         = $urlToLand[1];
-                $controllerFile = $controller.'_controller.php';
+                $controllerFile = $controller . '_controller.php';
             }
         }
         $canGo = true;
 
-        if (!file_exists($path.$controllerFile) && defined('USE_ALTER_URL') && USE_ALTER_URL) {
+        if (! file_exists($path . $controllerFile) && defined('USE_ALTER_URL') && USE_ALTER_URL) {
             $params['alter_controller'] = $controller;
             $params['alter_action']     = $action;
             $parts                      = explode('/', ALTER_URL_CONTROLLER_ACTION);
             $controller                 = $parts[0];
             $action                     = $parts[1];
-            $controllerFile             = $controller.'_controller.php';
-        } elseif (!file_exists($path.$controllerFile)) {
+            $controllerFile             = $controller . '_controller.php';
+        } elseif (! file_exists($path . $controllerFile)) {
             $canGo = false;
             http_response_code(HTTP_404);
             echo 'Missing Controller';
@@ -2725,13 +2826,13 @@ class index {
         empty($queryparams) || ($queryparams = "?{$queryparams}");
 
         if ($canGo) {
-            $classPage = 'App\\Controllers\\'.Camelize($controller).'Controller';
+            $classPage = 'App\\Controllers\\' . Camelize($controller) . 'Controller';
 
             $this->page = new $classPage();
             $this->page->params($params);
             $this->page->_setAction_($action);
             $this->page->_setController_($controller);
-            $this->page->fullUrl(INST_URI."{$controller}/{$action}/{$queryparams}");
+            $this->page->fullUrl(INST_URI . "{$controller}/{$action}/{$queryparams}");
             //loads of helpers
             if (isset($this->page->helper) and sizeof($this->page->helper) > 0) {
                 $this->page->LoadHelper($this->page->helper);
@@ -2740,14 +2841,14 @@ class index {
             if (method_exists($this->page, "before_filter")) {
                 $actionsToExclude = $controllersToExclude = [];
 
-                if (!empty($this->page->exceptsBeforeFilter) && is_array($this->page->exceptsBeforeFilter)) {
-                    if (!empty($this->page->exceptsBeforeFilter['actions']) && is_string($this->page->exceptsBeforeFilter['actions'])) {
+                if (! empty($this->page->exceptsBeforeFilter) && is_array($this->page->exceptsBeforeFilter)) {
+                    if (! empty($this->page->exceptsBeforeFilter['actions']) && is_string($this->page->exceptsBeforeFilter['actions'])) {
                         $actionsToExclude = explode(',', $this->page->exceptsBeforeFilter['actions']);
                         foreach ($actionsToExclude as $index => $act) {
                             $actionsToExclude[$index] = trim($act);
                         }
                     }
-                    if (!empty($this->page->exceptsBeforeFilter['controllers']) && is_string($this->page->exceptsBeforeFilter['controllers'])) {
+                    if (! empty($this->page->exceptsBeforeFilter['controllers']) && is_string($this->page->exceptsBeforeFilter['controllers'])) {
                         $controllersToExclude = explode(',', $this->page->exceptsBeforeFilter['controllers']);
                         foreach ($controllersToExclude as $index => $cont) {
                             $controllersToExclude[$index] = trim($cont);
@@ -2755,36 +2856,36 @@ class index {
                     }
                 }
 
-                if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
+                if (! in_array($controller, $controllersToExclude) && ! in_array($action, $actionsToExclude)) {
                     $this->page->before_filter();
                 }
             }
-            if (!$this->page->willRedirect()) {
+            if (! $this->page->willRedirect()) {
 
                 $action = $this->page->_getAction_();
 
                 if (method_exists($this->page, "{$action}Action")) {
-                    if(!$this->page->PreventLoad()){
+                    if (! $this->page->PreventLoad()) {
                         $actionToRun = "{$action}Action";
                         $this->page->{$actionToRun}();
                         //before render, executed after the action execution and before the data renderize
                         if (method_exists($this->page, "before_render")) {
                             $actionsToExclude = $controllersToExclude = [];
-                            if (!empty($this->page->excepts_before_render) && is_array($this->page->excepts_before_render)) {
-                                if (!empty($this->page->excepts_before_render['actions']) && is_string($this->page->excepts_before_render['actions'])) {
+                            if (! empty($this->page->excepts_before_render) && is_array($this->page->excepts_before_render)) {
+                                if (! empty($this->page->excepts_before_render['actions']) && is_string($this->page->excepts_before_render['actions'])) {
                                     $actionsToExclude = explode(',', $this->page->excepts_before_render['actions']);
                                     foreach ($actionsToExclude as $index => $act) {
                                         $actionsToExclude[$index] = trim($act);
                                     }
                                 }
-                                if (!empty($this->page->excepts_before_render['controllers']) && is_string($this->page->excepts_before_render['controllers'])) {
+                                if (! empty($this->page->excepts_before_render['controllers']) && is_string($this->page->excepts_before_render['controllers'])) {
                                     $controllersToExclude = explode(',', $this->page->excepts_before_render['controllers']);
                                     foreach ($controllersToExclude as $index => $cont) {
                                         $controllersToExclude[$index] = trim($cont);
                                     }
                                 }
                             }
-                            if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
+                            if (! in_array($controller, $controllersToExclude) && ! in_array($action, $actionsToExclude)) {
                                 $this->page->before_render();
                             }
                         }
@@ -2793,21 +2894,21 @@ class index {
 
                         if (method_exists($this->page, 'after_render')) {
                             $actionsToExclude = $controllersToExclude = [];
-                            if (!empty($this->page->excepts_after_render) && is_array($this->page->excepts_after_render)) {
-                                if (!empty($this->page->excepts_after_render['actions']) && is_string($this->page->excepts_after_render['actions'])) {
+                            if (! empty($this->page->excepts_after_render) && is_array($this->page->excepts_after_render)) {
+                                if (! empty($this->page->excepts_after_render['actions']) && is_string($this->page->excepts_after_render['actions'])) {
                                     $actionsToExclude = explode(',', $this->page->excepts_after_render['actions']);
                                     foreach ($actionsToExclude as $index => $act) {
                                         $actionsToExclude[$index] = trim($act);
                                     }
                                 }
-                                if (!empty($this->page->excepts_after_render['controllers']) && is_string($this->page->excepts_after_render['controllers'])) {
+                                if (! empty($this->page->excepts_after_render['controllers']) && is_string($this->page->excepts_after_render['controllers'])) {
                                     $controllersToExclude = explode(',', $this->page->excepts_after_render['controllers']);
                                     foreach ($controllersToExclude as $index => $cont) {
                                         $controllersToExclude[$index] = trim($cont);
                                     }
                                 }
                             }
-                            if (!in_array($controller, $controllersToExclude) && !in_array($action, $actionsToExclude)) {
+                            if (! in_array($controller, $controllersToExclude) && ! in_array($action, $actionsToExclude)) {
                                 $this->page->after_render();
                             }
                         }

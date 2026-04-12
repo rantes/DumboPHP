@@ -3,36 +3,40 @@ namespace DumboPHP\lib\Timothy;
 
 use DumboPHP\ActiveRecord;
 use DumboPHP\Controller;
-use DumboPHP\Seed;
+use DumboPHP\Index;
 use DumboPHP\lib\DumboShellColors;
+use function DumboPHP\Camelize;
+use function DumboPHP\Singulars;
+use function DumboPHP\Plurals;
+
 /**
  *
  * @author rantes <rantes.javier@gmail.com> https://latuteca.com
  *
  */
 class dumboTests extends Controller {
-    public $assertions = 0;
-    public $testName = '';
-    public $_failed = 0;
-    public $_passed = 0;
-    private $_colors = null;
+    public $assertions     = 0;
+    public $testName       = '';
+    public $_failed        = 0;
+    public $_passed        = 0;
+    private $_colors       = null;
     private $_colorsPalete = ['red', 'green'];
-    private $_textOutputs = ['Failed', 'Passed'];
-    private $_logFile = '';
-    private $_data = [
-        'filename' => '',
-        'filepathname' => ''
+    private $_textOutputs  = ['Failed', 'Passed'];
+    private $_logFile      = '';
+    private $_data         = [
+        'filename'     => '',
+        'filepathname' => '',
     ];
     private $_actionContent = null;
 
-    public function __construct($logFile = INST_PATH.'tmp/dumbotests.log') {
+    public function __construct($logFile = INST_PATH . 'tmp/dumbotests.log') {
         parent::__construct();
         ($GLOBALS['env'] === 'test') || ($GLOBALS['env'] = 'test');
         $this->_logFile = $logFile;
-        is_dir(INST_PATH.'tmp') or mkdir(INST_PATH.'tmp', 0775);
-        $this->_colors = new DumboShellColors();
-        $this->testName = get_class($this);
-        $this->_data['filename'] = __FILE__;
+        is_dir(INST_PATH . 'tmp') or mkdir(INST_PATH . 'tmp', 0775);
+        $this->_colors               = new DumboShellColors();
+        $this->testName              = get_class($this);
+        $this->_data['filename']     = __FILE__;
         $this->_data['filepathname'] = __FILE__;
     }
 
@@ -41,8 +45,8 @@ class dumboTests extends Controller {
     public function _end_() {}
 
     public function _set_data_(array $data) {
-        !empty($data['filename']) and ($this->_data['filename'] = $data['filename']);
-        !empty($data['filepathname']) and ($this->_data['filepathname'] = $data['filepathname']);
+        ! empty($data['filename']) and ($this->_data['filename'] = $data['filename']);
+        ! empty($data['filepathname']) and ($this->_data['filepathname'] = $data['filepathname']);
     }
 
     public function _get_data() {
@@ -58,13 +62,14 @@ class dumboTests extends Controller {
     }
 
     public function _runAction(string $action) {
-        $_GET = [];
+        $_GET   = [];
         $action = explode('?', $action);
+
         $_GET['url'] = $action[0];
-        if(!empty($action[1])):
+        if (! empty($action[1])):
             $params = explode('&', $action[1]);
-            while(null !== ($param = array_shift($params))):
-                $param = explode('=', $param);
+            while (null !== ($param = array_shift($params))):
+                $param           = explode('=', $param);
                 $_GET[$param[0]] = $param[1];
             endwhile;
         endif;
@@ -74,7 +79,7 @@ class dumboTests extends Controller {
         ob_start();
         $index = new index();
         $index->page->display();
-        $buf = ob_get_clean();
+        $buf                     = ob_get_clean();
         $index->page->_rawOutput = $buf;
         return $index->page;
     }
@@ -85,21 +90,18 @@ class dumboTests extends Controller {
      * @param array $tables
      */
     public function _migrateTables($tables = []) {
-        $migrationsPath = INST_PATH.'migrations/';
-        foreach ($tables as $table):
-            $file = "{$migrationsPath}create_{$table}.php";
-            file_exists($file) or die('Migration file '.$file.', does not exists.'.PHP_EOL);
-            require_once $file;
-            $class = 'Create'.Camelize(Singulars($table));
-            $obj = new $class();
+        $migrationsPath = INST_PATH . 'migrations/';
+        while (null !== ($table = array_shift($tables))) {
+            $class = 'Migrations\\Create' . Camelize($table);
+            $obj   = new $class();
             ob_start();
             $obj->reset();
             ob_get_clean();
-        endforeach;
+        }
     }
     public function _sow() {
-        require_once INST_PATH.'migrations/seeds.php';
-        $seeds = new Seed();
+        $seedsFile = 'Migrations\\Seeds';
+        $seeds     = new $seedsFile();
         $seeds->sow();
     }
     private function _setConfigValue(string $key, $value) {
@@ -136,7 +138,7 @@ class dumboTests extends Controller {
      * @param string $text
      */
     private function _log($text) {
-        $date = date('d-m-Y H:i:s');
+        $date    = date('d-m-Y H:i:s');
         $message = "[{$date}]: $text \n";
 
         file_put_contents($this->_logFile, $message, FILE_APPEND);
@@ -150,9 +152,7 @@ class dumboTests extends Controller {
         $track = debug_backtrace();
         $this->_failed++;
 
-        $output = <<<DUMBO
-ERROR Failed to {$additional}, on {$track[1]['file']} at line {$track[1]['line']}.
-DUMBO;
+        $output = "ERROR Failed to {$additional}, on {$track[1]['file']} at line {$track[1]['line']} .";
         $this->_log($output);
         fwrite(STDOUT, "\n{$output}\n");
         return true;
@@ -165,13 +165,13 @@ DUMBO;
      */
     public function assertEquals($param1, $param2, $message = null) {
         $this->assertions++;
-        $message = $message ?? 'Assert if <' . gettype($param1) . '> ' . var_export($param1, true) . ' is equals to <' . gettype($param2) . '> ' . var_export($param2, true);
-        $passed = $param1 === $param2;
+        $message        = $message ?? 'Assert if <' . gettype($param1) . '> ' . var_export($param1, true) . ' is equals to <' . gettype($param2) . '> ' . var_export($param2, true);
+        $passed         = $param1 === $param2;
         $this->_passed += $passed;
         $this->_progress($passed);
-        $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
 
-        $passed or $this->_triggerError("Assert {$param1} is equals to {$param2}");
+        $passed or $this->_triggerError("Assert {$param1} is equals to {$param2}, trying to {$message}");
     }
     /**
      * Asserts if the Value is true.
@@ -180,13 +180,13 @@ DUMBO;
      */
     public function assertTrue($value, $message = null) {
         $this->assertions++;
-        $message = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is true ';
-        $passed = $value === (boolean)true;
+        $message        = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is true ';
+        $passed         = $value === (boolean) true;
         $this->_passed += $passed;
-        $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
-        $trueFalse = ['False','True'];
-        !$passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . (is_bool($value) ? $trueFalse[$value] : $value)) && $this->_triggerError('Asserts True');
+        $trueFalse  = ['False', 'True'];
+        ! $passed && $this->_log('Expectig `true` but found <' . gettype($value) . '> ' . (is_bool($value) ? $trueFalse[$value] : $value)) && $this->_triggerError('Asserts True');
     }
     /**
      * Asserts if the Value is false.
@@ -195,13 +195,13 @@ DUMBO;
      */
     public function assertFalse($value, $message = null) {
         $this->assertions++;
-        $message = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is false ';
-        $passed = $value === (boolean)false;
+        $message        = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is false ';
+        $passed         = $value === (boolean) false;
         $this->_passed += $passed;
-        $this->_log($message. ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
-        $trueFalse = ['False','True'];
-        !$passed && $this->_log('Expectig `false` but found <' . gettype($value) . '> ' . (is_bool($value) ? $trueFalse[$value] : $value)) && $this->_triggerError('Asserts False');
+        $trueFalse  = ['False', 'True'];
+        ! $passed && $this->_log('Expectig `false` but found <' . gettype($value) . '> ' . (is_bool($value) ? $trueFalse[$value] : $value)) && $this->_triggerError('Asserts False');
     }
 
     /**
@@ -212,17 +212,16 @@ DUMBO;
     public function assertHasFields(ActiveRecord $model) {
         $this->assertions++;
         $table = $model->_TableName();
-        require_once INST_PATH."migrations/create_{$table}.php";
-        $migrationName = 'Create'.Camelize(Singulars($table));
-        $migration = new $migrationName();
-        $fields = $migration->getFields();
-        $expected = $model->getRawFields();
-        $passed = !empty($fields) & !empty($expected) & empty(array_diff($fields, $expected));
+        $migrationName = 'Migrations\\Create' . Camelize($table);
+        $migration     = new $migrationName();
+        $fields        = $migration->getFields();
+        $expected      = $model->getRawFields();
+        $passed        = ! empty($fields) & ! empty($expected) & empty(array_diff($fields, $expected));
 
         $this->_passed += $passed;
-        $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',',$fields) . ': '.$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',', $fields) . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
 
-        !$passed && $this->_log('Missing fields: '.implode(',', array_diff($fields, $expected)));
+        ! $passed && $this->_log('Missing fields: ' . implode(',', array_diff($fields, $expected)));
 
         $this->_progress($passed);
 
@@ -236,25 +235,24 @@ DUMBO;
     public function assertHasFieldTypes(ActiveRecord $model) {
         $this->assertions++;
         $table = $model->_TableName();
-        require_once INST_PATH."migrations/create_{$table}.php";
-        $migrationName = 'Create'.Camelize(Singulars($table));
-        $migration = new $migrationName();
-        $fields = $migration->getDefinitions();
-        $tblDefinitions = $GLOBALS['Connection']->getColumnFields($GLOBALS['driver']->getColumns($table));
+        $migrationName = 'Migrations\\Create' . Camelize($table);
+        $migration      = new $migrationName();
+        $fields         = $migration->getDefinitions();
+        $tblDefinitions = DB->getColumnFields(DB->driver->getColumns($table));
 
         foreach ($tblDefinitions as $i => $field) {
             if (strcmp($field['Field'], $fields[$i]['field']) === 0):
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
-                $passed = strcmp($migrationType, $field['Type']) === 0;
-                $color = $passed ? 'green' : 'red';
-                $text = $passed ? 'Passed.' : 'Failed';
-                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: ".$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
-                !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
+                $passed        = strcmp($migrationType, $field['Type']) === 0;
+                $color         = $passed ? 'green' : 'red';
+                $text          = $passed ? 'Passed.' : 'Failed';
+                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: " . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+                ! $passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$migrationType}, found: {$field['Type']}");
             else:
                 $passed = false;
-                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: ".$this->_colors->getColoredString('Failed', 'red'));
-                !$passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
+                $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: " . $this->_colors->getColoredString('Failed', 'red'));
+                ! $passed && $this->_log("Field `{$fields[$i]['field']}` in {$table} is not synced with database. Expected: {$field['Field']}, found: {$fields[$i]['field']}");
             endif;
 
             $this->_passed += $passed;
@@ -269,7 +267,7 @@ DUMBO;
      * @return void
      */
     public function describe($message) {
-        if (!is_string($message)) {
+        if (! is_string($message)) {
             throw new \Exception('The message for the description must be string.');
         }
 
@@ -279,8 +277,8 @@ DUMBO;
      * What supposed to do whe the script ends.
      */
     public function _summary() {
-        $text = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
-        $result = $this->_colors->getColoredString($text, $this->_colorsPalete[!$this->_failed]);
+        $text   = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
+        $result = $this->_colors->getColoredString($text, $this->_colorsPalete[! $this->_failed]);
         $this->_log($result);
     }
     /**
@@ -289,7 +287,7 @@ DUMBO;
      */
     public function __destruct() {
         if ($this->_failed):
-            exit((int)$this->_failed);
+            exit((int) $this->_failed);
         endif;
     }
     /**
@@ -306,7 +304,7 @@ DUMBO;
      * @return void
      */
     public function spyOn(Controller $controller, $method) {
-       /**NOOP */
+        /**NOOP */
     }
     /**
      * Undocumented function
@@ -340,27 +338,26 @@ DUMBO;
      */
     public function invokeMethod(&$object, $methodName, array $parameters = []) {
         $reflection = new \ReflectionClass(get_class($object));
-        $method = $reflection->getMethod($methodName);
+        $method     = $reflection->getMethod($methodName);
         $method->isPublic() or $method->setAccessible(true);
 
         return $method->invokeArgs($object, $parameters);
     }
     /**
      * Set a sysConfig value
-     * 
+     *
      * @param object &$object    Instantiated object that sysConf will change.
      * @param string $property   SysConf property to change
      * @param mixed  $value      Value to set
      */
     public function setSysconfigValue(&$object, $property, $value) {
-        $current = [];
+        $current    = [];
         $reflection = new \ReflectionObject($object);
-        $confs = $reflection->getProperty('__sys_conf_values__');
+        $confs      = $reflection->getProperty('__sys_conf_values__');
         $confs->setAccessible(true);
-        $current = $confs->getValue($object);
+        $current            = $confs->getValue($object);
         $current[$property] = $value;
         $confs->setValue($object, $current);
         return true;
     }
 }
-?>
