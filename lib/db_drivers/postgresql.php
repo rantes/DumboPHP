@@ -11,25 +11,174 @@ class postgresqlDriver implements DBDriver {
     public ?string $schema    = null;
     public string $pk         = 'id';
 
-    public function getColumns($table) {
-        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG'];
-        $fields   = [];
-        $result1  = $GLOBALS['Connection']->query("SHOW COLUMNS FROM {$table}");
-        $result1->setFetchMode(\PDO::FETCH_ASSOC);
-        $resultset1 = $result1->fetchAll();
-        foreach ($resultset1 as $res) {
-            $type = strtoupper(preg_replace('@\([0-9]+\)@', '', $res['Type']));
+    public function AddColumn(string $table, array $params): string {
+        $query = '';
+        if ($this->validateField($table, $params['field'], $GLOBALS['Connection']->_settings['schema']) < 1) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-            yield [
-                'Cast'  => in_array($type, $numerics),
-                'Field' => $res['Field'],
-                'Type'  => $type,
-                'Value' => null,
-            ];
+            $query  = "ALTER TABLE `" . $table . "` ADD COLUMN `" . $params['field'] . "` " . strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
+            $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
+            $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
+            $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
         }
+
+        return $query;
     }
 
-    public function Select($params = null, $table, $pk = 'id') {
+    public function AddIndex(string $table, string $name, string $fields): string {
+        $query = '';
+
+        if (! $this->ValidateIndex($table, $name, $GLOBALS['Connection']->_settings['schema'])) {
+            $query = "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
+        }
+
+        return $query;
+    }
+
+    public function AddPrimaryKey(string $table, string $fields): string {
+        return "ALTER TABLE `{$table}` ADD PRIMARY KEY ({$fields})";
+    }
+
+    public function AddSingleIndex(string $table, string $field): string {
+        $query = '';
+        $x     = $this->ValidateIndex($table, $field, $GLOBALS['Connection']->_settings['schema']);
+
+        if (! $x) {
+            $query = "ALTER TABLE `{$table}` ADD INDEX (`{$field}`)";
+        }
+
+        return $query;
+    }
+
+    public function AlterColumn(string $table, array $params): string {
+        $query = '';
+        if ($this->validateField($table, $params['field'], $GLOBALS['Connection']->_settings['schema']) > 0) {
+            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+            $params['type'] == 'INTEGER' && empty($params['limit']) && ($params['limit'] = 11);
+
+            $query  = "ALTER TABLE `" . $table . "` MODIFY `" . $params['field'] . "` " . strtoupper($params['type']);
+            $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
+            $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
+            $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
+            $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
+        }
+
+        return $query;
+    }
+
+    public function CreateTable(string $table, array $fields): string {
+        $query       = "CREATE TABLE IF NOT EXISTS `{$table}` (";
+        $queryFields = [];
+
+        $parsed = [
+            'INT' => 'INTEGER',
+        ];
+        while (null !== ($field = array_shift($fields))) {
+            if (empty($field['field']) || empty($field['type'])) {
+                throw new \Exception('Field and type values are mandatory.', 1);
+            }
+
+            array_key_exists($field['type'], $parsed) and ($field['type'] = $parsed[$field['type']]);
+
+            $field['type'] === 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
+            $field['type'] == 'INTEGER' && empty($field['limit']) && ($field['limit'] = 11);
+            empty($field['autoincrement']) || ($field['type'] = "{$field['type']} AUTO_INCREMENT");
+            empty($field['primary']) || ($field['type'] = "{$field['type']} PRIMARY KEY");
+            $limit   = empty($field['limit']) ? '' : "({$field['limit']})";
+            $notNull = (empty($field['null']) || $field['null'] === 'false') ? ' NOT NULL' : '';
+            $default = isset($field['default']) ? " DEFAULT '{$field['default']}'" : '';
+            $comment = isset($field['comment']) ? " COMMENT '{$field['comment']}'" : '';
+
+            $queryFields[] = "`{$field['field']}` {$field['type']}{$limit}{$notNull}{$default}{$comment}";
+        }
+
+        $query .= implode(',', $queryFields);
+        $query = "{$query});";
+
+        return $query;
+    }
+
+    public function Delete(array | string | int $conditions, string $table, string $pk = 'id'): string {
+        $query = "DELETE FROM `{$table}` ";
+        if (is_numeric($conditions)) {
+            $this->{$pk}  = $conditions;
+            $query       .= "WHERE " . $pk . "='$conditions'";
+        } elseif (is_array($conditions) && empty($conditions['conditions'])) {
+            $query .= 'WHERE `' . $pk . '` IN (' . implode(',', $conditions) . ')';
+        } elseif (! empty($conditions['conditions']) && is_string($conditions['conditions'])) {
+            $query .= 'WHERE ' . $conditions['conditions'];
+        } else {
+            throw new \Exception("Invalid conditions for delete.", 1);
+        }
+
+        return $query;
+    }
+
+    public function DropTable(string $table): string {
+        return "DROP TABLE IF EXISTS `{$table}`";
+    }
+
+    public function GetAllIndexes(string $table, string $schema): string {
+        $query = <<<DUMBO
+SELECT INDEX_NAME FROM information_schema.statistics WHERE table_schema = '{$schema}' AND table_name = '{$table}'
+DUMBO;
+
+        return $query;
+    }
+
+    public function getColumns(string $table): string {
+        return "SHOW COLUMNS FROM {$table}";
+    }
+
+    public function Insert(array $params, string $table, bool $replace = false): array {
+        $prepared = [];
+        $fields   = '';
+        $values   = '';
+        $action   = 'INSERT';
+
+        $replace && ($action = 'REPLACE');
+
+        $query = "{$action} INTO `{$table}` ";
+        foreach ($params as $field => $value) {
+            if (is_string($value) || is_numeric($value)) {
+                $fields                 .= "`$field`,";
+                $values                 .= ":" . $field . ",";
+                $prepared[':' . $field]  = $value;
+            }
+        }
+
+        $fields = substr($fields, 0, -1);
+        $values = substr($values, 0, -1);
+
+        $query .= "({$fields}) VALUES ({$values})";
+
+        return ['query' => $query, 'prepared' => $prepared];
+    }
+
+    public function RemoveColumn(string $table, string $field): string {
+        $query = '';
+        if ($this->validateField($table, $field, $GLOBALS['Connection']->_settings['schema']) > 0) {
+            $query = "ALTER TABLE `" . $table . "` DROP `" . $field . "`";
+        }
+
+        return $query;
+    }
+
+    public function RemoveIndex(string $table, string $index): string {
+        $query = '';
+        if ($this->ValidateIndex($table, $index, $GLOBALS['Connection']->_settings['schema']) > 0) {
+            $query = "ALTER TABLE `{$table}` DROP INDEX `{$index}`";
+        }
+
+        return $query;
+    }
+
+    public function RowCountOnQuery(string $query): string {
+        return "SELECT COUNT(*) AS `rows` FROM ($query) AS countedTable";
+    }
+
+    public function Select(array | string | int $params, string $table, string $pk = 'id'): array {
         $this->_params = $params;
 
         $tail     = '';
@@ -142,7 +291,7 @@ class postgresqlDriver implements DBDriver {
         return ['query' => $sql, 'prepared' => $prepared, 'data' => $values];
     }
 
-    public function Update($params = null, $table, $pk = 'id') {
+    public function Update(array $params, string $table, string $pk = 'id'): array {
         $prepared = [];
         $query    = 'UPDATE `' . $table . '` SET ';
         foreach ($params['data'] as $field => $value) {
@@ -159,240 +308,23 @@ class postgresqlDriver implements DBDriver {
         return ['query' => $query, 'prepared' => $prepared];
     }
 
-    public function Insert($params, $table, $replace = false) {
-        $prepared = [];
-        $fields   = '';
-        $values   = '';
-        $action   = 'INSERT';
-
-        $replace && ($action = 'REPLACE');
-
-        $query = "{$action} INTO `{$table}` ";
-        foreach ($params as $field => $value) {
-            if (is_string($value) || is_numeric($value)) {
-                $fields                 .= "`$field`,";
-                $values                 .= ":" . $field . ",";
-                $prepared[':' . $field]  = $value;
-            }
-        }
-
-        $fields = substr($fields, 0, -1);
-        $values = substr($values, 0, -1);
-
-        $query .= "({$fields}) VALUES ({$values})";
-
-        return ['query' => $query, 'prepared' => $prepared];
-    }
-
-    public function Delete($conditions, $table, $pk = 'id') {
-        $query = "DELETE FROM `{$table}` ";
-        if (is_numeric($conditions)) {
-            $this->{$pk}  = $conditions;
-            $query       .= "WHERE " . $pk . "='$conditions'";
-        } elseif (is_array($conditions) && empty($conditions['conditions'])) {
-            $query .= 'WHERE `' . $pk . '` IN (' . implode(',', $conditions) . ')';
-        } elseif (! empty($conditions['conditions']) && is_string($conditions['conditions'])) {
-            $query .= 'WHERE ' . $conditions['conditions'];
-        } else {
-            throw new \Exception("Invalid conditions for delete.", 1);
-        }
-
-        return $query;
-    }
-
-    public function CreateTable($table, $fields) {
-        $query       = "CREATE TABLE IF NOT EXISTS `{$table}` (";
-        $queryFields = [];
-
-        $parsed = [
-            'INT' => 'INTEGER',
-        ];
-        while (null !== ($field = array_shift($fields))) {
-            if (empty($field['field']) || empty($field['type'])) {
-                throw new \Exception('Field and type values are mandatory.', 1);
-            }
-
-            array_key_exists($field['type'], $parsed) and ($field['type'] = $parsed[$field['type']]);
-
-            $field['type'] === 'VARCHAR' && empty($field['limit']) && ($field['limit'] = 250);
-            $field['type'] == 'INTEGER' && empty($field['limit']) && ($field['limit'] = 11);
-            empty($field['autoincrement']) || ($field['type'] = "{$field['type']} AUTO_INCREMENT");
-            empty($field['primary']) || ($field['type'] = "{$field['type']} PRIMARY KEY");
-            $limit   = empty($field['limit']) ? '' : "({$field['limit']})";
-            $notNull = (empty($field['null']) || $field['null'] === 'false') ? ' NOT NULL' : '';
-            $default = isset($field['default']) ? " DEFAULT '{$field['default']}'" : '';
-            $comment = isset($field['comment']) ? " COMMENT '{$field['comment']}'" : '';
-
-            $queryFields[] = "`{$field['field']}` {$field['type']}{$limit}{$notNull}{$default}{$comment}";
-        }
-
-        $query .= implode(',', $queryFields);
-        $query = "{$query});";
-
-        return $query;
-    }
-
-    public function DropTable($table) {
-        return "DROP TABLE IF EXISTS `{$table}`";
-    }
-
-    public function validateField($table, $field) {
-        $getinfo = <<<DUMBO
+    public function validateField(string $table, string $field, string $schema): string {
+        $query = <<<DUMBO
 SELECT COUNT(COLUMN_NAME) AS counter
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE table_name = '{$table}'
-    AND table_schema = '{$GLOBALS['Connection']->_settings['schema']}'
+    AND table_schema = '{$schema}'
     AND column_name = '{$field}';
 DUMBO;
-        $res = $GLOBALS['Connection']->query($getinfo);
-        $res->setFetchMode(\PDO::FETCH_ASSOC);
-        return 0 + $res->fetchAll()[0]['counter'];
-    }
-
-    public function AddColumn($table, $params) {
-        $query = '';
-        if ($this->validateField($table, $params['field']) < 1) {
-            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
-
-            $query  = "ALTER TABLE `" . $table . "` ADD COLUMN `" . $params['field'] . "` " . strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
-            $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
-            $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
-            $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
-        }
-
         return $query;
     }
-    /**
-     * Alters a specific column on the table.
-     * @param string $table
-     * @param array $params
-     * @return string|null The query to run or null if the field doesn't exists
-     */
-    public function AlterColumn($table, array $params) {
-        $query = '';
-        if ($this->validateField($table, $params['field']) > 0) {
-            $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
-            $params['type'] == 'INTEGER' && empty($field['limit']) && ($params['limit'] = 11);
 
-            $query  = "ALTER TABLE `" . $table . "` MODIFY `" . $params['field'] . "` " . strtoupper($params['type']);
-            $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
-            $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
-            $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
-            $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
-        }
-
-        return $query;
-    }
-    /**
-     * Alters the table and drops a column
-     * @param string $table
-     * @param string $field
-     * @return string The query to run
-     */
-    public function RemoveColumn($table, $field) {
-        $query = '';
-        if ($this->validateField($table, $field) > 0) {
-            $query = "ALTER TABLE `" . $table . "` DROP `" . $field . "`";
-        }
-
-        return $query;
-    }
-    /**
-     * Sets an index with a particular name
-     * @param string $table
-     * @param string $name
-     * @param string $fields
-     * @return string The query to run
-     */
-    public function AddIndex($table, $name, $fields) {
-        $query = '';
-
-        if (! $this->ValidateIndex($table, $name)) {
-            "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
-        }
-
-        return $query;
-    }
-    /**
-     * Validates if an index exists on a given table
-     * @param string $table
-     * @param string $index
-     * @return number how many indexes exists
-     */
-    public function ValidateIndex($table, $index) {
+    public function ValidateIndex(string $table, string $index, string $schema): string {
         $query = <<<DUMBO
-SELECT COUNT(INDEX_NAME) AS indexes
-FROM information_schema.statistics
-WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}' AND index_name = '{$index}'
+SELECT COUNT(INDEX_NAME) AS indexes FROM information_schema.statistics WHERE table_schema = '{$schema}' AND table_name = '{$table}' AND index_name = '{$index}'
 DUMBO;
 
-        $res = $GLOBALS['Connection']->query($query);
-        $res->setFetchMode(\PDO::FETCH_ASSOC);
-        $c = $res->fetchAll();
-        return 0 + $c[0]['indexes'];
-    }
-    /**
-     * Adds single index or index which is nothing but the field name
-     * @param string $table
-     * @param string $field
-     * @return string The query to run
-     */
-    public function AddSingleIndex($table, $field) {
-        $query = '';
-        $x     = $this->ValidateIndex($table, $field);
-
-        if (! $x) {
-            $query = "ALTER TABLE `{$table}` ADD INDEX (`{$field}`)";
-        }
-
         return $query;
-    }
-    /**
-     * Adds primary key to the table
-     * @param string $table
-     * @param string $fields
-     * @return string The query to run
-     */
-    public function AddPrimaryKey($table, $fields) {
-        return "ALTER TABLE `{$table}` ADD PRIMARY KEY ({$fields})";
-    }
-    /**
-     * Retrieves all indexes from a single table
-     * @param string $table
-     * @return array The indexes names
-     */
-    public function GetAllIndexes($table) {
-        $query = <<<DUMBO
-SELECT INDEX_NAME FROM information_schema.statistics WHERE table_schema = '{$GLOBALS['Connection']->_settings['schema']}' AND table_name = '{$table}'
-DUMBO;
-
-        $res = $GLOBALS['Connection']->query($query);
-        $res->setFetchMode(\PDO::FETCH_ASSOC);
-        $c = $res->fetchAll();
-        return $c;
-    }
-    /**
-     * Gets the query for dropping an index in a table
-     * @param string $table
-     * @param string $index
-     * @return string The query to run
-     */
-    public function RemoveIndex($table, $index) {
-        $query = '';
-        if ($this->validateIndex($table, $index) > 0) {
-            $query = "ALTER TABLE `{$table}` DROP INDEX `{$index}`";
-        }
-
-        return $query;
-    }
-    /**
-     * Sets the proper query for count the rows result from a query
-     * @param string query The query to count the results
-     * @return string query Builded query to run on DB
-     */
-    public function RowCountOnQuery($query) {
-        return "SELECT COUNT(*) AS `rows` FROM ($query) AS countedTable";
     }
 }
 

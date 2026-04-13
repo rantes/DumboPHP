@@ -221,7 +221,7 @@ class dumboTests extends Controller {
         $this->_passed += $passed;
         $this->_log('Assert if ' . get_class($model) . ' has the fields ' . implode(',', $fields) . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
 
-        ! $passed && $this->_log('Missing fields: ' . implode(',', array_diff($fields, $expected)));
+        !$passed && $this->_log('Missing fields: ' . implode(',', array_diff($fields, $expected)));
 
         $this->_progress($passed);
 
@@ -232,7 +232,7 @@ class dumboTests extends Controller {
      * @param ActiveRecord $model
      * @param array $fields
      */
-    public function assertHasFieldTypes(ActiveRecord $model) {
+    public function assertHasFieldTypes(ActiveRecord $model): void {
         $this->assertions++;
         $table = $model->_TableName();
         $migrationName = 'Migrations\\Create' . Camelize($table);
@@ -244,6 +244,7 @@ class dumboTests extends Controller {
             if (strcmp($field['Field'], $fields[$i]['field']) === 0):
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
+                $field['Type'] = preg_replace('/\(\d+\)/', '', $field['Type']);
                 $passed        = strcmp($migrationType, $field['Type']) === 0;
                 $color         = $passed ? 'green' : 'red';
                 $text          = $passed ? 'Passed.' : 'Failed';

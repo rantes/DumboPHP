@@ -15,42 +15,40 @@ for ($i = 1; $i <= 5; $i++) {
     }
 }
 
-if (! function_exists('getallheaders')) {
-    /**
-     * Get all HTTP header key/values as an associative array for the current request.
-     *
-     * @return string[string] The HTTP header key/value pairs.
-     */
-    function getallheaders() {
-        $headers     = [];
-        $copy_server = [
-            'CONTENT_TYPE'   => 'Content-Type',
-            'CONTENT_LENGTH' => 'Content-Length',
-            'CONTENT_MD5'    => 'Content-Md5',
-        ];
-        foreach ($_SERVER as $key => $value) {
-            if (substr($key, 0, 5) === 'HTTP_') {
-                $key = substr($key, 5);
-                if (! isset($copy_server[$key]) || ! isset($_SERVER[$key])) {
-                    $key           = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
-                    $headers[$key] = $value;
-                }
-            } elseif (isset($copy_server[$key])) {
-                $headers[$copy_server[$key]] = $value;
+/**
+ * Get all HTTP header key/values as an associative array for the current request.
+ *
+ * @return string[string] The HTTP header key/value pairs.
+ */
+function getallheaders() {
+    $headers     = [];
+    $copy_server = [
+        'CONTENT_TYPE'   => 'Content-Type',
+        'CONTENT_LENGTH' => 'Content-Length',
+        'CONTENT_MD5'    => 'Content-Md5',
+    ];
+    foreach ($_SERVER as $key => $value) {
+        if (substr($key, 0, 5) === 'HTTP_') {
+            $key = substr($key, 5);
+            if (! isset($copy_server[$key]) || ! isset($_SERVER[$key])) {
+                $key           = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
+                $headers[$key] = $value;
             }
+        } elseif (isset($copy_server[$key])) {
+            $headers[$copy_server[$key]] = $value;
         }
-        if (! isset($headers['Authorization'])) {
-            if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-                $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-            } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
-                $basic_pass               = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
-                $headers['Authorization'] = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass);
-            } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-                $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
-            }
-        }
-        return $headers;
     }
+    if (! isset($headers['Authorization'])) {
+        if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
+            $basic_pass               = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
+            $headers['Authorization'] = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass);
+        } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
+            $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
+        }
+    }
+    return $headers;
 }
 /**
  * Generates an Universal Unique ID v4
@@ -2568,11 +2566,29 @@ abstract class Migrations extends Core_General_Class {
         $this->alter();
     }
 
-    public function getDefinitions() {
-        return $this->_fields;
+    public function getDefinitions(): array {
+        $normalizedTypes = [
+            'INT'     => 'INTEGER',
+            'BIGINT'  => 'INTEGER',
+            'TINY'    => 'INTEGER',
+            'FLOAT'   => 'REAL',
+            'LONG'    => 'TEXT',
+            'VARCHAR' => 'TEXT',
+        ];
+        $definitions = $this->_fields;
+
+        if (DB->engine === 'sqlite') {
+            foreach ($definitions as $field => $def) {
+                if (isset($normalizedTypes[$def['type']])) {
+                    $definitions[$field]['type'] = $normalizedTypes[$def['type']];
+                }
+            }
+        }
+
+        return $definitions;
     }
 
-    public function getFields() {
+    public function getFields(): array {
         $fields = [];
 
         for ($i = 0; $i < sizeof($this->_fields); $i++) {

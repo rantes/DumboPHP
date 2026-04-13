@@ -15,42 +15,40 @@ for ($i = 1; $i <= 5; $i++) {
     }
 }
 
-if (! function_exists('getallheaders')) {
-    /**
-     * Get all HTTP header key/values as an associative array for the current request.
-     *
-     * @return string[string] The HTTP header key/value pairs.
-     */
-    function getallheaders() {
-        $headers     = [];
-        $copy_server = [
-            'CONTENT_TYPE'   => 'Content-Type',
-            'CONTENT_LENGTH' => 'Content-Length',
-            'CONTENT_MD5'    => 'Content-Md5',
-        ];
-        foreach ($_SERVER as $key => $value) {
-            if (substr($key, 0, 5) === 'HTTP_') {
-                $key = substr($key, 5);
-                if (! isset($copy_server[$key]) || ! isset($_SERVER[$key])) {
-                    $key           = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
-                    $headers[$key] = $value;
-                }
-            } elseif (isset($copy_server[$key])) {
-                $headers[$copy_server[$key]] = $value;
+/**
+ * Get all HTTP header key/values as an associative array for the current request.
+ *
+ * @return string[string] The HTTP header key/value pairs.
+ */
+function getallheaders() {
+    $headers     = [];
+    $copy_server = [
+        'CONTENT_TYPE'   => 'Content-Type',
+        'CONTENT_LENGTH' => 'Content-Length',
+        'CONTENT_MD5'    => 'Content-Md5',
+    ];
+    foreach ($_SERVER as $key => $value) {
+        if (substr($key, 0, 5) === 'HTTP_') {
+            $key = substr($key, 5);
+            if (! isset($copy_server[$key]) || ! isset($_SERVER[$key])) {
+                $key           = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
+                $headers[$key] = $value;
             }
+        } elseif (isset($copy_server[$key])) {
+            $headers[$copy_server[$key]] = $value;
         }
-        if (! isset($headers['Authorization'])) {
-            if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-                $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-            } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
-                $basic_pass               = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
-                $headers['Authorization'] = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass);
-            } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-                $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
-            }
-        }
-        return $headers;
     }
+    if (! isset($headers['Authorization'])) {
+        if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
+            $basic_pass               = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
+            $headers['Authorization'] = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass);
+        } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
+            $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
+        }
+    }
+    return $headers;
 }
 /**
  * Generates an Universal Unique ID v4
@@ -751,24 +749,36 @@ class Connection extends \PDO {
      * @return array
      */
     public function getColumnFields($query) {
-        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER'];
-        $norm     = [
-            'INT' => 'INTEGER',
+        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER', 'REAL'];
+        $normalizedTypes = [
+            'INTEGER' => 'INTEGER',
+            'INT'     => 'INTEGER',
+            'BIGINT'  => 'INTEGER',
+            'TINY'    => 'INTEGER',
+            'FLOAT'   => 'REAL',
+            'LONG'    => 'TEXT',
+            'VARCHAR' => 'TEXT',
+            'TEXT'    => 'TEXT',
         ];
+
         try {
             $result1 = $this->query($query);
             $result1->setFetchMode(\PDO::FETCH_ASSOC);
             $resultset1 = $result1->fetchAll();
             $ret        = [];
-
             while (null !== ($res = array_shift($resultset1))) {
                 $rtype = $res['type'] ?? $res['Type'];
                 $rname = $res['name'] ?? $res['Field'];
-                $type  = strtoupper(preg_replace('@\([0-9]+\)@', '', $rtype));
+                $type  = strtoupper(preg_replace('@\(\d+\)@', '', $rtype));
+
+                if (DB->engine === 'sqlite' || DB->engine === 'sqlite2' || DB->engine === 'sqlite3') {
+                    $type = $normalizedTypes[$type] ?? 'TEXT';
+                }
+
                 $ret[] = [
                     'Cast'  => in_array($type, $numerics),
                     'Field' => $rname,
-                    'Type'  => $norm[$type] ?? $type,
+                    'Type'  => $type,
                     'Value' => null,
                 ];
             }
@@ -2568,11 +2578,28 @@ abstract class Migrations extends Core_General_Class {
         $this->alter();
     }
 
-    public function getDefinitions() {
-        return $this->_fields;
+    public function getDefinitions(): array {
+        $normalizedTypes = [
+            'INTEGER' => 'INTEGER',
+            'INT'     => 'INTEGER',
+            'BIGINT'  => 'INTEGER',
+            'TINY'    => 'INTEGER',
+            'FLOAT'   => 'REAL',
+            'LONG'    => 'TEXT',
+            'VARCHAR' => 'TEXT',
+            'TEXT' => 'TEXT'
+        ];
+        $definitions = $this->_fields;
+        if (DB->engine === 'sqlite') {
+            foreach ($definitions as $i => $field) {
+                $definitions[$i]['type'] = $normalizedTypes[$field['type']] ?? $field['type'];
+            }
+        }
+
+        return $definitions;
     }
 
-    public function getFields() {
+    public function getFields(): array {
         $fields = [];
 
         for ($i = 0; $i < sizeof($this->_fields); $i++) {
