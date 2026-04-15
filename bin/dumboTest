@@ -211,28 +211,11 @@ DUMBO;
         if (in_array('all', $this->arguments)):
             $testsDir        = dir($path) or die('unknown path: ' . $path);
             $this->arguments = [];
-            while (($file = $testsDir->read()) !== FALSE):
+            while (($file = $testsDir->read()) !== false):
                 if ($file != '.' and $file != '..' and preg_match('/(.+)\.php/', $file, $matches) === 1):
                     $this->arguments[] = substr($file, 0, -4);
                 endif;
             endwhile;
-            //Second level, subdirectories
-            $dir = opendir($path);
-            while (false !== ($file = readdir($dir))):
-                $npath = "{$path}{$file}";
-                if ($file !== '.' and $file !== '..' and is_dir($npath) and is_readable($npath)):
-                    $dir1 = opendir("{$path}{$file}");
-                    if (false !== $dir1):
-                        while (false !== ($file1 = readdir($dir1))):
-                            if ($file != '.' and $file != '..' and is_file("{$path}{$file}/{$file1}") and preg_match('/(.+)\.php/', $file1, $matches) === 1):
-                                $this->arguments[] = substr("{$file}/{$file1}", 0, -4);
-                            endif;
-                        endwhile;
-                        closedir($dir1);
-                    endif;
-                endif;
-            endwhile;
-            closedir($dir);
         endif;
 
         asort($this->arguments);

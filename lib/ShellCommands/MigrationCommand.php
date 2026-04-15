@@ -35,7 +35,7 @@ class MigrationCommand extends BaseShell implements Interfaces\DumboCommand {
                     if($file != "." and $file != ".." and preg_match('/create_(.+)\.php/', $file, $matches) === 1) {
                         $this->showNotice('º Running action ', $args[0], ' for: ', $matches[1]);
 
-                        $class = 'Migrations\\Create'.Camelize(Singulars($matches[1]));
+                        $class = 'Migrations\\Create'.Camelize($matches[1]);
                         $this->_migrations[] = new $class();
                     }
                 }
