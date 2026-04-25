@@ -1506,16 +1506,23 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                         empty($field['message']) or ($message = $field['message']);
                         $soleField = $field['field'];
                     }
+
                     (
                         (
                             $action === 'insert'
-                            && ! isset($this->{$soleField})
+                            && (
+                                !isset($this->{$soleField}) ||
+                                (
+                                    empty($this->{$soleField}) &&
+                                    !is_numeric($this->{$soleField})
+                                )
+                            )
                         )
                         ||
                         (
                             empty($this->{$soleField})
                             && isset($this->{$soleField})
-                            && ! is_numeric($this->{$soleField})
+                            && !is_numeric($this->{$soleField})
                         )
                     )
                     && $this->_error->add([
@@ -1862,7 +1869,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         } else {
             ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
             for ($j = 0; $j < $this->count(); $j++) {
-                $this[$j]->inspect($i + 1);
+                empty($this[$j]) || $this[$j]->inspect($i + 1);
             }
             $buffer          = ob_get_clean();
             $listProperties .= $buffer;
@@ -2597,7 +2604,8 @@ abstract class Migrations extends Core_General_Class {
             'INT'     => 'INTEGER',
             'BIGINT'  => 'INTEGER',
             'TINY'    => 'INTEGER',
-            'FLOAT'   => 'REAL',
+            'FLOAT'   => 'FLOAT',
+            'REAL' => 'FLOAT',
             'LONG'    => 'TEXT',
             'VARCHAR' => 'TEXT',
             'TEXT' => 'TEXT'
