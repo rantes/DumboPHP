@@ -749,24 +749,38 @@ class Connection extends \PDO {
      * @return array
      */
     public function getColumnFields($query) {
-        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER'];
-        $norm     = [
-            'INT' => 'INTEGER',
+        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER', 'REAL'];
+        $normalizedTypes = [
+            'INTEGER' => 'INTEGER',
+            'INT'     => 'INTEGER',
+            'BIGINT'  => 'INTEGER',
+            'TINY'    => 'INTEGER',
+            'FLOAT'   => 'FLOAT',
+            'REAL'  => 'FLOAT',
+            'DOUBLE'  => 'FLOAT',
+            'LONG'    => 'TEXT',
+            'VARCHAR' => 'TEXT',
+            'TEXT'    => 'TEXT',
         ];
+
         try {
             $result1 = $this->query($query);
             $result1->setFetchMode(\PDO::FETCH_ASSOC);
             $resultset1 = $result1->fetchAll();
             $ret        = [];
-
             while (null !== ($res = array_shift($resultset1))) {
                 $rtype = $res['type'] ?? $res['Type'];
                 $rname = $res['name'] ?? $res['Field'];
-                $type  = strtoupper(preg_replace('@\([0-9]+\)@', '', $rtype));
+                $type  = strtoupper(preg_replace('@\(\d+\)@', '', $rtype));
+
+                if (DB->engine === 'sqlite' || DB->engine === 'sqlite2' || DB->engine === 'sqlite3') {
+                    $type = $normalizedTypes[$type] ?? 'TEXT';
+                }
+
                 $ret[] = [
                     'Cast'  => in_array($type, $numerics),
                     'Field' => $rname,
-                    'Type'  => $norm[$type] ?? $type,
+                    'Type'  => $type,
                     'Value' => null,
                 ];
             }
@@ -1004,7 +1018,6 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $this->_error = new Errors;
         $this->_init_();
         $this->_counter = 0;
-        // $this->setFlags(\ArrayObject::ARRAY_AS_PROPS | \ArrayObject::STD_PROP_LIST);
 
         $p           = explode('\\', get_class($this));
         $this->_name = $p[sizeof($p) - 1];
@@ -1052,7 +1065,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     private function _setInitialCols(): bool {
         $this->_fields = [];
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
-            $fields                                        = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
+            $fields = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
             $GLOBALS['models'][$this->_ObjTable]['fields'] = $fields;
         }
 
@@ -1113,7 +1126,19 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @param string $query SQL query to fetch the data
      */
     protected function getData($prepared, $data): ActiveRecord {
-        $willCast = ['LONG', 'INT', 'INTEGER', 'TINY', 'SHORT', 'BIGINT', 'FLOAT', 'DOUBLE', 'LONGLONG', 'TIMESTAMP'];
+        $willCast = [
+            'LONG',
+            'INT',
+            'INTEGER',
+            'TINY',
+            'SHORT',
+            'BIGINT',
+            'FLOAT',
+            'DOUBLE',
+            'LONGLONG',
+            'TIMESTAMP',
+            'REAL'
+        ];
 
         try {
             $sh = DB->prepare($prepared);
@@ -1144,7 +1169,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 }
                 if ($obj->count() === 1) {
                     foreach ($cols as $col) {
-                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? (int) $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
+                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? 1 * $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
                     }
                 }
             } else {
@@ -2568,20 +2593,19 @@ abstract class Migrations extends Core_General_Class {
 
     public function getDefinitions(): array {
         $normalizedTypes = [
+            'INTEGER' => 'INTEGER',
             'INT'     => 'INTEGER',
             'BIGINT'  => 'INTEGER',
             'TINY'    => 'INTEGER',
             'FLOAT'   => 'REAL',
             'LONG'    => 'TEXT',
             'VARCHAR' => 'TEXT',
+            'TEXT' => 'TEXT'
         ];
         $definitions = $this->_fields;
-
         if (DB->engine === 'sqlite') {
-            foreach ($definitions as $field => $def) {
-                if (isset($normalizedTypes[$def['type']])) {
-                    $definitions[$field]['type'] = $normalizedTypes[$def['type']];
-                }
+            foreach ($definitions as $i => $field) {
+                $definitions[$i]['type'] = $normalizedTypes[$field['type']] ?? $field['type'];
             }
         }
 

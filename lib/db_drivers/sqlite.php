@@ -71,6 +71,8 @@ class sqlite implements DBDriver {
         $parsed      = [
             'INT'    => 'INTEGER',
             'BIGINT' => 'INTEGER',
+            'FLOAT' => 'REAL',
+            'DOUBLE' => 'REAL'
         ];
         while (null !== ($field = array_shift($fields))) {
             if (empty($field['field']) || empty($field['type'])) {

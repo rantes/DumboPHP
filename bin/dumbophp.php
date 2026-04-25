@@ -755,7 +755,9 @@ class Connection extends \PDO {
             'INT'     => 'INTEGER',
             'BIGINT'  => 'INTEGER',
             'TINY'    => 'INTEGER',
-            'FLOAT'   => 'REAL',
+            'FLOAT'   => 'FLOAT',
+            'REAL'  => 'FLOAT',
+            'DOUBLE'  => 'FLOAT',
             'LONG'    => 'TEXT',
             'VARCHAR' => 'TEXT',
             'TEXT'    => 'TEXT',
@@ -1016,7 +1018,6 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $this->_error = new Errors;
         $this->_init_();
         $this->_counter = 0;
-        // $this->setFlags(\ArrayObject::ARRAY_AS_PROPS | \ArrayObject::STD_PROP_LIST);
 
         $p           = explode('\\', get_class($this));
         $this->_name = $p[sizeof($p) - 1];
@@ -1064,7 +1065,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     private function _setInitialCols(): bool {
         $this->_fields = [];
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
-            $fields                                        = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
+            $fields = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
             $GLOBALS['models'][$this->_ObjTable]['fields'] = $fields;
         }
 
@@ -1125,7 +1126,19 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @param string $query SQL query to fetch the data
      */
     protected function getData($prepared, $data): ActiveRecord {
-        $willCast = ['LONG', 'INT', 'INTEGER', 'TINY', 'SHORT', 'BIGINT', 'FLOAT', 'DOUBLE', 'LONGLONG', 'TIMESTAMP'];
+        $willCast = [
+            'LONG',
+            'INT',
+            'INTEGER',
+            'TINY',
+            'SHORT',
+            'BIGINT',
+            'FLOAT',
+            'DOUBLE',
+            'LONGLONG',
+            'TIMESTAMP',
+            'REAL'
+        ];
 
         try {
             $sh = DB->prepare($prepared);
@@ -1156,7 +1169,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 }
                 if ($obj->count() === 1) {
                     foreach ($cols as $col) {
-                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? (int) $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
+                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? 1 * $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
                     }
                 }
             } else {
