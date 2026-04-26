@@ -1013,11 +1013,12 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function _init_() {}
 
-    public final function __construct(array $fields = []) {
+    public final function __construct(array $fields = [], int $count = 0) {
         parent::__construct($fields);
+        // $this->setFlags(\ArrayObject::ARRAY_AS_PROPS);
         $this->_error = new Errors;
-        $this->_init_();
-        $this->_counter = 0;
+
+        $this->_counter = $count;
 
         $p           = explode('\\', get_class($this));
         $this->_name = $p[sizeof($p) - 1];
@@ -1050,6 +1051,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
             $this->id = $fields['id'] ?? 0;
         }
+
+        $this->_init_();
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
@@ -1159,21 +1162,21 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $cols[] = [$colMeta['name'], $colMeta['native_type']];
             }
 
-            $obj = new $className();
+            $obj = new $className([], $rowsCount);
             if ($rowsCount > 0) {
                 $i = 0;
 
                 while (null !== ($row = array_shift($resultset))) {
-                    $obj->offsetSet($i, new $className($row));
+                    $obj->offsetSet($i, new $className($row, 1));
                     $i++;
                 }
-                if ($obj->count() === 1) {
+
+                if ($rowsCount === 1) {
                     foreach ($cols as $col) {
                         $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? 1 * $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
                     }
                 }
             } else {
-                $obj = new $className();
                 foreach ($cols as $col) {
                     $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? 0 : '';
                 }
@@ -1395,7 +1398,6 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public function Niu(array $contents = []): ActiveRecord {
         $className = get_class($this);
         $obj       = new $className($contents);
-        // $obj->setFlags(\ArrayObject::ARRAY_AS_PROPS);
 
         return $obj;
     }
@@ -1841,9 +1843,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function inspect($tabs = 0) {
         $name       = get_class($this);
-        $reflection = new \ReflectionClass($name);
-        var_dump($reflection->getProperties(\ReflectionProperty::IS_PUBLIC));
-        $output = $name . " ActiveRecord ({$this->count()}): " . $this->ListProperties_ToString($tabs);
+        $output = $name . " ActiveRecord (".count($this)."): " . $this->ListProperties_ToString($tabs);
         if (_IN_SHELL_):
             fwrite(STDOUT, $output);
         else:
@@ -1852,14 +1852,17 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     }
 
     protected function ListProperties_ToString($i = 0) {
+
         $listProperties = "{\n";
         $fields         = $this->getRawFields();
 
-        if ($this->count() <= 1) {
+        if ($this->_counter <= 1) {
             foreach ($fields as $field) {
                 $buffer = 'NULL' . PHP_EOL;
                 if (isset($this->{$field})) {
-                    $buffer = print_r($this->{$field}, true);
+                    ob_start();
+                    var_dump($this->{$field});
+                    $buffer = ob_get_clean();
                 }
                 for ($j = 0; $j < $i + 1; $j++) {
                     $listProperties .= "\t";
@@ -1868,8 +1871,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         } else {
             ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
-            for ($j = 0; $j < $this->count(); $j++) {
-                empty($this[$j]) || $this[$j]->inspect($i + 1);
+            foreach ($this as $child) {
+                !empty($child) && is_a($child, 'ActiveRecord') && $child->inspect($i + 1);
             }
             $buffer          = ob_get_clean();
             $listProperties .= $buffer;
@@ -2033,13 +2036,13 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         return $this->_error;
     }
     public function counter() {
-        return $this->count();
+        return $this->_counter;
     }
     public function first() {
-        return $this->count() > 0 ? $this[0] : null;
+        return $this->_counter > 0 ? $this[0] : null;
     }
     public function last() {
-        return $this->count() > 0 ? $this[$this->count()] : null;
+        return $this->_counter > 0 ? $this[$this->_counter] : null;
     }
     public function _sqlQuery() {
         return $this->_sqlQuery;
@@ -2051,11 +2054,11 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         return $this->_dataAttributes[$field]['native_type'];
     }
     public function slice($start = 0, $length = 0) {
-        empty($length) && ($length = $this->count());
+        empty($length) && ($length = $this->_counter);
 
         $end = $start + $length;
 
-        $end > $this->count() && ($end = $this->count());
+        $end > $this->_counter && ($end = $this->_counter);
 
         $name = get_class($this);
         $arr  = new $name();

@@ -204,6 +204,47 @@ class dumboTests extends Controller {
         ! $passed && $this->_log('Expectig `false` but found <' . gettype($value) . '> ' . (is_bool($value) ? $trueFalse[$value] : $value)) && $this->_triggerError('Asserts False');
     }
 
+    public function assertArrayHasKey(string $key, array $haystack): void {
+        $this->assertions++;
+        $message        = $message ?? 'Assert if key <' . $key . '> exists in array';
+        $passed         = array_key_exists($key, $haystack);
+        $this->_passed += $passed;
+        $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_progress($passed);
+        $trueFalse  = ['False', 'True'];
+        ! $passed && $this->_log('Expectig to exists key in array: ' . $key) && $this->_triggerError('Asserts False');
+    }
+
+    public function assertNotEmpty($content): void {
+        $this->assertions++;
+        $message        = $message ?? 'Assert if content is not empty';
+        $passed         = !empty($content);
+        $this->_passed += $passed;
+        $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_progress($passed);
+        ! $passed && $this->_log('Expectig content to be not empty, but found: ' . var_export($content, true)) && $this->_triggerError('Asserts Not Empty');
+    }
+
+    public function assertNotFalse($val): void {
+        $this->assertions++;
+        $message        = $message ?? 'Assert if content is not false';
+        $passed         = $val !== false;
+        $this->_passed += $passed;
+        $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_progress($passed);
+        ! $passed && $this->_log('Expectig content to be not false, but found: ' . var_export($val, true)) && $this->_triggerError('Asserts Not False');
+    }
+
+    public function assertGreaterThan(int $initial, int $val): void {
+        $this->assertions++;
+        $message        = $message ?? 'Assert if content is greater than ' . $val;
+        $passed         = $val > $initial;
+        $this->_passed += $passed;
+        $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_progress($passed);
+        ! $passed && $this->_log('Expectig content to be greater than ' . $initial . ', but found: ' . var_export($val, true)) && $this->_triggerError('Asserts Greater Than');
+    }
+
     /**
      * Asserts if the array with field names provides fits the fields on the model
      * @param ActiveRecord $model
