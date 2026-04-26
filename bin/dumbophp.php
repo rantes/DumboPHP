@@ -1443,23 +1443,21 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @throws \Exception
      */
     private function _ValidateOnSave($action = 'insert') {
-        if ($this->_validate && ! empty($this->validate)) {
-            if (! empty($this->validate['email'])) {
-                foreach ($this->validate['email'] as $field) {
+        if ($this->_validate && !empty($this->validate)) {
+            if (!empty($this->validate['email'])) {
+                foreach ($this->validate['email'] as $reg) {
                     $message = 'The email provided is not a valid email address.';
                     $matches = [];
-                    if (is_array($field)) {
-                        if (empty($field['field'])) {
+
+                    if (is_array($reg)) {
+                        if (empty($reg['field'])) {
                             throw new \Exception('Field key must be defined in array.');
                         }
 
-                        empty($field['message']) || ($message = $field['message']);
-                        $field = $field['field'];
+                        empty($reg['message']) || ($message = $reg['message']);
+                        $field = $reg['field'];
                     }
-                    if (! empty($this->{$field})) {
-                        preg_match("/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $this->{$field}, $matches);
-                        empty($matches) && $this->_error->add(['field' => $field, 'message' => $message]);
-                    }
+                    empty($this->{$field}) || filter_var($this->{$field}, FILTER_VALIDATE_EMAIL) || $this->_error->add(['field' => $field, 'message' => $message]);
                 }
             }
             if (! empty($this->validate['numeric'])) {
