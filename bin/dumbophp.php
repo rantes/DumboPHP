@@ -476,7 +476,7 @@ function Singulars($params, &$obj = null) {
  * @param string $separator
  * @return string
  */
-function Camelize($toCamelize, $separator = '_'): string {
+function Camelize(string $toCamelize, string $separator = '_'): string {
 
     $newName = "";
     if (preg_match("[{$separator}]", $toCamelize)) {
@@ -493,25 +493,18 @@ function Camelize($toCamelize, $separator = '_'): string {
 }
 /**
  * Set a CamelizedString back to uncamelized_string
- * @param array|string $params
- * @param object $obj
+ * @param string $toUncamelize
  * @return string
  */
-function unCamelize($params, &$obj = NULL) {
-    if ($obj === NULL) {
-        $string = $params;
-    } else {
-        $string = $params[0];
-    }
-
+function unCamelize(string $toUncamelize): string {
     $newstring = '';
-    if (isset($string) and is_string($string)) {
-        $string[0] = strtolower($string[0]);
-        for ($i = 0; $i < strlen($string); $i++) {
-            if (preg_match('`[A-Z]`', $string[$i])) {
+    if (isset($toUncamelize) and is_string($toUncamelize)) {
+        $toUncamelize[0] = strtolower($toUncamelize[0]);
+        for ($i = 0; $i < strlen($toUncamelize); $i++) {
+            if (preg_match('`[A-Z]`', $toUncamelize[$i])) {
                 $newstring .= '_';
             }
-            $newstring .= strtolower($string[$i]);
+            $newstring .= strtolower($toUncamelize[$i]);
         }
     }
     return $newstring;

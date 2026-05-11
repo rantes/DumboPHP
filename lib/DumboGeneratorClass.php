@@ -1,25 +1,33 @@
 <?php
+namespace DumboPHP\lib;
+
+use DumboPHP;
+use DumboPHP\lib\DumboShellColors;
+use function DumboPHP\Camelize;
+use function DumboPHP\Singulars;
+use function DumboPHP\Plurals;
+
 file_exists('./config/host.php') or die('Generator must be executed at the top level of project path.'.PHP_EOL);
 defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
-set_include_path(
-    '/etc/dumbophp'.PATH_SEPARATOR.
-    '/etc/dumbophp/bin'.PATH_SEPARATOR.
-    INST_PATH.'vendor'.PATH_SEPARATOR.
-    INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
-    INST_PATH.'vendor/rantes/dumbophp/bin'.PATH_SEPARATOR.
-    INST_PATH.PATH_SEPARATOR.
-    get_include_path().PATH_SEPARATOR.
-    PEAR_EXTENSION_DIR.PATH_SEPARATOR.
-    '/windows/dumbophp'.PATH_SEPARATOR.
-    '/windows/dumbophp/bin'.PATH_SEPARATOR.
-    '/windows/system32/dumbophp'.PATH_SEPARATOR.
-    '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
-    INST_PATH.'DumboPHP'
-);
+// set_include_path(
+//     '/etc/dumbophp'.PATH_SEPARATOR.
+//     '/etc/dumbophp/bin'.PATH_SEPARATOR.
+//     INST_PATH.'vendor'.PATH_SEPARATOR.
+//     INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
+//     INST_PATH.'vendor/rantes/dumbophp/bin'.PATH_SEPARATOR.
+//     INST_PATH.PATH_SEPARATOR.
+//     get_include_path().PATH_SEPARATOR.
+//     PEAR_EXTENSION_DIR.PATH_SEPARATOR.
+//     '/windows/dumbophp'.PATH_SEPARATOR.
+//     '/windows/dumbophp/bin'.PATH_SEPARATOR.
+//     '/windows/system32/dumbophp'.PATH_SEPARATOR.
+//     '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
+//     INST_PATH.'DumboPHP'
+// );
 
 require_once './config/host.php';
-require_once 'dumbophp.php';
-require_once 'DumboShellColors.php';
+// require_once 'dumbophp.php';
+// require_once 'DumboShellColors.php';
 
 $GLOBALS['types'] = [
     'primary',
@@ -108,13 +116,13 @@ class DumboGeneratorClass {
     public ?array $args = null;
     public ?string $tblName = '';
     public ?string $camelized = '';
+    public ?string $camelizedPlural = '';
     public ?string $singularized = '';
     private array $fields = array();
     private ?DumboShellColors $colors = null;
     private string $_scaffoldFolder = '';
 
-    public function __construct($env = '') {
-        empty($env) || ($GLOBALS['env'] = $env);
+    public function __construct() {
         $this->colors = new DumboShellColors();
         $this->_scaffoldFolder = INST_PATH.'scaffold/';
     }
@@ -135,7 +143,7 @@ class DumboGeneratorClass {
         $this->tblName = $name;
         $this->singularized = Singulars($this->tblName);
         $this->camelized = Camelize($this->singularized);
-
+        $this->camelizedPlural = Plurals($this->camelized);
         return true;
     }
     /**
@@ -178,6 +186,9 @@ class DumboGeneratorClass {
         else:
             $fileContent = <<<DUMBOPHP
 <?php
+namespace App\Models;
+use DumboPHP\ActiveRecord\ActiveRecord;
+
 class {{model}} extends ActiveRecord {
     {{attributes}}
     function _init_() {
@@ -210,7 +221,10 @@ DUMBOPHP;
         else:
             $fileContent = <<<DUMBOPHP
 <?php
-class {$this->camelized}Controller extends Page {
+namespace App\Controllers;
+use DumboPHP\Controller;
+
+class {$this->camelized}Controller extends Controller {
     public \$layout = 'layout';
     {{content}}
 }
@@ -225,11 +239,11 @@ DUMBOPHP;
             $content = <<<DUMBOPHP
     public \$noTemplate = array('create','delete');
 
-    public function indexAction() {
+    public function indexAction(): void {
         \$this->data = \$this->{$this->camelized}->Find();
     }
 
-    public function addeditAction() {
+    public function addeditAction(): void {
         if (isset(\$this->params['id'])):
             \$this->data = \$this->{$this->camelized}->Find(\$this->params['id']);
         else:
@@ -237,7 +251,7 @@ DUMBOPHP;
         endif;
     }
 
-    public function deleteAction() {
+    public function deleteAction(): void {
         if (isset(\$this->params['id'])):
             \$this->data = \$this->{$this->camelized}->Delete(\$this->params['id']);
         endif;
@@ -246,7 +260,7 @@ DUMBOPHP;
         exit;
     }
 
-    public function createAction() {
+    public function createAction(): void {
         if (isset(\$_POST['$this->singularized'])):
             \$obj = \$this->{$this->camelized}->Niu(\$_POST['$this->singularized']);
             \$obj->Save() or die(\$obj->_error);
@@ -260,7 +274,7 @@ DUMBOPHP;
             while(!empty($param = array_shift($params))):
                 $content .= <<<DUMBOPHP
 
-public function {$param}Action() {
+public function {$param}Action(): void {
 
 }
 DUMBOPHP;
@@ -281,8 +295,8 @@ DUMBOPHP;
         is_dir($path) or mkdir($path);
 
         if ($isScaffold):
-            require_once INST_PATH.'app/models/'.$this->singularized.'.php';
-            $model = new $this->camelized();
+            $modelClass = "App\Models\\{$this->camelized}";
+            $model = new $modelClass();
             $obj = $model->Find();
 
             $this->fields = $model->getRawFields();
@@ -310,18 +324,18 @@ DUMBOPHP;
         <table>
             <thead>
             <tr>
-              {$columnNames}
-              <th>Actions</th>
+                {$columnNames}
+                <th>Actions</th>
             </tr>
             </thead>
             <tbody>
             <? foreach(\$this->data as \$row): ?>
             <tr>
-              {$dataRow}
-              <td>
-                <a href="<?=INST_URI;?>{$this->singularized}/delete/<?=\$row->id;?>">delete</a>
-                <a href="<?=INST_URI;?>{$this->singularized}/addedit/<?=\$row->id;?>">Edit</a>
-              </td>
+                {$dataRow}
+                <td>
+                    <a href="<?=INST_URI;?>{$this->singularized}/delete/<?=\$row->id;?>">delete</a>
+                    <a href="<?=INST_URI;?>{$this->singularized}/addedit/<?=\$row->id;?>">Edit</a>
+                </td>
             </tr>
             <? endforeach; ?>
             </tbody>
@@ -383,18 +397,21 @@ DUMBOPHP;
         $fieldsString = implode(",\n            ", $this->fields);
         $fileContent = <<<DUMBOPHP
 <?php
-class Create{$this->camelized} extends Migrations {
-    function _init_() {
+namespace Migrations;
+use DumboPHP\Migrations;
+
+class Create{$this->camelizedPlural} extends Migrations {
+    function _init_(): void {
         \$this->_fields = [
             {$fieldsString}
         ];
     }
 
-    function up() {
+    function up(): void {
         \$this->Create_Table();
     }
 
-    function down() {
+    function down(): void {
         \$this->Drop_Table();
     }
 }
@@ -404,8 +421,8 @@ DUMBOPHP;
         file_put_contents("{$path}{$file}", $fileContent);
         $this->showNotice("Migration created at: {$path}{$file}");
         $this->showMessage('Building: Running migration...');
-        require_once $path.$file;
-        $class = "Create{$this->camelized}";
+
+        $class = "Migrations\Create{$this->camelizedPlural}";
         $obj = new $class();
         $obj->up();
         $this->showNotice('Migration executed.');
@@ -432,7 +449,7 @@ DUMBOPHP;
         $fileContent = <<<DUMBOPHP
 <?php
 class Seed extends Page {
-    function sow() {
+    function sow(): void {
 
     }
 }
