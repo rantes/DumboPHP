@@ -100,10 +100,9 @@ class sqlite implements DBDriver {
         return $query;
     }
 
-    public function Delete(array | string | int $conditions, string $table, string $pk = 'id'): string {
+    public function Delete(array | string | int $conditions, string $table, string $pk = 'rowid'): string {
         $query = "DELETE FROM `{$table}` ";
         if (is_numeric($conditions)) {
-            $this->{$pk}  = $conditions;
             $query       .= "WHERE " . $pk . "='$conditions'";
         } elseif (is_array($conditions) && empty($conditions['conditions'])) {
             $query .= 'WHERE `' . $pk . '` IN (' . implode(',', $conditions) . ')';

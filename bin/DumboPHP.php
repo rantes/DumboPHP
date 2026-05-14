@@ -1,5 +1,14 @@
 <?php
 namespace DumboPHP;
+/**
+ * DumboPHP Framework
+ *
+ * A lightweight and robust PHP framework inspired by Ruby on Rails.
+ *
+ * @author  Javier Serrano <rantes.javier@gmail.com>
+ * @version 3.0
+ * @license MIT License
+ */
 
 defined('_IN_SHELL_') || define('_IN_SHELL_', php_sapi_name() === 'cli' && empty($_SERVER['REMOTE_ADDR']));
 define('SQLITE_PREG', '@sqlite@');
@@ -16,46 +25,33 @@ for ($i = 1; $i <= 5; $i++) {
 }
 
 /**
- * Get all HTTP header key/values as an associative array for the current request.
+ * Retrieves allheaderssentwiththelastrequest
  *
- * @return string[string] The HTTP header key/value pairs.
+ * @return array An associativearray containing allheaders
  */
-function getallheaders() {
-    $headers     = [];
-    $copy_server = [
+function getallheaders(): array {
+    $headers = [
         'CONTENT_TYPE'   => 'Content-Type',
         'CONTENT_LENGTH' => 'Content-Length',
-        'CONTENT_MD5'    => 'Content-Md5',
+        'CONTENT_MD5'    => 'Content-Md5'
     ];
-    foreach ($_SERVER as $key => $value) {
-        if (substr($key, 0, 5) === 'HTTP_') {
-            $key = substr($key, 5);
-            if (! isset($copy_server[$key]) || ! isset($_SERVER[$key])) {
-                $key           = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
-                $headers[$key] = $value;
-            }
-        } elseif (isset($copy_server[$key])) {
-            $headers[$copy_server[$key]] = $value;
-        }
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $headers['Authorization'] = $_SERVER['HTTP_AUTHORIZATION'];
     }
-    if (! isset($headers['Authorization'])) {
-        if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-            $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-        } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
-            $basic_pass               = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
-            $headers['Authorization'] = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass);
-        } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-            $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
+    foreach ($_SERVER as $name => $value) {
+        if (strpos($name, 'HTTP_') === 0 || strpos($name, 'PHP_') === 0) {
+            $headerName = str_replace(' ', '_', ucwords(str_replace('_', ' ', strtolower(substr($name, 5)))));
+            $headers[$headerName] = $value;
         }
     }
     return $headers;
 }
 /**
- * Generates an Universal Unique ID v4
+ * Generates a random Universal Unique ID v4
  *
- * @return string
+ * @return string Random UUID version 4.
  */
-function uuidV4() {
+function uuidV4(): string {
     return sprintf(
         '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
         // 32 bits for "time_low"
@@ -79,10 +75,19 @@ function uuidV4() {
 }
 
 use DumboPHP\lib\ShellCommands\Interfaces\DBDriver;
-
+/**
+ * Thrown when an invalid query condition is encountered.
+ *
+ * @package DumboPHP
+ */
 class QueryConditionException extends \Exception {}
 /**
- * Construct a condition query
+ * Builds a query condition.
+ * Is used to append 'and' & 'or' conditions strings
+ *
+ * @package DumboPHP
+ *
+ * @throws QueryConditionException When an invalid query condition is encountered.
  */
 class QueryCondition {
     private $_connector = 'AND';
@@ -116,7 +121,7 @@ class QueryCondition {
 /**
  * Implements the functionalities for translating
  * @author rantes
- * @package Core
+ * @package DumboPHP
  *
  */
 final class IrregularNouns {
@@ -391,16 +396,10 @@ $GLOBALS['PDOCASTS'] = [
 ];
 /**
  * Turns a singular word into its plural
- * @param array|string $params
- * @param object $obj
- * @return string
+ * @param string $string
+ * @return string String pluralized
  */
-function Plurals($params, &$obj = NULL) {
-    if ($obj === NULL) {
-        $string = $params;
-    } else {
-        $string = $params[0];
-    }
+function Plurals(string $string): string {
 
     if (in_array($string, $GLOBALS['IN']->singular)) {
         $key     = array_search($string, $GLOBALS['IN']->singular);
@@ -433,16 +432,10 @@ function Plurals($params, &$obj = NULL) {
 }
 /**
  * Turns a plural word into its singular
- * @param array|string $params
- * @param object $obj
+ * @param string $string
  * @return string
  */
-function Singulars($params, &$obj = null) {
-    if ($obj === null) {
-        $string = $params;
-    } else {
-        $string = $params[0];
-    }
+function Singulars(string $string): string {
 
     $strconv = '';
     if (in_array($string, $GLOBALS['IN']->plural)) {
@@ -511,16 +504,11 @@ function unCamelize(string $toUncamelize): string {
 }
 /**
  * Changes accent chars to its ASCII approximate and changes any non alpha-numeric char into a dash
- * @param array|string $params
- * @param object $obj
+ * @param string $string
  * @return string
  * @todo Checks sometimes does not match the unicode char to change
  */
-function cleanToSEO($params, &$obj = NULL) {
-    if ($obj === NULL) {$string = $params;} else {
-        $string = $params[0];
-    }
-
+function cleanToSEO(string $string): string {
     $string = preg_replace('/[áàãâä]/ui', 'a', $string);
     $string = preg_replace('/[éèêë]/ui', 'e', $string);
     $string = preg_replace('/[íìîï]/ui', 'i', $string);
@@ -540,7 +528,7 @@ function cleanToSEO($params, &$obj = NULL) {
  * @param array $params
  * @return string
  */
-function strGenerate($params = null) {
+function strGenerate(?string $params = null): string {
     $length         = 8;
     $case           = 'both';
     $includeNumbers = true;
@@ -1488,40 +1476,40 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 }
             }
 
-            if (! empty($this->validate['presence_of'])) {
+            if (!empty($this->validate['presence_of'])) {
                 foreach ($this->validate['presence_of'] as $field) {
                     $message = 'This field can not be empty or null.';
+                    $soleField = null;
+
                     if (is_array($field)) {
                         if (empty($field['field'])) {
                             throw new \Exception('Field key must be defined in array.');
                         }
-
-                        empty($field['message']) or ($message = $field['message']);
+                        if (!empty($field['message'])) {
+                            $message = $field['message'];
+                        }
                         $soleField = $field['field'];
+                    } else {
+                        $soleField = $field;
                     }
 
-                    (
-                        (
-                            $action === 'insert'
-                            && (
-                                !isset($this->{$soleField}) ||
-                                (
-                                    empty($this->{$soleField}) &&
-                                    !is_numeric($this->{$soleField})
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            empty($this->{$soleField})
-                            && isset($this->{$soleField})
-                            && !is_numeric($this->{$soleField})
-                        )
-                    )
-                    && $this->_error->add([
-                        'field'   => $soleField,
-                        'message' => $message,
-                    ]);
+                    if ($action === 'insert') {
+                        $value = $this->{$soleField} ?? null;
+                        $isInvalid = false;
+
+                        if (!isset($this->{$soleField}) || is_null($value)) {
+                            $isInvalid = true;
+                        } elseif (empty($value) && $value !== 0 && $value !== '0') {
+                            $isInvalid = true;
+                        }
+
+                        if ($isInvalid) {
+                            $this->_error->add([
+                                'field'   => $soleField,
+                                'message' => $message,
+                            ]);
+                        }
+                    }
                 }
             }
         }
@@ -1685,7 +1673,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         while (null !== ($field = array_shift($fields))) {
             isset($this->{$field}) && ($data[$field] = $this->{$field});
         }
-        $prepared = DB->Insert($data, $this->_ObjTable);
+        $prepared = DB->driver->Insert($data, $this->_ObjTable);
 
         $this->_sqlQuery = $prepared['query'];
 
@@ -1732,7 +1720,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return boolean
      */
     public function Delete($conditions = NULL) {
-        if ($this->count() > 1) {
+        if ($this->_counter > 1) {
             $conditions = [];
             foreach ($this as $ele) {
                 $conditions[] = $ele->{$this->pk};
@@ -1757,7 +1745,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         if (! $this->_delete_or_nullify_dependents($conditions)) {
             return false;
         }
-        $this->_sqlQuery = DB->Delete($conditions, $this->_ObjTable);
+        $this->_sqlQuery = DB->driver->Delete($conditions, $this->_ObjTable);
 
         if (DB->exec($this->_sqlQuery) === false) {
             $e = DB->errorInfo();
@@ -1784,20 +1772,21 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             foreach ($this->has_many as $model) {
                 $s = Singulars($model);
                 $m = Camelize($s);
-                class_exists($m) or require_once INST_PATH . 'app/models/' . strtolower($s) . '.php';
-                $model1    = new $m();
+                $className = "App\\Models\\{$m}";
+                $model1    = new $className();
                 $condition = is_numeric($id) ? " = '{$id}'" : " IN (" . implode(',', $id) . ")";
                 $children  = $model1->Find([
                     'conditions' => Singulars($this->_ObjTable) . "_id{$condition}",
                 ]);
-                if ($children->count() > 0) {
+
+                if ($children->counter() > 0) {
                     foreach ($children as $child) {
                         switch ($this->dependents) {
                         case 'destroy':
-                            if (! $child->Delete()) {
+                            if (!$child->Delete()) {
                                 $this->_error->add([
                                     'field'   => $this->_ObjTable,
-                                    'message' => 'Cannot delete dependents',
+                                    'message' => 'Cannot delete dependents: '.$child->_error,
                                 ]);
                                 return false;
                             }
@@ -1806,7 +1795,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                             $child->{$this->_ObjTable . '_id'} = '';
                             if (! $child->Save()) {
                                 $this->_error->add(
-                                    ['field' => $this->_ObjTable, 'message' => 'Cannot nullify dependents']
+                                    ['field' => $this->_ObjTable, 'message' => 'Cannot nullify dependents: '.$child->_error]
                                 );
                                 return false;
                             }
