@@ -9,25 +9,8 @@ use function DumboPHP\Plurals;
 
 file_exists('./config/host.php') or die('Generator must be executed at the top level of project path.'.PHP_EOL);
 defined('INST_PATH') || define('INST_PATH', dirname(realpath('./')).'/');
-// set_include_path(
-//     '/etc/dumbophp'.PATH_SEPARATOR.
-//     '/etc/dumbophp/bin'.PATH_SEPARATOR.
-//     INST_PATH.'vendor'.PATH_SEPARATOR.
-//     INST_PATH.'vendor/rantes/dumbophp'.PATH_SEPARATOR.
-//     INST_PATH.'vendor/rantes/dumbophp/bin'.PATH_SEPARATOR.
-//     INST_PATH.PATH_SEPARATOR.
-//     get_include_path().PATH_SEPARATOR.
-//     PEAR_EXTENSION_DIR.PATH_SEPARATOR.
-//     '/windows/dumbophp'.PATH_SEPARATOR.
-//     '/windows/dumbophp/bin'.PATH_SEPARATOR.
-//     '/windows/system32/dumbophp'.PATH_SEPARATOR.
-//     '/windows/system32/dumbophp/bin'.PATH_SEPARATOR.
-//     INST_PATH.'DumboPHP'
-// );
 
 require_once './config/host.php';
-// require_once 'dumbophp.php';
-// require_once 'DumboShellColors.php';
 
 $GLOBALS['types'] = [
     'primary',
@@ -175,7 +158,7 @@ class DumboGeneratorClass {
 
         while(null !== ($field = array_shift($this->fields))):
             if (!in_array($field, $noSet)):
-                $attributes = "{$attributes}public \${$field->name} = null;\n    ";
+                $attributes = "{$attributes}public ?string \${$field->name} = null;\n    ";
             endif;
         endwhile;
 
@@ -187,11 +170,12 @@ class DumboGeneratorClass {
             $fileContent = <<<DUMBOPHP
 <?php
 namespace App\Models;
-use DumboPHP\ActiveRecord\ActiveRecord;
+use DumboPHP\ActiveRecord;
 
 class {{model}} extends ActiveRecord {
     {{attributes}}
-    function _init_() {
+
+    public function _init_(): void {
     }
 }
 
@@ -401,17 +385,17 @@ namespace Migrations;
 use DumboPHP\Migrations;
 
 class Create{$this->camelizedPlural} extends Migrations {
-    function _init_(): void {
+    public function _init_(): void {
         \$this->_fields = [
             {$fieldsString}
         ];
     }
 
-    function up(): void {
+    public function up(): void {
         \$this->Create_Table();
     }
 
-    function down(): void {
+    public function down(): void {
         \$this->Drop_Table();
     }
 }
@@ -448,8 +432,12 @@ DUMBOPHP;
 
         $fileContent = <<<DUMBOPHP
 <?php
-class Seed extends Page {
-    function sow(): void {
+namespace Migrations;
+
+use DumboPHP\Controller;
+
+class Seed extends Controller {
+    public function sow(): void {
 
     }
 }
@@ -462,5 +450,3 @@ DUMBOPHP;
         return true;
     }
 }
-
-?>
