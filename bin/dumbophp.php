@@ -2319,7 +2319,7 @@ abstract class Controller extends Core_General_Class {
     public $pageTitle                  = '';
     public array $helper               = [];
     public array $noTemplate           = [];
-    protected $layout                  = '';
+    protected string|bool|null $layout           = 'layout';
     protected $render                  = null;
     protected $flash                   = '';
     protected $yield                   = '';
