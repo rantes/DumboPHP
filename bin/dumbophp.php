@@ -40,8 +40,10 @@ function getallheaders(): array {
     }
     foreach ($_SERVER as $name => $value) {
         if (strpos($name, 'HTTP_') === 0 || strpos($name, 'PHP_') === 0) {
-            $headerName = str_replace(' ', '_', ucwords(str_replace('_', ' ', strtolower(substr($name, 5)))));
-            $headers[$headerName] = $value;
+            $header = strtolower(
+                str_replace('_', '-', substr($name, 5))
+            );
+            $headers[$header] = $value;
         }
     }
     return $headers;
@@ -2400,7 +2402,7 @@ abstract class Controller extends Core_General_Class {
         if ($this->_willRedirect) {
             header("Location: {$this->_redirectsTo}");
         } else {
-            if (! headers_sent()) {
+            if (!headers_sent()) {
                 while (null !== ($header = array_shift($this->_headers))):
                     header($header);
                 endwhile;
@@ -2484,7 +2486,7 @@ abstract class Controller extends Core_General_Class {
      * @return boolean
      */
     public function PreventLoad($prevent = null) {
-        $prevent !== null && ($this->_preventLoad = ! ! $prevent);
+        $prevent !== null && ($this->_preventLoad = !!$prevent);
 
         return $this->_preventLoad;
     }
@@ -2616,13 +2618,18 @@ abstract class Migrations extends Core_General_Class {
      *
      * @param array $table
      */
-    protected function Create_Table() {
+    protected function Create_Table(): void {
         $query = DB->driver->CreateTable($this->_table, $this->_fields);
         empty($query) || $this->_runQuery($query);
     }
 
-    protected function Drop_Table() {
+    protected function Drop_Table(): void {
         $query = DB->driver->DropTable($this->_table);
+
+        empty($query) || $this->_runQuery($query);
+    }
+    protected function Truncate_Table(): void {
+        $query = DB->driver->TruncateTable($this->_table);
 
         empty($query) || $this->_runQuery($query);
     }
@@ -2632,7 +2639,7 @@ abstract class Migrations extends Core_General_Class {
      * @example
      * $this->AddColumn(['field' => 'additional', 'type'=>'INT', 'null'=>'false']);
      */
-    protected function Add_Column(array $params) {
+    protected function Add_Column(array $params): void {
         $query = DB->driver->validateField($this->_table, $params['field']);
         $res   = DB->driver->validateField($query, $params['field']);
 
@@ -2778,7 +2785,6 @@ class index {
         defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
         defined('DB') || define('DB', new Connection());
 
-        http_response_code(HTTP_200);
         if (! empty($_GET['url'])) {
             $_GET['url'][0] === '/' && ($_GET['url'] = substr($_GET['url'], 1));
             $request = explode('/', $_GET['url']);
@@ -2841,16 +2847,18 @@ class index {
         }
         $canGo = true;
 
-        if (! file_exists($path . $controllerFile) && defined('USE_ALTER_URL') && USE_ALTER_URL) {
+        if (!file_exists($path . $controllerFile) && defined('USE_ALTER_URL') && USE_ALTER_URL) {
             $params['alter_controller'] = $controller;
             $params['alter_action']     = $action;
             $parts                      = explode('/', ALTER_URL_CONTROLLER_ACTION);
             $controller                 = $parts[0];
             $action                     = $parts[1];
             $controllerFile             = $controller . '_controller.php';
-        } elseif (! file_exists($path . $controllerFile)) {
+        }
+
+        if (!file_exists($path . $controllerFile)) {
             $canGo = false;
-            http_response_code(HTTP_404);
+            $this->setResponseCode(HTTP_404);
             echo 'Missing Controller';
         }
         $queryparams = http_build_query($params);
@@ -2896,7 +2904,7 @@ class index {
                 $action = $this->page->_getAction_();
 
                 if (method_exists($this->page, "{$action}Action")) {
-                    if (! $this->page->PreventLoad()) {
+                    if (!$this->page->PreventLoad()) {
                         $actionToRun = "{$action}Action";
                         $this->page->{$actionToRun}();
                         //before render, executed after the action execution and before the data renderize
@@ -2945,8 +2953,39 @@ class index {
                         }
                     }
                 } else {
-                    http_response_code(HTTP_404);
-                    echo 'Missing Action';
+                    if (defined('USE_ALTER_URL') && USE_ALTER_URL) {
+                        $params['alter_controller'] = $this->page->_getController_();
+                        $params['alter_action']     = $this->page->_getAction_();
+                        $alterParts                 = explode('/', ALTER_URL_CONTROLLER_ACTION);
+                        $alterController            = $alterParts[0];
+                        $alterAction                = $alterParts[1];
+                        $alterControllerFile        = $alterController . '_controller.php';
+
+                        if (file_exists($path . $alterControllerFile)) {
+                            $alterClass      = 'App\\Controllers\\' . Camelize($alterController) . 'Controller';
+                            $this->page      = new $alterClass();
+                            $this->page->params($params);
+                            $this->page->_setAction_($alterAction);
+                            $this->page->_setController_($alterController);
+                            $this->page->fullUrl(INST_URI . "{$alterController}/{$alterAction}/");
+                            if (isset($this->page->helper) and sizeof($this->page->helper) > 0) {
+                                $this->page->LoadHelper($this->page->helper);
+                            }
+                            if (method_exists($this->page, "{$alterAction}Action")) {
+                                $this->page->{$alterAction . 'Action'}();
+                                $this->page->parseContent();
+                            } else {
+                                $this->page->setResponseCode(HTTP_404);
+                                echo 'Missing Action';
+                            }
+                        } else {
+                            $this->page->setResponseCode(HTTP_404);
+                            echo 'Missing Action';
+                        }
+                    } else {
+                        $this->page->setResponseCode(HTTP_404);
+                        echo 'Missing Action';
+                    }
                 }
             }
         }

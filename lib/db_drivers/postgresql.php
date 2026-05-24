@@ -131,6 +131,10 @@ DUMBO;
         return "SHOW COLUMNS FROM {$table}";
     }
 
+    public function TruncateTable(string $table): string {
+        return "TRUNCATE TABLE `{$table}` RESTART IDENTITY";
+    }
+
     public function Insert(array $params, string $table, bool $replace = false): array {
         $prepared = [];
         $fields   = '';

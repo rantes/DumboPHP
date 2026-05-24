@@ -193,6 +193,9 @@ class mysql implements DBDriver {
     public function DropTable(string $table): string {
         return "DROP TABLE IF EXISTS `{$table}`";
     }
+    public function TruncateTable(string $table): string {
+        return "TRUNCATE TABLE `{$table}`";
+    }
     /**
      * Query for assertion of presence of a field in a table
      *

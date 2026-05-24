@@ -255,10 +255,57 @@ DUMBO;
         endif;
     }
     /**
+     * Calculates the cyclomatic complexity of a method body.
+     * McCabe complexity: 1 (base) + 1 per decision point.
+     * Decision points: if, elseif, else, for, foreach, while, do,
+     *                  case, catch, ternary (?), &&, ||, and, or
+     *
+     * @param SplFileObject $file     The source file object (already open)
+     * @param int           $start    First line of the method (1-indexed)
+     * @param int           $end      Last line of the method (1-indexed)
+     * @return int Cyclomatic complexity (minimum 1)
+     */
+    private function _calculateComplexity(\SplFileObject $file, int $start, int $end): int {
+        $complexity = 1;
+        $decisionPatterns = [
+            '@\bif\s*\(@i',
+            '@\belseif\s*\(@i',
+            '@\belse\b@i',
+            '@\bfor\s*\(@i',
+            '@\bforeach\s*\(@i',
+            '@\bwhile\s*\(@i',
+            '@\bdo\s*\{@i',
+            '@\bcase\s+@i',
+            '@\bcatch\s*\(@i',
+            '@\?\?@',           // null coalescing
+            '@(?<![?])\?(?![?:])@', // ternary (avoid ??, ?:)
+            '@&&@',
+            '@\|\|@',
+            '@\band\b@i',
+            '@\bor\b@i',
+        ];
+
+        for ($i = $start; $i <= $end; $i++):
+            $file->seek($i - 1);
+            $lineText = $file->current();
+            // Skip single-line comments and docblocks
+            $trimmed = ltrim($lineText);
+            if (str_starts_with($trimmed, '//') || str_starts_with($trimmed, '*') || str_starts_with($trimmed, '/*')):
+                continue;
+            endif;
+            foreach ($decisionPatterns as $pattern):
+                $complexity += preg_match_all($pattern, $lineText);
+            endforeach;
+        endfor;
+
+        return $complexity;
+    }
+
+    /**
      * Set the methods and the lines which starts and ends
      */
-    private function _getMethodLines($fileInput) {
-        $file    = new SplFileObject($fileInput);
+    private function _getMethodLines($fileInput): array {
+        $file    = new \SplFileObject($fileInput);
         $methods = [];
         while (! $file->eof()):
             if (preg_match('@function\s([a-zA-Z0-9_]+)@', $file->current(), $matches) === 1):
@@ -424,38 +471,40 @@ DUMBO;
                     $lineTag        = $coverageReport->createElement('line');
                     $lineTag->setAttribute('num', $line);
                     $lineTag->setAttribute('type', 'stmt');
-                    $lineTag->setAttribute('count', 3);
+                    $lineTag->setAttribute('count', 1);
                     $fileTag->appendChild($lineTag);
                     $fileLines++;
                     break;
-                    // case -2:
-                    //     $fileContent->seek(($line - 1));
-                    //     $lineText = trim($fileContent->current());
-                    //     if(preg_match('@(\}|function|{)@i', $lineText) === 1):
-                    //         $linesCovered[] = $line;
-                    //         $lineTag = $coverageReport->createElement('line');
-                    //         $lineTag->setAttribute('num', $line);
-                    //         $lineTag->setAttribute('type', 'stmt');
-                    //         $lineTag->setAttribute('count', 0);
-                    //         $fileTag->appendChild($lineTag);
-                    //         $fileLines++;
-                    //     endif;
-                    // break;
+                case -1:
+                    $lineTag = $coverageReport->createElement('line');
+                    $lineTag->setAttribute('num', $line);
+                    $lineTag->setAttribute('type', 'stmt');
+                    $lineTag->setAttribute('count', 0);
+                    $fileTag->appendChild($lineTag);
+                    $fileLines++;
+                    break;
                     endswitch;
                 endforeach;
 
-                $coveredMethods = 0;
+                $coveredMethods    = 0;
+                $totalComplexity   = 0;
                 foreach ($classInfo as $method):
+                    $methodCovered = false;
                     foreach ($linesCovered as $line):
                         if ($method['line_start'] <= $line && $method['line_end'] >= $line):
-                            $coveredMethods++;
+                            $methodCovered = true;
                             break;
                         endif;
                     endforeach;
+                    $coveredMethods   += (int) $methodCovered;
+                    $totalComplexity  += $this->_calculateComplexity($fileContent, $method['line_start'], $method['line_end']);
                 endforeach;
 
+                // Minimum complexity of 1 for files with no detectable methods
+                $totalComplexity = max(1, $totalComplexity);
+
                 $classMetricsTag = $coverageReport->createElement('metrics');
-                $classMetricsTag->setAttribute('complexity', 24);
+                $classMetricsTag->setAttribute('complexity', $totalComplexity);
                 $classMetricsTag->setAttribute('methods', sizeof($classInfo));
                 $classMetricsTag->setAttribute('coveredmethods', $coveredMethods);
                 $classMetricsTag->setAttribute('statements', $fileLines);

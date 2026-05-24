@@ -119,6 +119,10 @@ class sqlite implements DBDriver {
         return "DROP TABLE IF EXISTS `{$table}`";
     }
 
+    public function TruncateTable(string $table): string {
+        return "DELETE FROM `{$table}`; UPDATE sqlite_sequence SET seq = 0 WHERE name = '{$table}'";
+    }
+
     public function GetAllIndexes(string $table, string $schema): string {
         $query = <<<DUMBO
 PRAGMA index_list('{$table}')

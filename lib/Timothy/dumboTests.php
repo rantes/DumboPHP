@@ -40,28 +40,28 @@ class dumboTests extends Controller {
         $this->_data['filepathname'] = __FILE__;
     }
 
-    public function _init_() {}
+    public function _init_(): void {}
 
-    public function _end_() {}
+    public function _end_(): void {}
 
-    public function _set_data_(array $data) {
+    public function _set_data_(array $data): void {
         ! empty($data['filename']) and ($this->_data['filename'] = $data['filename']);
         ! empty($data['filepathname']) and ($this->_data['filepathname'] = $data['filepathname']);
     }
 
-    public function _get_data() {
+    public function _get_data(): array {
         return $this->_data;
     }
 
-    public function _getActionContent() {
+    public function _getActionContent(): ?string {
         return $this->_actionContent;
     }
 
-    public function _registerContent($content) {
+    public function _registerContent($content): void {
         $this->_actionContent = $content;
     }
 
-    public function _runAction(string $action) {
+    public function _runAction(string $action): Controller {
         $_GET   = [];
         $action = explode('?', $action);
 
@@ -89,8 +89,7 @@ class dumboTests extends Controller {
      * for model testing purposes
      * @param array $tables
      */
-    public function _migrateTables($tables = []) {
-        $migrationsPath = INST_PATH . 'migrations/';
+    public function _migrateTables($tables = []): void {
         while (null !== ($table = array_shift($tables))) {
             $class = 'Migrations\\Create' . Camelize($table);
             $obj   = new $class();
@@ -99,19 +98,61 @@ class dumboTests extends Controller {
             ob_get_clean();
         }
     }
-    public function _sow() {
+    /**
+     * Attempts to run migration down action over the given tables
+     * for model testing purposes
+     * @param array $tables
+     */
+    public function _dropTables($tables = []): void {
+        while (null !== ($table = array_shift($tables))) {
+            $class = 'Migrations\\Create' . Camelize($table);
+            $obj   = new $class();
+            ob_start();
+            $obj->down();
+            ob_get_clean();
+        }
+    }
+    /**
+     * Attempts to run migration up action over the given tables
+     * for model testing purposes
+     * @param array $tables
+     */
+    public function _createTables($tables = []): void {
+        while (null !== ($table = array_shift($tables))) {
+            $class = 'Migrations\\Create' . Camelize($table);
+            $obj   = new $class();
+            ob_start();
+            $obj->up();
+            ob_get_clean();
+        }
+    }
+    /**
+     * Attempts to truncate table(s) over the given tables
+     * for model testing purposes
+     * @param array $tables
+     */
+    public function _truncateTables($tables = []): void {
+        while (null !== ($table = array_shift($tables))) {
+            $class = 'App\\Create' . Camelize($table);
+            $obj   = new $class();
+            ob_start();
+            $obj->Truncate_Table();
+            ob_get_clean();
+        }
+    }
+    public function _sow(): void {
         $seedsFile = 'Migrations\\Seeds';
         $seeds     = new $seedsFile();
         $seeds->sow();
     }
-    private function _setConfigValue(string $key, $value) {
+    private function _setConfigValue(string $key, $value): void {
         $this->__sys_conf_values__[$key] = $value;
     }
     /**
      * Output for an error message
      * @param string $errorMessage
      */
-    private function _showError($errorMessage) {
+    private function _showError($errorMessage): bool {
         fwrite(STDERR, "\n{$errorMessage}\n");
         return true;
     }
@@ -119,7 +160,7 @@ class dumboTests extends Controller {
      * Output for a standard message
      * @param string $errorMessage
      */
-    private function _showMessage($message) {
+    private function _showMessage($message): bool {
         fwrite(STDOUT, "\n{$message}\n");
         return true;
     }
@@ -127,7 +168,7 @@ class dumboTests extends Controller {
      * Displays the progress of each test: P - passed. F - failed.
      * @param boolean $passed
      */
-    private function _progress($passed) {
+    private function _progress($passed): bool {
         $text = $passed ? 'P' : 'F';
 
         fwrite(STDOUT, $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]));
@@ -137,7 +178,7 @@ class dumboTests extends Controller {
      * Logs the process of each test
      * @param string $text
      */
-    private function _log($text) {
+    private function _log($text): bool {
         $date    = date('d-m-Y H:i:s');
         $message = "[{$date}]: $text \n";
 
@@ -148,7 +189,7 @@ class dumboTests extends Controller {
      * Handle error for a test
      * @param string $additional
      */
-    private function _triggerError($additional) {
+    private function _triggerError($additional): bool {
         $track = debug_backtrace();
         $this->_failed++;
 
@@ -163,7 +204,7 @@ class dumboTests extends Controller {
      * @param $param1
      * @param $param2
      */
-    public function assertEquals($param1, $param2, $message = null) {
+    public function assertEquals($param1, $param2, $message = null): void {
         $this->assertions++;
         $message        = $message ?? 'Assert if <' . gettype($param1) . '> ' . var_export($param1, true) . ' is equals to <' . gettype($param2) . '> ' . var_export($param2, true);
         $passed         = $param1 === $param2;
@@ -178,7 +219,7 @@ class dumboTests extends Controller {
      * @param $value
      * @param string $message
      */
-    public function assertTrue($value, $message = null) {
+    public function assertTrue($value, $message = null): void {
         $this->assertions++;
         $message        = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is true ';
         $passed         = $value === (boolean) true;
@@ -193,7 +234,7 @@ class dumboTests extends Controller {
      * @param $value
      * @param string $message
      */
-    public function assertFalse($value, $message = null) {
+    public function assertFalse($value, $message = null): void {
         $this->assertions++;
         $message        = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is false ';
         $passed         = $value === (boolean) false;
@@ -250,7 +291,7 @@ class dumboTests extends Controller {
      * @param ActiveRecord $model
      * @param array $fields
      */
-    public function assertHasFields(ActiveRecord $model) {
+    public function assertHasFields(ActiveRecord $model): void {
         $this->assertions++;
         $table = $model->_TableName();
         $migrationName = 'Migrations\\Create' . Camelize($table);
@@ -308,7 +349,7 @@ class dumboTests extends Controller {
      * @param string $message
      * @return void
      */
-    public function describe($message) {
+    public function describe($message): void {
         if (! is_string($message)) {
             throw new \Exception('The message for the description must be string.');
         }
@@ -318,7 +359,7 @@ class dumboTests extends Controller {
     /**
      * What supposed to do whe the script ends.
      */
-    public function _summary() {
+    public function _summary(): void {
         $text   = $this->_failed ? 'TESTS FAILED!' : 'TESTS PASSED';
         $result = $this->_colors->getColoredString($text, $this->_colorsPalete[! $this->_failed]);
         $this->_log($result);
@@ -336,7 +377,7 @@ class dumboTests extends Controller {
      * Will performs any action before each test
      * @return void
      */
-    public function beforeEach() {}
+    public function beforeEach(): void {}
 
     /**
      * Redefines a method to set an spy
@@ -345,7 +386,7 @@ class dumboTests extends Controller {
      * @param string $method
      * @return void
      */
-    public function spyOn(Controller $controller, $method) {
+    public function spyOn(Controller $controller, $method): void {
         /**NOOP */
     }
     /**
@@ -353,9 +394,10 @@ class dumboTests extends Controller {
      *
      * @param string $method
      * @param string $message
+     * @todo Pending call function test
      * @return void
      */
-    public function assertMethodHasBeenCalled($method, $message = null) {
+    public function assertMethodHasBeenCalled($method, $message = null): void {
         // $backtrace = debug_backtrace();
         // var_dump($backtrace);
 
@@ -378,7 +420,7 @@ class dumboTests extends Controller {
      *
      * @return mixed Method return.
      */
-    public function invokeMethod(&$object, $methodName, array $parameters = []) {
+    public function invokeMethod(&$object, $methodName, array $parameters = []): mixed {
         $reflection = new \ReflectionClass(get_class($object));
         $method     = $reflection->getMethod($methodName);
         $method->isPublic() or $method->setAccessible(true);
@@ -392,7 +434,7 @@ class dumboTests extends Controller {
      * @param string $property   SysConf property to change
      * @param mixed  $value      Value to set
      */
-    public function setSysconfigValue(&$object, $property, $value) {
+    public function setSysconfigValue(&$object, $property, $value): bool {
         $current    = [];
         $reflection = new \ReflectionObject($object);
         $confs      = $reflection->getProperty('__sys_conf_values__');

@@ -17,6 +17,7 @@ interface DBDriver {
     public function RemoveIndex(string $table, string $index): string;
     public function RowCountOnQuery(string $query): string;
     public function Select(array | string | int $params, string $table, string $pk = 'id'): array;
+    public function TruncateTable(string $table): string;
     public function Update(array $params, string $table, string $pk = 'id'): array;
     public function validateField(string $table, string $field, string $schema): string;
     public function ValidateIndex(string $table, string $index, string $schema): string;
