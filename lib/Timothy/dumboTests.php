@@ -28,8 +28,10 @@ class dumboTests extends Controller {
         'filepathname' => '',
     ];
     private $_actionContent = null;
+    private $_halt = false;
+    private $_verbose = false;
 
-    public function __construct($logFile = INST_PATH . 'tmp/dumbotests.log') {
+    public function __construct($logFile = INST_PATH . 'tmp/dumbotests.log', bool $_halt = false, bool $_verbose = false) {
         parent::__construct();
         ($GLOBALS['env'] === 'test') || ($GLOBALS['env'] = 'test');
         $this->_logFile = $logFile;
@@ -38,6 +40,8 @@ class dumboTests extends Controller {
         $this->testName              = get_class($this);
         $this->_data['filename']     = __FILE__;
         $this->_data['filepathname'] = __FILE__;
+        $this->_halt = $_halt;
+        $this->_verbose = $_verbose;
     }
 
     public function _init_(): void {}
@@ -161,7 +165,7 @@ class dumboTests extends Controller {
      * @param string $errorMessage
      */
     private function _showMessage($message): bool {
-        fwrite(STDOUT, "\n{$message}\n");
+        $this->_verbose && fwrite(STDOUT, "\n{$message}\n");
         return true;
     }
     /**
@@ -171,7 +175,7 @@ class dumboTests extends Controller {
     private function _progress($passed): bool {
         $text = $passed ? 'P' : 'F';
 
-        fwrite(STDOUT, $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]));
+        $this->_verbose && fwrite(STDOUT, $this->_colors->getColoredString($text, $this->_colorsPalete[$passed]));
         return true;
     }
     /**

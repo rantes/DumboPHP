@@ -76,6 +76,29 @@ spl_autoload_register(function ($class) {
 
 });
 
+class TestInputStream {
+    private int $position = 0;
+
+    public function stream_open(): bool {
+        $this->position = 0;
+        return true;
+    }
+
+    public function stream_read(int $count): string {
+        $data            = substr($GLOBALS['_test_input'], $this->position, $count);
+        $this->position += strlen($data);
+        return $data;
+    }
+
+    public function stream_eof(): bool {
+        return $this->position >= strlen($GLOBALS['_test_input']);
+    }
+
+    public function stream_stat(): array {
+        return [];
+    }
+}
+
 
 class dumboShell {
     private $_options = [
@@ -83,6 +106,7 @@ class dumboShell {
         'halt'  => ['value' => false, 'cast' => 'boolean'],
         'dir'   => ['value' => null, 'cast' => 'string'],
         'watch' => ['value' => false, 'cast' => 'boolean'],
+        'verbose' => ['value' => false, 'cast' => 'boolean'],
     ];
     private $arguments  = [];
     private $params     = [];
@@ -108,6 +132,26 @@ class dumboShell {
         $this->shellOutput and fwrite($out, "{$message}\n");
         file_put_contents("{$logdir}{$file}", "[{$stamp}] - {$message}\n", FILE_APPEND);
         return true;
+    }
+
+    protected function _setPutData(array $data, string $model): void {
+        // Construye el formato multipart que espera el regex
+        $boundary = '----FormBoundary';
+        $body     = '';
+        foreach ($data as $key => $value):
+            $body .= "--{$boundary}\r\n";
+            $body .= "Content-Disposition: form-data; ";
+            $body .= "name=\"{$model}[{$key}]\"\r\n\r\n";
+            $body .= "{$value}\r\n";
+        endforeach;
+        $body .= "--{$boundary}--\r\n";
+
+        // Registra stream wrapper para simular php://input
+        if (in_array('test', stream_get_wrappers())):
+            stream_wrapper_unregister('test');
+        endif;
+        stream_wrapper_register('test', TestInputStream::class);
+        $GLOBALS['_test_input']  = $body;
     }
 
     private function _parseOptions() {
@@ -186,7 +230,8 @@ Options:
     --dir=dir/to/run
     --env=enviroment        Sets a particular enviroment for the execution
     --halt=[true|false]     Halt the script on error
-    --watch                 Set a demon to watch files
+    --watch=true                 Set a demon to watch files
+    --verbose=true               Show more details on the output
 
 DUMBO;
         fwrite(STDOUT, $text . "\n");
@@ -202,6 +247,8 @@ DUMBO;
 
         $watch  = $this->_options['watch']['value'] ?? false;
         $path   = realpath($path);
+        $halt = $this->_options['halt']['value'] ?? false;
+        $verbose = $this->_options['verbose']['value'] ?? false;
         substr($path, -1) !== '/' && ($path .= '/');
 
         if (empty($this->arguments)) {
@@ -251,7 +298,7 @@ DUMBO;
                 endif;
             endwhile;
         else:
-            $this->_runTests($path);
+            $this->_runTests($path, $halt, $verbose);
         endif;
     }
     /**
@@ -340,7 +387,7 @@ DUMBO;
     /**
      * @TODO set proper coverage report to sonarcube
      */
-    private function _runTests($path) {
+    private function _runTests($path, $halt, $verbose) {
         try {
             xdebug_set_filter(
                 XDEBUG_FILTER_CODE_COVERAGE,
@@ -353,7 +400,7 @@ DUMBO;
                     get_include_path(),
                 ]
             );
-            $testLaunch = new testDispatcher($this->arguments, $path, $this->_options['halt']['value']);
+            $testLaunch = new testDispatcher($this->arguments, $path, $halt, $verbose);
             $this->showNotice('Runing tests...');
             $start                    = microtime(true);
             $testCounter              = 0;

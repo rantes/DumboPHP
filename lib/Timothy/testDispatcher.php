@@ -26,6 +26,7 @@ class testDispatcher {
     private $_testsPath = '';
     private $_failed = false;
     private $_halt = false;
+    private $_verbose = false;
     private $_logPath = '/tmp/';
     private $_logFile = 'dumbotests.log';
     private $_tests = [];
@@ -33,7 +34,7 @@ class testDispatcher {
      *
      * @param array $tests
      */
-    function __construct(array $tests, $path = INST_PATH.'tests/', $halt = false, $logPath = 'tmp/') {
+    function __construct(array $tests, string $path = INST_PATH.'tests/', bool $halt = false, bool $verbose = false, string $logPath = 'tmp/') {
         ($GLOBALS['env'] === 'test') || ($GLOBALS['env'] = 'test');
         try {
             $this->_logPath = $logPath;
@@ -41,14 +42,15 @@ class testDispatcher {
             fwrite(STDOUT, "The very things that hold you down are going to lift you up!\n");
 
             $this->_halt = $halt;
+            $this->_verbose = $verbose;
             $this->_testsPath = $path;
             while (null !== ($test = array_shift($tests))):
-                $file = "{$test}.php";
+                // $file = "{$test}.php";
                 $exploded = explode('/', $test);
                 $class = array_pop($exploded);
-                $pathname = "{$this->_testsPath}{$file}";
+                // $pathname = "{$this->_testsPath}{$file}";
                 $testClass = "tests\\{$class}";
-                $this->_tests[$class] = new $testClass("{$this->_logPath}{$this->_logFile}");
+                $this->_tests[$class] = new $testClass("{$this->_logPath}{$this->_logFile}", $halt, $verbose);
             endwhile;
         } catch (\Throwable $e) {
             $this->_failed = true;
@@ -86,7 +88,7 @@ class testDispatcher {
             $objtest->_init_();
 
             while (null !== ($action = array_shift($actions))):
-                fwrite(STDOUT, "\n{$test} - {$action}: ");
+                $this->_verbose && fwrite(STDOUT, "\n{$test} - {$action}: ");
                 $objtest->assertions = 0;
                 $start = microtime(true);
                 $objtest->beforeEach();
