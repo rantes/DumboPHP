@@ -102,7 +102,7 @@ class Product extends ActiveRecord {
 // BIEN — usar _init_()
 class Product extends ActiveRecord {
     public function _init_(): void {
-        $this->validates_presence_of('name');
+        $this->validate['presence_of'] = ['name'];
     }
 }
 ```

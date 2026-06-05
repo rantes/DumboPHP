@@ -91,6 +91,9 @@ class testDispatcher {
                 $this->_verbose && fwrite(STDOUT, "\n{$test} - {$action}: ");
                 $objtest->assertions = 0;
                 $start = microtime(true);
+                // Clean request state and spy history so tests stay isolated.
+                $objtest->resetSuperglobals();
+                $objtest->_spyCalls = [];
                 $objtest->beforeEach();
                 $objtest->{$action->name}();
                 $took = microtime(true) - $start;

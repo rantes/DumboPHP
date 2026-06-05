@@ -3,3 +3,8 @@
 .settings
 vendor
 composer.lock
+tests/tmp
+test-result.xml
+coverage.xml
+.idea
+composer.phar

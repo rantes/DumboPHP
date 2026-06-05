@@ -30,6 +30,12 @@ class dumboTests extends Controller {
     private $_actionContent = null;
     private $_halt = false;
     private $_verbose = false;
+    /**
+     * Recorded calls for spies/mocks, keyed by method name.
+     * Each entry is a list of argument arrays, one per call.
+     * @var array<string, array<int, array>>
+     */
+    public array $_spyCalls = [];
 
     public function __construct($logFile = INST_PATH . 'tmp/dumbotests.log', bool $_halt = false, bool $_verbose = false) {
         parent::__construct();
@@ -137,17 +143,17 @@ class dumboTests extends Controller {
      */
     public function _truncateTables($tables = []): void {
         while (null !== ($table = array_shift($tables))) {
-            $class = 'App\\Create' . Camelize($table);
+            $class = 'Migrations\\Create' . Camelize($table);
             $obj   = new $class();
             ob_start();
-            $obj->Truncate_Table();
+            $obj->trunc();
             ob_get_clean();
         }
     }
-    public function _sow(): void {
+    public function _sow(?array $actions = []): void {
         $seedsFile = 'Migrations\\Seeds';
         $seeds     = new $seedsFile();
-        $seeds->sow();
+        $seeds->sow($actions);
     }
     private function _setConfigValue(string $key, $value): void {
         $this->__sys_conf_values__[$key] = $value;
@@ -384,36 +390,167 @@ class dumboTests extends Controller {
     public function beforeEach(): void {}
 
     /**
-     * Redefines a method to set an spy
-     * @todo Implements object spy
-     * @param Controller $controller
-     * @param string $method
+     * Resets the request-related superglobals to a clean state.
+     * Called by testDispatcher before every test so one test cannot leak
+     * request state (method, POST, GET, FILES) into the next. $_SESSION is
+     * intentionally preserved — the test controls it.
      * @return void
      */
-    public function spyOn(Controller $controller, $method): void {
-        /**NOOP */
+    public function resetSuperglobals(): void {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_POST                     = [];
+        $_GET                      = [];
+        $_FILES                    = [];
     }
+
     /**
-     * Undocumented function
-     *
+     * Records a single call made through a spy/mock/stub proxy.
      * @param string $method
-     * @param string $message
-     * @todo Pending call function test
+     * @param array  $args
      * @return void
      */
-    public function assertMethodHasBeenCalled($method, $message = null): void {
-        // $backtrace = debug_backtrace();
-        // var_dump($backtrace);
+    public function _recordCall(string $method, array $args): void {
+        $this->_spyCalls[$method][] = $args;
+    }
 
-        // while (($trace = array_pop($backtrace)) != null) {
-        //     $passed = $trace['function'] === $method;
-        //     if ($passed) break;
-        // }
+    /**
+     * Wraps an object in a recording proxy. Every method call made on the
+     * (reassigned) object is recorded in $_spyCalls and then delegated to the
+     * original object, so behavior is preserved while interactions are tracked.
+     *
+     * Because the parameter is by reference, the caller's variable is replaced
+     * with the proxy; the code under test must use that same variable.
+     *
+     * @param object $obj
+     * @param string|null $method Optional: only record calls to this method.
+     * @return void
+     */
+    public function spyOn(object &$obj, ?string $method = null): void {
+        $test   = $this;
+        $target = $method;
+        $obj    = new class($obj, $test, $target) {
+            private $__orig;
+            private $__test;
+            private $__target;
+            public function __construct($orig, $test, $target) {
+                $this->__orig   = $orig;
+                $this->__test   = $test;
+                $this->__target = $target;
+            }
+            public function __call($name, $args) {
+                ($this->__target === null || $this->__target === $name) && $this->__test->_recordCall($name, $args);
+                return $this->__orig->{$name}(...$args);
+            }
+            public function __get($key) {
+                return $this->__orig->{$key};
+            }
+            public function __set($key, $value) {
+                $this->__orig->{$key} = $value;
+            }
+            public function __isset($key) {
+                return isset($this->__orig->{$key});
+            }
+        };
+    }
 
-        // $this->_passed += $passed;
-        // $this->_log("Expecting {$method} to have been called: {$this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed])}");
-        // $this->_progress($passed);
-        // !$passed && $this->_log("Expecting {$method} to have been called") && $this->_triggerError('Asserts Method Have Been Called');
+    /**
+     * Replaces a single method on an object with a fixed return value while
+     * recording the call. All other methods keep delegating to the original.
+     *
+     * @param object $obj
+     * @param string $method
+     * @param mixed  $returnValue
+     * @return void
+     */
+    public function stubMethod(object &$obj, string $method, mixed $returnValue): void {
+        $test = $this;
+        $obj  = new class($obj, $test, $method, $returnValue) {
+            private $__orig;
+            private $__test;
+            private $__method;
+            private $__return;
+            public function __construct($orig, $test, $method, $return) {
+                $this->__orig   = $orig;
+                $this->__test   = $test;
+                $this->__method = $method;
+                $this->__return = $return;
+            }
+            public function __call($name, $args) {
+                $this->__test->_recordCall($name, $args);
+                if ($name === $this->__method) {
+                    return $this->__return;
+                }
+                return $this->__orig->{$name}(...$args);
+            }
+            public function __get($key) {
+                return $this->__orig->{$key};
+            }
+            public function __set($key, $value) {
+                $this->__orig->{$key} = $value;
+            }
+            public function __isset($key) {
+                return isset($this->__orig->{$key});
+            }
+        };
+    }
+
+    /**
+     * Creates a duck-typed mock. Method calls are recorded and return the
+     * value configured in $methods (or null). The mock is not an instanceof
+     * $className — DumboPHP is duck-typed, so collaborators are stand-ins.
+     *
+     * @param string $className Reference name (kept on the mock as $__class).
+     * @param array  $methods   Map of method name => return value.
+     * @return object
+     */
+    public function createMock(string $className, array $methods = []): object {
+        $test = $this;
+        return new class($className, $methods, $test) {
+            public string $__class;
+            private array $__stubs;
+            private $__test;
+            public function __construct($class, $stubs, $test) {
+                $this->__class = $class;
+                $this->__stubs = $stubs;
+                $this->__test  = $test;
+            }
+            public function __call($name, $args) {
+                $this->__test->_recordCall($name, $args);
+                return array_key_exists($name, $this->__stubs) ? $this->__stubs[$name] : null;
+            }
+        };
+    }
+
+    /**
+     * Asserts a spied/mocked method was called an exact number of times.
+     * @param string $method
+     * @param int    $times
+     * @return void
+     */
+    public function assertMethodHasBeenCalled(string $method, int $times = 1): void {
+        $this->assertions++;
+        $count          = sizeof($this->_spyCalls[$method] ?? []);
+        $passed         = $count === $times;
+        $this->_passed += $passed;
+        $this->_log("Assert if `{$method}` was called {$times} time(s): " . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_progress($passed);
+        ! $passed && $this->_log("Expecting `{$method}` to be called {$times} time(s), got {$count}") && $this->_triggerError('Asserts Method Has Been Called');
+    }
+
+    /**
+     * Asserts a spied/mocked method was called at least once with the given args.
+     * @param string $method
+     * @param array  $args
+     * @return void
+     */
+    public function assertMethodCalledWith(string $method, array $args): void {
+        $this->assertions++;
+        $calls          = $this->_spyCalls[$method] ?? [];
+        $passed         = in_array($args, $calls, true);
+        $this->_passed += $passed;
+        $this->_log("Assert if `{$method}` was called with given args: " . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
+        $this->_progress($passed);
+        ! $passed && $this->_log("Expecting `{$method}` to be called with " . var_export($args, true)) && $this->_triggerError('Asserts Method Called With');
     }
     /**
      * Call protected/private method of a class.

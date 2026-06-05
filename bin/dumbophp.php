@@ -996,8 +996,21 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     public function _init_() {}
 
-    public final function __construct(array $fields = [], int $count = 0) {
+    public final function __construct(array $fields = [], ?int $count = 0, ?array $colmeta = []) {
         parent::__construct($fields);
+        $willCast = [
+            'LONG',
+            'INT',
+            'INTEGER',
+            'TINY',
+            'SHORT',
+            'BIGINT',
+            'FLOAT',
+            'DOUBLE',
+            'LONGLONG',
+            'TIMESTAMP',
+            'REAL'
+        ];
         // $this->setFlags(\ArrayObject::ARRAY_AS_PROPS);
         $this->_error = new Errors;
 
@@ -1025,17 +1038,28 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             $this->rowid = null;
         endif;
 
-        if (empty($fields)) {
-            $this->_setInitialCols();
-        } else {
-            $this->_fields = $fields;
-            foreach ($fields as $field => $value) {
-                $this->{$field} = $value;
+        empty($this->_fields) && $this->_setInitialCols();
+
+        foreach($fields as $field => $value) {
+            $val = $value;
+            if (isset($this->_fields[$field]) && $this->_fields[$field]) {
+                $val = empty($value) ? 0 : $value;
             }
-            $this->id = $fields['id'] ?? 0;
+            $this->{$field} = $val;
         }
+        foreach ($colmeta as $col) {
+            $value = $fields[$col[0]] ?? null;
+            if (in_array(strtoupper($col[1]), $willCast)) {
+                $val = empty($value) ? 0 : $value;
+                $this->{$col[0]} = 1 * $val;
+            } else {
+                $this->{$col[0]} = $value;
+            }
+        }
+        $this->id = $fields['id'] ?? 0;
 
         $this->_init_();
+
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
@@ -1150,13 +1174,18 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $i = 0;
 
                 while (null !== ($row = array_shift($resultset))) {
-                    $obj->offsetSet($i, new $className($row, 1));
+                    $obj->offsetSet($i, new $className($row, 1, $cols));
                     $i++;
                 }
 
                 if ($rowsCount === 1) {
                     foreach ($cols as $col) {
-                        $obj->{$col[0]} = in_array(strtoupper($col[1]), $willCast) ? 1 * $obj[0]->{$col[0]} : $obj[0]->{$col[0]};
+                        if (in_array(strtoupper($col[1]), $willCast)) {
+                            $val = empty($obj[0]->{$col[0]}) ? 0 : $obj[0]->{$col[0]};
+                            $obj[0]->{$col[0]} = 1 * $val;
+                        }
+
+                        $obj->{$col[0]} = $obj[0]->{$col[0]};
                     }
                 }
             } else {
@@ -1538,7 +1567,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             $this->{$this->pk} = $this->id;
         }
 
-        if (! empty($this->{$this->pk})) {
+        if (!empty($this->{$this->pk})) {
             foreach ($this->before_update as $functiontoRun) {
                 $this->{$functiontoRun}();
                 if ($this->_error->isActived()) {
@@ -1567,7 +1596,6 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 }
 
             }
-
             $this->_ValidateOnSave();
             if ($this->_error->isActived()) {
                 return false;
@@ -2581,6 +2609,10 @@ abstract class Migrations extends Core_General_Class {
     public function Run() {
         $this->up();
         $this->alter();
+    }
+
+    public function Trunc() {
+        $this->Truncate_Table();
     }
 
     public function getDefinitions(): array {

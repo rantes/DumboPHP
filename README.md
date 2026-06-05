@@ -82,6 +82,22 @@ server {
 }
 ```
 
+### Testing the framework ###
+
+The framework ships with a self-contained test suite under `tests/` that uses
+DumboPHP to test DumboPHP (SQLite `:memory:`, no external dependencies).
+
+```bash
+php tests/verify_timothy.php   # Level 0: verify the Timothy test runner itself
+php tests/run.php              # Level 1: run every suite
+php tests/run.php --verbose    # show per-assertion progress
+```
+
+It exercises the ActiveRecord ORM, validations, model hooks, relations,
+migrations, routing/controllers, the inflection helpers, and the Timothy
+spy/stub/mock helpers. See [`tests/README.md`](tests/README.md) for the full
+guide and [`.kiro/bugs/`](.kiro/bugs/) for issues it surfaced.
+
 ### Go Further ###
 
 For more info, please visite homepage [DumboPHP](http://www.dumbophp.com/).
