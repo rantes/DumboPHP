@@ -1530,7 +1530,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
                         if (!isset($this->{$soleField}) || is_null($value)) {
                             $isInvalid = true;
-                        } elseif (empty($value) && $value !== 0 && $value !== '0') {
+                        } elseif (empty($value) && !is_numeric($value)) {
                             $isInvalid = true;
                         }
 
