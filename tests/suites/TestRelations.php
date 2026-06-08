@@ -8,7 +8,7 @@ use DumboPHP\lib\Timothy\dumboTests;
  *
  * belongs_to and has_many both work correctly, including for namespaced models
  * (every DumboPHP model is namespaced). has_many was previously broken — see
- * .kiro/bugs/BUG-001, now Cerrado — and the cases below are the positive
+ * .kiro/bugs/FWK-001, now Cerrado — and the cases below are the positive
  * assertions that lock in the fix.
  */
 class TestRelations extends dumboTests {
@@ -41,7 +41,7 @@ class TestRelations extends dumboTests {
     }
 
     /**
-     * BUG-001 (Cerrado): $user->Posts() resolves App\Models\Post and filters by
+     * FWK-001 (Cerrado): $user->Posts() resolves App\Models\Post and filters by
      * user_id, returning the user's posts.
      */
     public function hasManyTest(): void {
@@ -52,7 +52,7 @@ class TestRelations extends dumboTests {
     }
 
     /**
-     * BUG-001 (Cerrado): same path from the Post side ($post->Comments()).
+     * FWK-001 (Cerrado): same path from the Post side ($post->Comments()).
      */
     public function hasManyNestedTest(): void {
         [, $post] = $this->makeUserWithPost();

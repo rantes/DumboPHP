@@ -62,7 +62,7 @@ tests/
 | `TestActiveRecord`    | `Niu`/`Save` (insert+update), `Find` (id/conditions/sort/limit/:first), `Delete`, counting, audit timestamps, field introspection |
 | `TestValidations`     | `validate['presence_of']` enforcement and the `_error` bag |
 | `TestHooks`           | `before_save`/`before_insert`/`after_insert`/`after_update` order + short-circuit |
-| `TestRelations`       | `belongs_to` (works); `has_many` characterization (see BUG-001) |
+| `TestRelations`       | `belongs_to` and `has_many` (both work; FWK-001 fixed) |
 | `TestMigrations`      | create/drop/reset tables, `getFields`/`getDefinitions`, schema-sync asserts |
 | `TestController`      | dispatch via `_runAction`, lazy model load, params, missing action, JSON |
 | `TestRouting`         | URL → controller/action/param resolution |
@@ -123,9 +123,10 @@ already-defined concrete method is not possible without `uopz`.
 
 ## Known framework issues found by this suite
 
-- **BUG-001** — `has_many` is broken for namespaced models. See
-  [`.kiro/bugs/BUG-001-has-many-namespaced-models.md`](../.kiro/bugs/BUG-001-has-many-namespaced-models.md).
-  `TestRelations` documents the broken behavior with characterization tests.
+- **FWK-001** (Cerrado) — `has_many` was broken for namespaced models. Fixed in
+  `Core_General_Class::__call()`. See
+  [`.kiro/bugs/FWK-001-has-many-namespaced-models.md`](../.kiro/bugs/FWK-001-has-many-namespaced-models.md).
+  `TestRelations` now locks in the fix with positive assertions.
 
 Two smaller quirks are documented inline in the suites:
 

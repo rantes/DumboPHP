@@ -1,4 +1,4 @@
-# BUG-001 — `has_many` falla con modelos namespacados
+# FWK-001 — `has_many` falla con modelos namespacados
 
 - **Estado:** Cerrado — fix aplicado en `__call()` (2026-06-08)
 - **Componente:** `bin/dumbophp.php` → `Core_General_Class::__call()`

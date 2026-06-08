@@ -150,10 +150,12 @@ $category = $product->Category();   // belongs_to
 > - `has_one` está **declarado pero no cableado** en el resolutor `__call`
 >   (solo `belongs_to`, `has_many` y `has_many_and_belongs_to` filtran por la
 >   foreign key); un accessor `has_one` devuelve registros sin filtrar.
-> - El accessor `has_many` sobre modelos namespacados está **roto** actualmente
->   — ver `.kiro/bugs/BUG-001-has-many-namespaced-models.md`. La *declaración*
->   `$this->has_many = ['comments']` es correcta; lo que falla es la llamada
->   `$product->Comments()`.
+> - El accessor `has_many` **funciona correctamente con modelos namespacados**.
+>   El bug histórico está **corregido** (ver
+>   `.kiro/bugs/FWK-001-has-many-namespaced-models.md`, Cerrado). El accessor
+>   debe llamarse con el mismo casing con que se declara la relación; por
+>   convención, en minúscula (`$this->has_many = ['comments']` →
+>   `$product->comments()`).
 
 ## Validaciones
 
