@@ -1,6 +1,6 @@
 # BUG-001 — `has_many` falla con modelos namespacados
 
-- **Estado:** Abierto — pendiente de análisis de impacto
+- **Estado:** Cerrado — fix aplicado en `__call()` (2026-06-08)
 - **Componente:** `bin/dumbophp.php` → `Core_General_Class::__call()`
 - **Severidad:** Alta (rompe una feature anunciada del ORM)
 - **Descubierto por:** Suite de auto-tests (`tests/`), probe empírico durante BUG sweep
@@ -77,7 +77,21 @@ Con esto, `$user->Posts()` carga `App\Models\Post` y filtra por `user_id`.
 
 ## Cobertura en la suite
 
-`tests/suites/TestRelations.php` cubre `belongs_to` (funciona) y añade
-*characterization tests* que documentan el comportamiento roto de `has_many`
-referenciando este bug. Cuando el fix se aplique, esos tests empezarán a fallar
-y deberán convertirse en aserciones positivas (`$user->Posts()->counter() === N`).
+`tests/suites/TestRelations.php` cubre `belongs_to` y `has_many`. Los
+*characterization tests* que documentaban el comportamiento roto se convirtieron
+en aserciones positivas (`hasManyTest`, `hasManyNestedTest`) que validan
+`$user->Posts()->counter() === 1` y `$post->Comments()->counter() === 1`.
+
+## Resolución (2026-06-08)
+
+Fix aplicado en `Core_General_Class::__call()` (`bin/dumbophp.php`), exactamente
+como se propuso:
+
+1. La clase relacionada se resuelve desde el nombre **singular**:
+   `$classFromCall = Camelize(Singulars(strtolower($ClassName)));`
+2. El prefijo de la FK se deriva del nombre **corto** de la clase (sin
+   namespace): `explode('\\', get_class($this))` + `end()` + `unCamelize()`.
+
+`belongs_to` y `has_many_and_belongs_to` no se vieron afectados (no tocan
+`$prefix`). `php tests/run.php` → 0 fallos; `php tests/verify_timothy.php` →
+exit 0.

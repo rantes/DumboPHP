@@ -6,11 +6,10 @@ use DumboPHP\lib\Timothy\dumboTests;
 /**
  * Verifies model relations.
  *
- * belongs_to works correctly. has_many is currently broken for namespaced
- * models (every DumboPHP model is namespaced) — see .kiro/bugs/BUG-001. The
- * has_many cases below are characterization tests that assert the present
- * broken behavior; when BUG-001 is fixed they will start failing and should be
- * rewritten as positive assertions ($user->Posts()->counter() === N).
+ * belongs_to and has_many both work correctly, including for namespaced models
+ * (every DumboPHP model is namespaced). has_many was previously broken — see
+ * .kiro/bugs/BUG-001, now Cerrado — and the cases below are the positive
+ * assertions that lock in the fix.
  */
 class TestRelations extends dumboTests {
 
@@ -42,32 +41,25 @@ class TestRelations extends dumboTests {
     }
 
     /**
-     * BUG-001: $user->Posts() resolves the related class as App\Models\Posts
-     * (plural) which does not exist, so an Error is thrown.
+     * BUG-001 (Cerrado): $user->Posts() resolves App\Models\Post and filters by
+     * user_id, returning the user's posts.
      */
-    public function hasManyThrowsBug001Test(): void {
-        $this->describe('has_many broken for namespaced models — see .kiro/bugs/BUG-001');
+    public function hasManyTest(): void {
         [$user] = $this->makeUserWithPost();
-        $threw = false;
-        try {
-            $user->Posts();
-        } catch (\Throwable $e) {
-            $threw = true;
-        }
-        $this->assertTrue($threw);
+        $posts  = $user->Posts();
+        $this->assertEquals(1, $posts->counter());
+        $this->assertEquals('Hello', $posts->first()->title);
     }
 
     /**
-     * BUG-001: same root cause from the Post side ($post->Comments()).
+     * BUG-001 (Cerrado): same path from the Post side ($post->Comments()).
      */
-    public function hasManyNestedThrowsBug001Test(): void {
+    public function hasManyNestedTest(): void {
         [, $post] = $this->makeUserWithPost();
-        $threw = false;
-        try {
-            $post->Comments();
-        } catch (\Throwable $e) {
-            $threw = true;
-        }
-        $this->assertTrue($threw);
+        $comment  = $this->Comment->Niu(['content' => 'Nice', 'post_id' => (string) $post->id]);
+        $comment->Save();
+        $comments = $post->Comments();
+        $this->assertEquals(1, $comments->counter());
+        $this->assertEquals('Nice', $comments->first()->content);
     }
 }

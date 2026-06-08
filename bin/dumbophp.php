@@ -875,7 +875,7 @@ abstract class Core_General_Class extends \ArrayObject {
      */
     public function __call($ClassName, $val = NULL) {
         $field         = Singulars(strtolower($ClassName));
-        $classFromCall = Camelize($ClassName);
+        $classFromCall = Camelize(Singulars(strtolower($ClassName)));
         $className     = "App\\Models\\{$classFromCall}";
         $conditions    = '';
         $params        = [];
@@ -897,7 +897,9 @@ abstract class Core_General_Class extends \ArrayObject {
                 }
             }
             $foreign = strtolower($field) . "_id";
-            $prefix  = unCamelize(get_class($this));
+            $parts   = explode('\\', get_class($this));
+            $short   = end($parts);
+            $prefix  = unCamelize($short);
 
             $obj1       = new $className();
             $conditions = '1=1';
