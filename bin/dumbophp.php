@@ -591,11 +591,13 @@ function GetInput($type, &$obj = NULL) {
 }
 
 class Config {
-    private array $data;
+    private array $data = [];
     protected string $file = INST_PATH . '.env';
 
     function __construct() {
-        $this->data = parse_ini_file($this->file);
+        if (file_exists($this->file)) {
+            $this->data = parse_ini_file($this->file);
+        }
     }
 
     public function get(string $key): ?string {
@@ -604,7 +606,7 @@ class Config {
 }
 
 class Secrets extends Config {
-    private array $data;
+    private array $data = [];
     protected string $file = INST_PATH . '.env.secrets';
 }
 

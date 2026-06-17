@@ -464,7 +464,7 @@ DUMBO;
             endwhile;
             $coverageResult = xdebug_get_code_coverage();
             xdebug_stop_code_coverage();
-            $includesPath = 'controllers|helpers|models';
+            $includesPath = 'controllers|helpers|models|services';
             foreach ($coverageResult as $entry => $lines):
                 if (preg_match("@{$includesPath}@i", $entry) !== 1):
                     unset($coverageResult[$entry]);

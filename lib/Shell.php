@@ -2,6 +2,8 @@
 namespace DumboPHP\lib;
 
 use Exception;
+use DumboPHP\Config;
+use DumboPHP\Connection;
 use DumboPHP\lib\ShellCommands\Interfaces\DumboCommand;
 use DumboPHP\lib\ShellCommands\BaseShell;
 use DumboPHP\lib\ShellCommands\CreateCommand;
@@ -39,14 +41,6 @@ class Shell extends BaseShell {
 
     public function __construct() {
         parent::__construct();
-        $this->_createCommand = new CreateCommand();
-        $this->_helpCommand = new HelpCommand();
-        $this->_autocompleteCommand = new AutocompleteCommand();
-        $this->_migrationCommand = new MigrationCommand();
-        $this->_generateCommand = new GenerateCommand();
-        $this->_destroyCommand = new DestroyCommand();
-        $this->_dbCommand = new DbCommand();
-        $this->_runCommand = new RunCommand();
     }
 
     private function _parseOptions() {
@@ -99,6 +93,46 @@ class Shell extends BaseShell {
             if ($this->_options['help']['value']) {
                 $this->_helpCommand->execute([], []);
                 die();
+            }
+
+            switch($this->command) {
+                case 'create':
+                    $this->_createCommand = new CreateCommand();
+                break;
+                case 'help':
+                    $this->_helpCommand = new HelpCommand();
+                break;
+                case 'migration':
+                    defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
+                    defined('DB') || define('DB', new Connection());
+
+                    $this->_migrationCommand = new MigrationCommand();
+                break;
+                case 'autocomplete':
+                    $this->_autocompleteCommand = new AutocompleteCommand();
+                break;
+                case 'generate':
+                    defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
+                    defined('DB') || define('DB', new Connection());
+                    $this->_generateCommand = new GenerateCommand();
+                break;
+                case 'destroy':
+                    defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
+                    defined('DB') || define('DB', new Connection());
+                    $this->_destroyCommand = new DestroyCommand();
+                break;
+                case 'db':
+                    defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
+                    defined('DB') || define('DB', new Connection());
+                    $this->_dbCommand = new DbCommand();
+                break;
+                case 'run':
+                    defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
+                    defined('DB') || define('DB', new Connection());
+                    $this->_runCommand = new RunCommand();
+                break;
+                default:
+                    throw new Exception("Command not found: {$this->command}");
             }
             $this->{"_{$this->command}Command"}->execute($this->arguments, $this->_options);
         } catch (Exception $e) {

@@ -20,4 +20,3 @@ ini_set('max_execution_time',0);
 
 define('SALT', '8c4fb7bf681156b52fea93442c7dffc9'); // Always change this string.
 $GLOBALS['env'] = APP_ENV;
-?>

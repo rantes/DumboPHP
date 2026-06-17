@@ -35,8 +35,6 @@ set_include_path(
 
 require_once 'dumbophp.php';
 
-use DumboPHP\Config;
-use DumboPHP\Connection;
 use DumboPHP\lib\Shell;
 use function DumboPHP\unCamelize;
 
@@ -67,9 +65,6 @@ spl_autoload_register(function ($class) {
     require_once $include;
 
 });
-
-defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
-defined('DB') || define('DB', new Connection());
 
 $shell = new Shell();
 $shell->run($argv);
