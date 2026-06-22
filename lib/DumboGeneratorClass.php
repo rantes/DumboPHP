@@ -209,7 +209,11 @@ namespace App\Controllers;
 use DumboPHP\Controller;
 
 class {$this->camelized}Controller extends Controller {
-    public \$layout = 'layout';
+
+    function __construct() {
+        \$this->layout = 'layout';
+    }
+
     {{content}}
 }
 
@@ -240,8 +244,7 @@ DUMBOPHP;
             \$this->data = \$this->{$this->camelized}->Delete(\$this->params['id']);
         endif;
 
-        header('Location: '.INST_URI.'{$this->singularized}/index/');
-        exit;
+        \$this->redirect('{$this->singularized}/index/');
     }
 
     public function createAction(): void {
@@ -250,17 +253,16 @@ DUMBOPHP;
             \$obj->Save() or die(\$obj->_error);
         endif;
 
-        header('Location: '.INST_URI.'{$this->singularized}/index/');
-        exit;
+        \$this->redirect('{$this->singularized}/index/');
     }
 DUMBOPHP;
         elseif(sizeof($params) > 0):
             while(!empty($param = array_shift($params))):
                 $content .= <<<DUMBOPHP
 
-public function {$param}Action(): void {
+    public function {$param}Action(): void {
 
-}
+    }
 DUMBOPHP;
             endwhile;
         endif;

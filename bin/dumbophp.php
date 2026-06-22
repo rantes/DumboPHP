@@ -2376,9 +2376,6 @@ abstract class Controller extends Core_General_Class {
     private $_http_response_code       = HTTP_200;
     private string $_full_url          = '';
 
-    public function __construct() {
-        $this->Vendor = new Vendor();
-    }
 
     public function __get($var) {
         $model = unCamelize($var);

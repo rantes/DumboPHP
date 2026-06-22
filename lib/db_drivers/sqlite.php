@@ -28,9 +28,7 @@ class sqlite implements DBDriver {
     public function AddIndex(string $table, string $name, string $fields): string {
         $query = '';
 
-        if (! $this->ValidateIndex($table, $name, '')) {
-            $query = "CREATE INDEX {$name} ON {$table} ({$fields})";
-        }
+        $query = "CREATE INDEX {$name} ON {$table} ({$fields})";
 
         return $query;
     }

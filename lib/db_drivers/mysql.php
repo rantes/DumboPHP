@@ -269,9 +269,7 @@ DUMBO;
     public function AddIndex(string $table, string $name, string $fields): string {
         $query = '';
 
-        if (! $this->ValidateIndex($table, $name)) {
-            $query = "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
-        }
+        $query = "ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$fields})";
 
         return $query;
     }
