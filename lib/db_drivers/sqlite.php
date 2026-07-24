@@ -275,7 +275,7 @@ DUMBO;
 
     public function validateField(string $table, string $field, string $schema): string {
         $query = <<<DUMBO
-PRAGMA table_info({$table})
+PRAGMA table_info(`{$table}`)
 DUMBO;
         return $query;
     }
