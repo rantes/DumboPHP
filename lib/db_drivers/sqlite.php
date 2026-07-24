@@ -44,7 +44,7 @@ class sqlite implements DBDriver {
         $x = $this->ValidateIndex($table, $indexName, '');
 
         if ($x === 0) {
-            $query = "CREATE INDEX {$indexName} ON {$table} ({$field})";
+            $query = "CREATE INDEX {$indexName} ON `{$table}` ({$field})";
         }
 
         return $query;
@@ -130,7 +130,7 @@ DUMBO;
     }
 
     public function getColumns(string $table): string {
-        return "PRAGMA table_info({$table})";
+        return "PRAGMA table_info(`{$table}`)";
     }
 
     public function Insert(array $params, string $table, bool $replace = false): array {
@@ -185,7 +185,7 @@ DUMBO;
         $prepared = '';
         $values   = [];
         $head     = 'SELECT ';
-        $body     = " FROM {$table} ";
+        $body     = " FROM `{$table}` ";
 
         if (! empty($this->_params)) {
             is_numeric($this->_params) && ($this->_params = (integer) $this->_params);

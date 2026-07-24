@@ -15,7 +15,7 @@ class mysql implements DBDriver {
      *
      */
     public function getColumns(string $table): string {
-        return "SHOW COLUMNS FROM {$table}";
+        return "SHOW COLUMNS FROM `{$table}`";
     }
     /**
      *
@@ -27,7 +27,7 @@ class mysql implements DBDriver {
         $prepared = '';
         $values   = [];
         $head     = 'SELECT ';
-        $body     = " FROM {$table} ";
+        $body     = " FROM `{$table}` ";
 
         if (! empty($this->_params)) {
             is_numeric($this->_params) && ($this->_params = (integer) $this->_params);
