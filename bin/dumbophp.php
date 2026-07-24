@@ -1204,7 +1204,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             throw new \Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
 
-        $this->_queryFields     = "{$this->_ObjTable}.*";
+        $this->_queryFields     = "`{$this->_ObjTable}`.*";
         $this->_queryConditions = [];
         return $obj;
     }
@@ -1279,7 +1279,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      */
     private function _prepareSelectParams($params) {
         if (is_array($params)) {
-            $this->_queryFields = $params['fields'] ?? "{$this->_ObjTable}.*";
+            $this->_queryFields = $params['fields'] ?? "`{$this->_ObjTable}`.*";
 
             if (! empty($params['conditions'])) {
                 if (is_array($params['conditions'])) {
@@ -2092,7 +2092,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         }
 
         $this->_prepareSelectParams($params);
-        $params['fields']     = $this->_queryFields ?? "{$this->_ObjTable}.*";
+        $params['fields']     = $this->_queryFields ?? "`{$this->_ObjTable}`.*";
         $params['conditions'] = trim(implode(' ', $this->_queryConditions));
 
         $fullquery  = DB->driver->Select($params, $this->_ObjTable);
