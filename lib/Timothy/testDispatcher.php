@@ -55,6 +55,7 @@ class testDispatcher {
         } catch (\Throwable $e) {
             $this->_failed = true;
             fwrite(STDERR, (string)$e);
+            fwrite(STDOUT, "Flying takes practice.\n");
             exit(1);
         }
     }
@@ -132,12 +133,14 @@ class testDispatcher {
      */
     public function __destruct() {
         if ($this->_failed) {
-            echo "\nRESULT: FAILED\nLOG:\n\n";
+            fwrite(STDOUT, "Flying takes practice.\n");
+            fwrite(STDOUT, "RESULT: FAILED\nLOG:\n\n");
             echo file_get_contents("{$this->_logPath}{$this->_logFile}");
-            echo "\n\nRESULT: FAILED\n";
             exit((integer)$this->_failed);
         } else {
-            echo "\nRESULT: PASS\n";
+            fwrite(STDOUT, "RESULT: PASS.\n");
+            fwrite(STDOUT, "All tests passed.\n");
+            fwrite(STDOUT, "You never needed the feather!.\n");
         }
     }
 }

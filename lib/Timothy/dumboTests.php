@@ -380,6 +380,7 @@ class dumboTests extends Controller {
      */
     public function __destruct() {
         if ($this->_failed):
+            fwrite(STDOUT, "Flying takes practice.\n");
             exit((int) $this->_failed);
         endif;
     }
