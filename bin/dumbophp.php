@@ -978,6 +978,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public $belongs_to              = [];
     public $candump                 = true;
     public $created_at              = 0;
+    public $deleted_at              = 0;
     public $disableCast             = false;
     public $driver                  = null;
     public $has_many                = [];
@@ -991,6 +992,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     public $PaginateTotalPages      = 0;
     public $paginateURL             = '/';
     public $rowid                   = 0;
+    public $soft_delete             = false;
     public $updated_at              = 0;
     public $validate                = [];
 
@@ -1061,6 +1063,15 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         }
         $this->id = $fields['id'] ?? 0;
+
+        // Mismo sync que ya hace Save() en su rama de update — sin esto,
+        // instancias hidratadas por Find() (no solo las recién guardadas)
+        // quedan con rowid=0 en SQLite, y cualquier Delete() sin argumento
+        // explícito (ej: cascada de dependents='destroy') falla con "Must
+        // specify a register to delete" aunque el registro exista.
+        if (preg_match(SQLITE_PREG, DB->engine)):
+            $this->{$this->pk} = $this->id;
+        endif;
 
         $this->_init_();
 
@@ -1191,6 +1202,16 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
                         $obj->{$col[0]} = $obj[0]->{$col[0]};
                     }
+
+                    // KMD-SOFT-DELETE — rowid (pk real en SQLite) nunca es una
+                    // columna literal del SELECT, así que el loop de arriba
+                    // nunca lo copia al wrapper $obj (el objeto que Find($id)
+                    // realmente retorna) aunque $obj[0] sí lo tenga bien
+                    // sincronizado (constructor). Sin este sync, Delete() sin
+                    // argumento sobre el resultado de Find($id) falla con
+                    // "Must specify a register to delete" en SQLite aunque el
+                    // registro exista — confirmado empíricamente.
+                    $obj->{$obj->pk} = $obj[0]->{$obj->pk};
                 }
             } else {
                 foreach ($cols as $col) {
@@ -1290,6 +1311,16 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         } else if (is_numeric($params)) {
             $this->_queryConditions[] = new QueryCondition("`id`={$params}");
+        }
+
+        // Filtro automático de soft-delete — excluye registros eliminados
+        // salvo que se pida explícitamente withDeleted=true (auditoría,
+        // recuperación de registros, reportes históricos).
+        $withDeleted = is_array($params) && ! empty($params['withDeleted']);
+        if ($this->soft_delete && ! $withDeleted) {
+            $this->_queryConditions[] = new QueryCondition(
+                "`{$this->_ObjTable}`.`deleted_at`=0"
+            );
         }
     }
     /**
@@ -1779,13 +1810,50 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         if (! $this->_delete_or_nullify_dependents($conditions)) {
             return false;
         }
-        $this->_sqlQuery = DB->driver->Delete($conditions, $this->_ObjTable);
 
-        if (DB->exec($this->_sqlQuery) === false) {
-            $e = DB->errorInfo();
-            $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2] . "\n {$this->_sqlQuery}"]);
-            return FALSE;
+        // Bifurca a soft-delete si el modelo lo declara. Ambas ramas dejan
+        // que el flujo siga hacia after_delete (retornar temprano aquí
+        // saltaría esos hooks). Se usa Update() (raw, sin validaciones ni
+        // before_save/before_update) en vez de Save(): un soft-delete no
+        // debe bloquearse por validaciones de negocio que no aplican al
+        // momento de "eliminar" (ej: un campo requerido ya vacío) — el
+        // antes/después correcto para esta operación es before_delete/
+        // after_delete, ya manejados por este mismo método.
+        if ($this->soft_delete) {
+            $this->deleted_at = time();
+
+            // Misma normalización de $conditions que DB->driver->Delete():
+            // id numérico único, array de ids (IN), o array con 'conditions'
+            // ya armado como string — mantiene Delete() consistente para
+            // ambos modos sin importar cómo se haya invocado.
+            if (is_numeric($conditions)) {
+                $whereClause = "`{$this->pk}`='{$conditions}'";
+            } elseif (is_array($conditions) && empty($conditions['conditions'])) {
+                $whereClause = "`{$this->pk}` IN (" . implode(',', $conditions) . ")";
+            } elseif (! empty($conditions['conditions']) && is_string($conditions['conditions'])) {
+                $whereClause = $conditions['conditions'];
+            } else {
+                $this->_error->add(['field' => $this->_ObjTable, 'message' => 'Invalid conditions for soft delete.']);
+                return false;
+            }
+
+            $updated = $this->Update([
+                'conditions' => $whereClause,
+                'data'       => ['deleted_at' => $this->deleted_at],
+            ]);
+            if (! $updated) {
+                return false;
+            }
+        } else {
+            $this->_sqlQuery = DB->driver->Delete($conditions, $this->_ObjTable);
+
+            if (DB->exec($this->_sqlQuery) === false) {
+                $e = DB->errorInfo();
+                $this->_error->add(['field' => $this->_ObjTable, 'message' => $e[2] . "\n {$this->_sqlQuery}"]);
+                return FALSE;
+            }
         }
+
         if (sizeof($this->after_delete) > 0) {
             foreach ($this->after_delete as $functiontoRun) {
                 $this->{$functiontoRun}();
