@@ -423,8 +423,8 @@ DUMBO;
             $mainSuite->setAttribute('time', 0);
 
             $testSuites->appendChild($mainSuite);
-            $fails      = 0;
-            $totalTests = 0;
+            $totalTests    = 0;
+            $totalFailures = 0;
             $totalCount = $notCovered = $lineRate = $packageLines = $fileLines = $packageTotalLines = 0;
 
             xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);
@@ -462,6 +462,7 @@ DUMBO;
                 $suite->setAttribute('file', INST_PATH."{$testLaunch->relativePathName}");
                 $suite->setAttribute('tests', $testLaunch->tests);
                 $totalTests += $testLaunch->tests;
+                $totalFailures += $failures;
                 $mainSuite->appendChild($suite);
             endwhile;
             $coverageResult = xdebug_get_code_coverage();
@@ -478,7 +479,7 @@ DUMBO;
             $this->showNotice("\nFinished tests. Ran {$testLaunch->assertions} assertions in {$testCounter} tests. Finished in: {$took} seconds.");
             $mainSuite->setAttribute('time', $took);
             $mainSuite->setAttribute('assertions', $testLaunch->assertions);
-            $mainSuite->setAttribute('failures', $fails);
+            $mainSuite->setAttribute('failures', $totalFailures);
             $testReport->save(INST_PATH . 'test-result.xml');
             $this->showNotice("\nGenerating coverage report...");
 
