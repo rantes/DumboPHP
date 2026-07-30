@@ -424,6 +424,7 @@ DUMBO;
 
             $testSuites->appendChild($mainSuite);
             $fails      = 0;
+            $totalTests = 0;
             $totalCount = $notCovered = $lineRate = $packageLines = $fileLines = $packageTotalLines = 0;
 
             xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);
@@ -460,6 +461,7 @@ DUMBO;
                 $suite->setAttribute('time', $times);
                 $suite->setAttribute('file', INST_PATH."{$testLaunch->relativePathName}");
                 $suite->setAttribute('tests', $testLaunch->tests);
+                $totalTests += $testLaunch->tests;
                 $mainSuite->appendChild($suite);
             endwhile;
             $coverageResult = xdebug_get_code_coverage();
@@ -472,7 +474,7 @@ DUMBO;
             endforeach;
 
             $took = microtime(true) - $start;
-            $mainSuite->setAttribute('tests', $testCounter);
+            $mainSuite->setAttribute('tests', $totalTests);
             $this->showNotice("\nFinished tests. Ran {$testLaunch->assertions} assertions in {$testCounter} tests. Finished in: {$took} seconds.");
             $mainSuite->setAttribute('time', $took);
             $mainSuite->setAttribute('assertions', $testLaunch->assertions);

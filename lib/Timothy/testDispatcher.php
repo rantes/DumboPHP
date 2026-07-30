@@ -100,6 +100,7 @@ class testDispatcher {
                 $took = microtime(true) - $start;
                 $this->_failed = ($this->_failed || $objtest->_failed > 0);
                 $this->fails += $objtest->_failed;
+                $this->assertions += $objtest->assertions;
                 $this->actions[] = [
                     'test' => $action->name,
                     'line' => $action->line,
@@ -113,7 +114,6 @@ class testDispatcher {
                 endif;
             endwhile;
 
-            $this->assertions += $objtest->assertions;
             $this->filepathname = "{$this->_testsPath}{$test}.php";
             $this->relativePathName = str_replace(INST_PATH, '', $this->filepathname);
             $this->testAssertions = $objtest->assertions;
