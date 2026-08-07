@@ -952,6 +952,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     private $_queryConditions   = [];
     private $_queryFields       = null;
     private $_validate          = true;
+    protected $_aliasFields      = [];
     protected $_counter         = 0;
     protected $_dataAttributes  = [];
     protected $_fields          = [];
@@ -1060,6 +1061,14 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $this->{$col[0]} = 1 * $val;
             } else {
                 $this->{$col[0]} = $value;
+            }
+            // KMD-FIX-ORM-ALIAS-FIELDS — columnas seleccionadas con "AS alias"
+            // (ej: 'id AS value, name AS text') no coinciden con ninguna
+            // columna real del modelo ($this->_fields), así que getArray()
+            // las ignoraba en silencio al serializar. Se registran aquí para
+            // que getArray()/jsonSerialize() también las incluya.
+            if (! array_key_exists($col[0], $this->_fields)) {
+                $this->_aliasFields[$col[0]] = true;
             }
         }
         $this->id = $fields['id'] ?? 0;
@@ -1202,6 +1211,12 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
                         $obj->{$col[0]} = $obj[0]->{$col[0]};
                     }
+
+                    // KMD-FIX-ORM-ALIAS-FIELDS — el wrapper único $obj se crea
+                    // vacío (sin colmeta), así que su propio _aliasFields nunca
+                    // se pobló; se copia aquí desde $obj[0] para que
+                    // getArray() sobre el wrapper también exponga los alias.
+                    $obj->_aliasFields = $obj[0]->_aliasFields;
 
                     // KMD-SOFT-DELETE — rowid (pk real en SQLite) nunca es una
                     // columna literal del SELECT, así que el loop de arriba
@@ -1981,14 +1996,25 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
         if ($this->count() > 0) {
             for ($j = 0; $j < $this->count(); $j++) {
-                foreach ($fields as $field) {
+                // KMD-FIX-ORM-ALIAS-FIELDS — además de las columnas reales
+                // del modelo, exponer las columnas seleccionadas con "AS
+                // alias" (ej: 'id AS value, name AS text'), registradas por
+                // el constructor en _aliasFields cuando no coinciden con
+                // ninguna columna declarada. $this[$j] puede no existir para
+                // un $j entero cuando el ArrayObject interno quedó poblado
+                // con claves string (ver Niu($_POST[...]) + parent::__construct)
+                // en vez de offsetSet(0,...) — mismo caso ya tolerado abajo
+                // por isset(), así que se resuelve igual (array vacío) en
+                // lugar de forzar el acceso y romper con TypeError.
+                $aliasKeys = ($this[$j] instanceof ActiveRecord) ? array_keys($this[$j]->_aliasFields) : [];
+                foreach (array_merge($fields, $aliasKeys) as $field) {
                     if (isset($this[$j]->{$field})) {
                         $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord') ? $this[$j]->{$field}->getArray() : $this[$j]->{$field};
                     }
                 }
             }
         } else {
-            foreach ($fields as $field) {
+            foreach (array_merge($fields, array_keys($this->_aliasFields)) as $field) {
                 if (isset($this->{$field})) {
                     $arraux[0][$field] = (is_object($this->{$field}) && get_parent_class($this->{$field}) == 'ActiveRecord') ? $this->{$field}->getArray() : $this->{$field};
                 }

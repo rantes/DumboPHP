@@ -140,4 +140,53 @@ class TestActiveRecord extends dumboTests {
         $found = $this->User->Find($u->id);
         $this->assertNotEmpty((string) $found);
     }
+
+    // KMD-FIX-ORM-ALIAS-FIELDS — 'fields' con alias que no coinciden con
+    // ninguna propiedad declarada del modelo (ej: 'id AS value, name AS text')
+    // se descartaban en silencio al serializar (getArray()/jsonSerialize()),
+    // aunque el objeto sí los tuviera como propiedades dinámicas accesibles
+    // directamente. Ver https://... nada, bug interno confirmado empíricamente.
+
+    public function aliasFieldsAreAccessibleDirectlyTest(): void {
+        $this->makeUser('Ana', 'ana@example.com');
+        $this->makeUser('Bob', 'bob@example.com');
+
+        $result = $this->User->Find(['fields' => 'id AS value, name AS text', 'sort' => 'name ASC']);
+
+        $this->assertEquals('Ana', $result[0]->text);
+        $this->assertGreaterThan(0, (int) $result[0]->value);
+    }
+
+    public function aliasFieldsSurviveMultiRowSerializationTest(): void {
+        $this->makeUser('Ana', 'ana@example.com');
+        $this->makeUser('Bob', 'bob@example.com');
+
+        $result  = $this->User->Find(['fields' => 'id AS value, name AS text', 'sort' => 'name ASC']);
+        $decoded = json_decode(json_encode($result), true);
+
+        $this->assertEquals(2, count($decoded));
+        $this->assertEquals('Ana', $decoded[0]['text']);
+        $this->assertTrue((int) $decoded[0]['value'] > 0, 'value alias should not be lost/zeroed on serialization.');
+    }
+
+    public function aliasFieldsSurviveSingleRowWrapperSerializationTest(): void {
+        $u = $this->makeUser('Ana', 'ana@example.com');
+
+        $result  = $this->User->Find([':first', 'fields' => 'id AS value, name AS text', 'conditions' => "`id`={$u->id}"]);
+        $decoded = json_decode(json_encode($result), true);
+
+        $this->assertEquals('Ana', $decoded[0]['text']);
+        $this->assertEquals((string) $u->id, (string) $decoded[0]['value']);
+    }
+
+    public function normalFieldsSerializationIsUnaffectedTest(): void {
+        $this->makeUser('Ana', 'ana@example.com');
+
+        $result  = $this->User->Find();
+        $decoded = json_decode(json_encode($result), true);
+
+        $this->assertEquals('Ana', $decoded[0]['name']);
+        $this->assertEquals('ana@example.com', $decoded[0]['email']);
+        $this->assertFalse(isset($decoded[0]['value']), 'No alias fields should leak in when none were used.');
+    }
 }
