@@ -1022,6 +1022,9 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $this->_error = new Errors;
 
         $this->_counter = $count;
+        if ($count === 0 && sizeof($fields) > 0) {
+            $this->_counter = 1;
+        }
 
         $p           = explode('\\', get_class($this));
         $this->_name = $p[sizeof($p) - 1];
@@ -1474,7 +1477,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             throw new \Exception('The param conditions should not be empty and must be string.');
         }
 
-        if (empty($params['data']) || ! is_array($params['data'])) {
+        if (empty($params['data']) || !is_array($params['data'])) {
             throw new \Exception('The param data should not be empty and must be array.');
         }
 
@@ -1994,22 +1997,20 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $arraux = [];
         $fields = array_keys($this->_fields);
 
-        if ($this->count() > 0) {
-            for ($j = 0; $j < $this->count(); $j++) {
-                // KMD-FIX-ORM-ALIAS-FIELDS — además de las columnas reales
-                // del modelo, exponer las columnas seleccionadas con "AS
-                // alias" (ej: 'id AS value, name AS text'), registradas por
-                // el constructor en _aliasFields cuando no coinciden con
-                // ninguna columna declarada. $this[$j] puede no existir para
-                // un $j entero cuando el ArrayObject interno quedó poblado
-                // con claves string (ver Niu($_POST[...]) + parent::__construct)
-                // en vez de offsetSet(0,...) — mismo caso ya tolerado abajo
-                // por isset(), así que se resuelve igual (array vacío) en
-                // lugar de forzar el acceso y romper con TypeError.
-                $aliasKeys = ($this[$j] instanceof ActiveRecord) ? array_keys($this[$j]->_aliasFields) : [];
+        if ($this->_counter > 0) {
+            for ($j = 0; $j < $this->_counter; $j++) {
+                // KMD-FIX-ORM-ALIAS-FIELDS — $this[$j] solo existe cuando el
+                // objeto es el wrapper que arma getData()/Save() (offsetSet
+                // explícito). Un objeto recién creado con Niu($data) tiene
+                // _counter=1 (porque sizeof($fields)>0 en el constructor)
+                // pero nunca pasa por ese offsetSet, así que $this[$j] no
+                // existe ni antes ni después de Save() — se usa $this mismo
+                // como fuente de los campos en ese caso.
+                $row       = ($this[$j] ?? null) instanceof ActiveRecord ? $this[$j] : $this;
+                $aliasKeys = array_keys($row->_aliasFields);
                 foreach (array_merge($fields, $aliasKeys) as $field) {
-                    if (isset($this[$j]->{$field})) {
-                        $arraux[$j][$field] = (is_object($this[$j]->{$field}) && get_parent_class($this[$j]->{$field}) == 'ActiveRecord') ? $this[$j]->{$field}->getArray() : $this[$j]->{$field};
+                    if (isset($row->{$field})) {
+                        $arraux[$j][$field] = (is_object($row->{$field}) && get_parent_class($row->{$field}) == 'ActiveRecord') ? $row->{$field}->getArray() : $row->{$field};
                     }
                 }
             }
