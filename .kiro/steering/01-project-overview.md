@@ -65,3 +65,13 @@ mi-proyecto/
 ## Autoloading
 
 El autoloader convierte `App\Models\UserProfile` → `app/models/user_profile.php` usando `unCamelize()`. Los modelos usan nombre singular en snake_case como nombre de archivo.
+
+---
+
+## Skill de arquitecto disponible
+
+Existe el skill **`dumbophp-architect`** instalado globalmente en `~/.kiro/skills/dumbophp-architect/SKILL.md`.
+
+Ese skill contiene la documentación completa y canónica del framework: Active Record, controladores, vistas, migraciones, seeds, Timothy (testing), UIBuilder y CLI. Está construido directamente desde el código fuente.
+
+**Antes de generar cualquier artefacto DumboPHP** (modelo, controlador, vista, migración, test, seed), activa el skill `dumbophp-architect` para obtener las firmas exactas, convenciones de nombres y anti-patrones que aplican. No inventes patrones externos al framework.

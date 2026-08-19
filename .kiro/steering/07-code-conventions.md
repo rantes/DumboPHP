@@ -211,15 +211,16 @@ Siempre incluir al menos los entornos `dev` y `test`. El entorno `test` debe usa
 ```php
 $databases = [
     'dev' => [
-        'driver'      => $this->_sysConfig('DB_DRIVER'),
-        'host'        => $this->_sysConfig('DB_HOST'),
-        'charset'     => $this->_sysConfig('DB_CHARSET'),
-        'dialect'     => $this->_sysConfig('DB_DIALECT'),
-        'port'        => $this->_sysConfig('DB_PORT'),
-        'schema'      => $this->_sysConfig('DB_SCHEMA'),
-        'username'    => $this->_sysConfig('DB_USERNAME'),
-        'password'    => $this->_sysConfig('DB_PASSWORD'),
-        'unix_socket' => $this->_sysConfig('DB_UNIX_SOCKET'),
+        'driver'      => APP_CONFIGS->get('DB_DRIVER'),
+        'host'        => APP_CONFIGS->get('DB_HOST'),
+        'charset'     => APP_CONFIGS->get('DB_CHARSET'),
+        'dialect'     => APP_CONFIGS->get('DB_DIALECT'),
+        'port'        => APP_CONFIGS->get('DB_PORT'),
+        'schema'      => APP_CONFIGS->get('DB_SCHEMA'),
+        'username'    => $this->_secrets->get('DB_USERNAME'),
+        'password'    => $this->_secrets->get('DB_PASSWORD'),
+        'unix_socket' => APP_CONFIGS->get('DB_UNIX_SOCKET'),
+        'protocol'    => APP_CONFIGS->get('DB_PROTOCOL'),
     ],
     'test' => [
         'driver' => 'sqlite',

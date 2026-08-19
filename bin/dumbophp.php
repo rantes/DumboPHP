@@ -956,7 +956,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     protected $_counter         = 0;
     protected $_dataAttributes  = [];
     protected $_fields          = [];
-    protected $_ObjTable;
+    protected string $_ObjTable = '';
     protected $_params        = ['fields' => '*', 'conditions' => ''];
     protected $_preparedQuery = [];
     protected $_singularName;
@@ -3031,8 +3031,26 @@ class index {
 
                 $action = $this->page->_getAction_();
 
-                if (method_exists($this->page, "{$action}Action")) {
-                    if (!$this->page->PreventLoad()) {
+                // PreventLoad(true) significa que before_filter() ya
+                // armó su propia respuesta completa (setResponseCode()
+                // + respondToAJAX()) y pidió explícitamente no
+                // despachar nada más. Antes este guard solo evitaba
+                // EJECUTAR la acción cuando el método SÍ existía — si
+                // no existía (ej. una acción virtual que una acción
+                // como AdminBaseTrait reescribe en antes de
+                // before_filter(), y ese mismo camino corto salta esa
+                // reescritura a propósito) igual caía al fallback
+                // "Missing Action" 404, pisando la respuesta ya
+                // preparada. Confirmado: el refresco de token CSRF
+                // (antes de before_filter(), con X-SF-TOKEN: fetch)
+                // llama PreventLoad(true) pero nunca reescribe
+                // $action — así action seguía siendo el segmento
+                // crudo de la URL (ej. "groups"), sin método real, y
+                // el POST/PUT/DELETE real que sigue jamás llegaba a
+                // ejecutarse porque el navegador veía el 404 del
+                // preflight y abortaba ahí.
+                if (! $this->page->PreventLoad()) {
+                    if (method_exists($this->page, "{$action}Action")) {
                         $actionToRun = "{$action}Action";
                         $this->page->{$actionToRun}();
                         //before render, executed after the action execution and before the data renderize
@@ -3079,29 +3097,32 @@ class index {
                                 $this->page->after_render();
                             }
                         }
-                    }
-                } else {
-                    if (defined('USE_ALTER_URL') && USE_ALTER_URL) {
-                        $params['alter_controller'] = $this->page->_getController_();
-                        $params['alter_action']     = $this->page->_getAction_();
-                        $alterParts                 = explode('/', ALTER_URL_CONTROLLER_ACTION);
-                        $alterController            = $alterParts[0];
-                        $alterAction                = $alterParts[1];
-                        $alterControllerFile        = $alterController . '_controller.php';
+                    } else {
+                        if (defined('USE_ALTER_URL') && USE_ALTER_URL) {
+                            $params['alter_controller'] = $this->page->_getController_();
+                            $params['alter_action']     = $this->page->_getAction_();
+                            $alterParts                 = explode('/', ALTER_URL_CONTROLLER_ACTION);
+                            $alterController            = $alterParts[0];
+                            $alterAction                = $alterParts[1];
+                            $alterControllerFile        = $alterController . '_controller.php';
 
-                        if (file_exists($path . $alterControllerFile)) {
-                            $alterClass      = 'App\\Controllers\\' . Camelize($alterController) . 'Controller';
-                            $this->page      = new $alterClass();
-                            $this->page->params($params);
-                            $this->page->_setAction_($alterAction);
-                            $this->page->_setController_($alterController);
-                            $this->page->fullUrl(INST_URI . "{$alterController}/{$alterAction}/");
-                            if (isset($this->page->helper) and sizeof($this->page->helper) > 0) {
-                                $this->page->LoadHelper($this->page->helper);
-                            }
-                            if (method_exists($this->page, "{$alterAction}Action")) {
-                                $this->page->{$alterAction . 'Action'}();
-                                $this->page->parseContent();
+                            if (file_exists($path . $alterControllerFile)) {
+                                $alterClass      = 'App\\Controllers\\' . Camelize($alterController) . 'Controller';
+                                $this->page      = new $alterClass();
+                                $this->page->params($params);
+                                $this->page->_setAction_($alterAction);
+                                $this->page->_setController_($alterController);
+                                $this->page->fullUrl(INST_URI . "{$alterController}/{$alterAction}/");
+                                if (isset($this->page->helper) and sizeof($this->page->helper) > 0) {
+                                    $this->page->LoadHelper($this->page->helper);
+                                }
+                                if (method_exists($this->page, "{$alterAction}Action")) {
+                                    $this->page->{$alterAction . 'Action'}();
+                                    $this->page->parseContent();
+                                } else {
+                                    $this->page->setResponseCode(HTTP_404);
+                                    echo 'Missing Action';
+                                }
                             } else {
                                 $this->page->setResponseCode(HTTP_404);
                                 echo 'Missing Action';
@@ -3110,9 +3131,6 @@ class index {
                             $this->page->setResponseCode(HTTP_404);
                             echo 'Missing Action';
                         }
-                    } else {
-                        $this->page->setResponseCode(HTTP_404);
-                        echo 'Missing Action';
                     }
                 }
             }
