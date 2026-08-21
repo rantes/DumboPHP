@@ -875,9 +875,9 @@ abstract class Core_General_Class extends \ArrayObject {
      * @param [string] $val
      * @return void
      */
-    public function __call($ClassName, $val = NULL) {
-        $field         = Singulars(strtolower($ClassName));
-        $classFromCall = Camelize(Singulars(strtolower($ClassName)));
+    public function __call($methodName, $val = NULL) {
+        $field         = Singulars(strtolower($methodName));
+        $classFromCall = Camelize(Singulars(strtolower($methodName)));
         $className     = "App\\Models\\{$classFromCall}";
         $conditions    = '';
         $params        = [];
@@ -906,28 +906,28 @@ abstract class Core_General_Class extends \ArrayObject {
             $obj1       = new $className();
             $conditions = '1=1';
             if (method_exists($obj1, 'Find')) {
-                if ($classFromCall == get_class($this) && in_array($ClassName, $this->has_many_and_belongs_to)) {
+                if ($classFromCall == $short && in_array($methodName, $this->has_many_and_belongs_to)) {
                     $conditions = ($way == 'up') ?
                     "`{$this->pk}`='" . $this->{$foreign} . "'"
                         : "`{$foreign}`='" . $this->{$this->pk} . "'";
-                } elseif (in_array($ClassName, $this->belongs_to) && ! empty($this->{$foreign})) {
+                } elseif (in_array($methodName, $this->belongs_to) && ! empty($this->{$foreign})) {
                     $conditions = "`{$this->pk}`='" . $this->{$foreign} . "'";
-                } elseif (in_array($ClassName, $this->has_many)) {
+                } elseif (in_array($methodName, $this->has_many)) {
                     $conditions = "`{$prefix}_id`='{$this->{$this->pk}}'";
                 }
                 $params['conditions'] = $conditions;
                 return ($conditions !== NULL) ? $obj1->Find($params) : $obj1->Niu();
             }
             return NULL;
-        } elseif (preg_match('/Find_by_/', $ClassName)) {
-            $nustring = str_replace('Find_by_', '', $ClassName);
+        } elseif (preg_match('/Find_by_/', $methodName)) {
+            $nustring = str_replace('Find_by_', '', $methodName);
             return $this->Find([
                 'conditions' => [
                     [$nustring, $val[0]],
                 ],
             ]);
         } else {
-            return $ClassName($val, $this);
+            return $methodName($val, $this);
         }
 
     }
