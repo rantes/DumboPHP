@@ -2539,9 +2539,9 @@ abstract class Controller extends Core_General_Class {
     }
 
     public function parseContent(): void {
-        $renderPage = TRUE;
+        $renderPage = true;
         if (property_exists($this, 'noTemplate') and in_array($this->action, $this->noTemplate)) {
-            $renderPage = FALSE;
+            $renderPage = false;
         }
 
         if ($this->canRespondToAJAX()) {
@@ -2589,7 +2589,7 @@ abstract class Controller extends Core_General_Class {
 
             $viewsFolder = INST_PATH . 'app/views/';
 
-            if (! empty($view)) {
+            if (!empty($view) && $renderPage) {
                 ob_start();
                 include_once "{$viewsFolder}{$view}";
                 $this->yield = ob_get_clean();
@@ -2633,7 +2633,7 @@ abstract class Controller extends Core_General_Class {
 
         $this->_headers       = [];
         $this->_headers[]     = 'Cache-Control: max-age=0, no-cache, no-store, must-revalidate';
-        $this->_headers[]     = 'Content-type: "application/json; charset=utf-8"';
+        $this->_headers[]     = 'Content-type: application/json; charset=utf-8';
         $this->_headers[]     = 'ETag: 123';
         $this->_headers[]     = 'Expires: Wed, 11 Jan 1984 05:00:00 GMT';
         $this->_headers[]     = 'Pragma: no-cache';
