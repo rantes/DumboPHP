@@ -2641,8 +2641,9 @@ abstract class Controller extends Core_General_Class {
         $this->_exposeContent = true;
     }
 
-    public function setResponseCode(int $code): void {
+    public function setResponseCode(int $code): bool {
         $this->_http_response_code = $code;
+        return true;
     }
     public function canRespondToAJAX() {
         return $this->_canrespondtoajax;
