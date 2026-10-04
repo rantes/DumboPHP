@@ -1802,7 +1802,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @param array|integer $conditions can be an array of IDs or just a single ID
      * @return boolean
      */
-    public function Delete($conditions = NULL) {
+    protected function _deleteRecord($conditions = NULL) {
         if ($this->_counter > 1) {
             $conditions = [];
             foreach ($this as $ele) {
@@ -1881,6 +1881,42 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         }
         return TRUE;
+    }
+    /**
+     * Handles the delete register in database inside a transaction, so a
+     * failure in any before_delete hook, dependent or after_delete hook
+     * rolls back the whole operation (parent and children).
+     * Delete() calls made by the dependents cascade reuse the transaction
+     * opened by the outermost call.
+     * @param array|integer $conditions can be an array of IDs or just a single ID
+     * @return boolean
+     */
+    public function Delete($conditions = NULL) {
+        $owns = ! DB->inTransaction();
+        $ok   = false;
+
+        if ($owns) {
+            DB->beginTransaction();
+        }
+
+        try {
+            $ok = $this->_deleteRecord($conditions);
+        } catch (\Throwable $e) {
+            if ($owns and DB->inTransaction()) {
+                DB->rollBack();
+            }
+            throw $e;
+        }
+
+        if ($owns) {
+            if ($ok) {
+                DB->commit();
+            } else {
+                DB->rollBack();
+            }
+        }
+
+        return $ok;
     }
     /**
      * Handles the dependants tasks, delete or set to null the relational data in other models
