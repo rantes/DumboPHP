@@ -1895,8 +1895,9 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $className = "App\\Models\\{$m}";
                 $model1    = new $className();
                 $condition = is_numeric($id) ? " = '{$id}'" : " IN (" . implode(',', $id) . ")";
+                $field    = Singulars($this->_ObjTable) . "_id";
                 $children  = $model1->Find([
-                    'conditions' => Singulars($this->_ObjTable) . "_id{$condition}",
+                    'conditions' => "{$field}{$condition}",
                 ]);
 
                 if ($children->counter() > 0) {
@@ -1912,7 +1913,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                             }
                             break;
                         case 'nullify':
-                            $child->{$this->_ObjTable . '_id'} = '';
+                            $child->{$field} = 0;
                             if (! $child->Save()) {
                                 $this->_error->add(
                                     ['field' => $this->_ObjTable, 'message' => 'Cannot nullify dependents: '.$child->_error]
