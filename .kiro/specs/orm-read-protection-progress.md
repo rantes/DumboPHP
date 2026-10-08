@@ -116,3 +116,11 @@ Las suites nunca se han corrido contra MySQL: compara cualquier fallo con `maste
 - `Find_by_<columna inexistente>` y campos desconocidos ahora lanzan (antes: error SQL).
 - `_sqlQuery` muestra placeholders (`:__c0`), no valores.
 - Sumideros internos no tocados: relaciones (`__call`), `_delete_or_nullify_dependents`, `Delete` con ids en array.
+---
+
+## Verificación en MySQL (reportada por el responsable, 2026-10-08)
+`php tests/run.php` y `php tests/run.php --protected` con `DUMBO_TEST_MYSQL=1` → **100 % de los tests pasan en ambos modos**, incluidos `backslashPayloadsMatchNothingTest`,
+`backslashValuesRoundTripTest` y el resto de `TestBoundConditions`. Para llegar ahí hubo que quitar dos supuestos de SQLite de pruebas preexistentes (no del ORM):
+`TestMigrations::tableExists` (`sqlite_master`, commit `bc1b71e`) y `assertHasFieldTypes` (INTEGER vs INT, commit `9a4e136`).
+Dato no capturado: versión exacta de MySQL, `sql_mode` y charset de la base usada (conviene anotarlos si se repite). **PostgreSQL sigue sin verificar.**
+Estado de la constante: sigue APAGADA por defecto en el framework (decisión de activación en cada app, ver tabla de "Valor por defecto").
