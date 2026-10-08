@@ -3224,8 +3224,12 @@ class index {
 
         if (!file_exists($path . $controllerFile)) {
             $canGo = false;
-            http_response_code(HTTP_404);
-            echo 'Missing Controller';
+            // Sin controlador no hay $this->page real: se asigna uno minimo para que el
+            // front controller (webroot/index.php, dumbo run) pueda llamar display()
+            // sin tocar cada app. El estado y el cuerpo los emite display().
+            $this->page                 = new class extends Controller {};
+            $this->page->setResponseCode(HTTP_404);
+            $this->page->_outputContent = 'Missing Controller';
         }
         $queryparams = http_build_query($params);
         empty($queryparams) || ($queryparams = "?{$queryparams}");
