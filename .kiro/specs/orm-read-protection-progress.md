@@ -3,8 +3,8 @@
 Rama: `fix/orm-read-protection` (desde `master` `79ca0c2`). Sin push ni merge. `/etc/dumbophp` NO tocado. Sin API nueva.
 Contexto y evidencia: `~/web/komodo/.kiro/specs/orm-mecanismo-existente.md` y `orm-conditions-escape-design.md` v2.
 
-## Estado: ⏸ DETENIDO a la espera de una decisión (tarea 2, el escape de VALORES)
-La regla de trabajo pide detenerse si enlazar parámetros es más seguro y de esfuerzo comparable. Lo es (ver "Decisión pendiente"). Todo lo que NO depende de esa decisión ya está hecho.
+## Estado: ✅ Fase 1 implementada con parámetros ENLAZADOS (decisión B, 2026-10-08) — constante APAGADA por defecto
+Commits: `f700ff2` (campo/operador, pk, unique), `8ddbd08` (checkpoint, harness MySQL), `dbfc905` (enlace de valores, ORDER BY, LIMIT, Paginate, tests, guía). Sin push.
 
 ## Línea base (master `79ca0c2`)
 `php tests/verify_timothy.php`: 25 ok, 0 fallos. `php tests/run.php`: 12 suites, 86 tests, 121 aserciones, 0 fallos (el runner no imprime totales; conteo sumando la salida `--verbose`).
@@ -21,7 +21,7 @@ Resultado: `php tests/run.php` y `DUMBO_QUOTE_CONDITIONS=1 php tests/run.php` �
 
 Nota sobre el pk: `ActiveRecord::$id` está tipado `?int`, así que con `id` estándar el pk NO era inyectable; solo lo era con un pk personalizado de tipo string (`public string $pk`). Es endurecimiento, no una vulnerabilidad explotable en proyectos estándar.
 
-## Decisión pendiente — cómo proteger el VALOR (tarea 2)
+## Decisión tomada — cómo proteger el VALOR: B (enlace). Comparación original:
 El hallazgo que cambia el análisis: **`Connection` fija `ATTR_EMULATE_PREPARES=false`** (`dumbophp.php:714`), es decir, prepared statements NATIVOS. Las escrituras ya enlazan, y el
 `getData($prepared, $data)` (l.1165) ya ejecuta `execute($data)`. Por tanto el enlace es parametrización real del servidor.
 
@@ -64,5 +64,55 @@ Otros sumideros internos que interpolan datos del objeto (no se tocaron; fuera d
 | **Iguana** | `true` | `api_controller.php:~410-412` escapa a mano con lista blanca dentro de un STRING: no se rompe (A/B no tocan strings), pero conviene pasarlo a forma array. Los dos casos "por verificar" quedan **resueltos**: `$tenantId = (int)` (api_controller.php:400) y `$id = (int)` (operator_controller.php:275) ⇒ seguros. |
 Antes de activar en cualquier app: `grep` de nombres de campo en condiciones array que no sean columnas (lanzarán), operadores fuera de la lista blanca, y suite completa con la bandera.
 
-## Pendiente (depende de la decisión)
-Escape/enlace de valores en `_buildConditions` (`Find_by_*`, array, `IN`, `BETWEEN`), `Paginate`, tests de comilla simple Y barra invertida, casos legítimos (`O'Brien`, `%`, `_`, NULL, vacío, Unicode, números como cadena, espacios dobles), guía en README, flag en `src/host.php`.
+
+---
+
+## Implementación B (commit `dbfc905`) — qué hace con `DUMBO_QUOTE_CONDITIONS = true`
+Todo está en `bin/dumbophp.php`; los drivers no cambian salvo el `bindings` interno del UPDATE (commit anterior). Con la constante apagada el comportamiento es EXACTAMENTE el anterior (ruta legada intacta).
+| Requisito | Implementación |
+|---|---|
+| Placeholders únicos por consulta | `_bindValue()` genera `:__c0`, `:__c1`… con el tamaño de `_queryBindings`; se limpia tras cada consulta (éxito y error) y ante una condición inválida (`_resetQueryState`). Test: `placeholdersAreUniquePerQueryTest`. |
+| `IN` / `NOT IN` | `_inSql()`: un placeholder por elemento; lista vacía: `IN` → `1=0`, `NOT IN` → `1=1`; los `null` del listado se omiten; un escalar es una lista de uno. |
+| `null` | `=` → `IS NULL`; `!=`/`<>` → `IS NOT NULL`; con otro operador o dentro de `BETWEEN` → `QueryConditionException`. **Cambio de comportamiento** frente al `= ''` anterior (solo con la constante activa). |
+| `LIKE` / `NOT LIKE` | Se enlaza el patrón COMPLETO; `%` y `_` siguen siendo comodines (literales en `=`); el ORM no escapa el patrón (README documenta el `\%` de MySQL/PG; SQLite no tiene escape por defecto). |
+| `BETWEEN` | Dos valores enlazados, ninguno `null`. |
+| `ORDER BY` | `_safeOrderBy()`: columna del modelo, `tabla.col`, alias `AS` de `fields` o posición numérica + `ASC/DESC`; re-emitido canónico con backticks; expresiones/funciones lanzan. |
+| `LIMIT` | `_safeLimit()`: `n` o `offset,n` enteros no negativos; el resto lanza. |
+| `Paginate` | Captura los bindings tras `_prepareSelectParams`, ejecuta el conteo con ellos (`getData` directo) y los restaura para la consulta de la página. También valida `sort`. |
+| `Save()` / `unique` | pk enlazado siempre; `unique` en forma array (hereda el enlace). |
+| Valores no escalares | `QueryConditionException`. bool → `'1'/'0'`. |
+
+## Tests
+- `tests/suites/TestBoundConditions.php` (26 tests): comilla simple y barra invertida (`=`, `Find_by_`, `LIKE`, `IN`, `BETWEEN`), ida y vuelta de valores con `\`, `O'Brien`, `%`/`_` (literales en `=`, comodines en `LIKE`), vacío vs `NULL`, números como cadena/enteros/bool, Unicode, espacios dobles y saltos de línea, `IN` vacío, placeholders únicos, estado limpio tras errores, conector `OR`, `and()` mezclado, ORDER BY aceptado/rechazado, LIMIT, `Paginate` (conteo = página, inyección, estado), `unique` con comillas, soft delete y JOIN calificado. **Comprobado**: con el código previo (`git stash` de `bin/`) fallan por inyección real (`x' OR '1'='1` devuelve filas / error de sintaxis).
+- `TestReadProtection` (campo/operador/pk) + `verify_timothy`.
+- Resultado final (SQLite): `php tests/run.php` → PASS (122 tests, 172 aserciones, 0 fallos; constante apagada: las pruebas dependientes registran "bandera apagada"). `php tests/run.php --protected` → PASS (122 tests, 318 aserciones, 0 fallos). `verify_timothy`: 25/25.
+
+## Validación contra Komodo (sin modificar la app ni `/etc`)
+Suite completa de Komodo ejecutada con el framework de este repo (lanzador temporal con otra ruta de inclusión) y `DUMBO_QUOTE_CONDITIONS=1` por `auto_prepend_file`: **125 tests, 6426 aserciones, 0 fallos**, y los **7 tests `PENDIENTE-FRAMEWORK` se activaron solos y pasaron** (0 mensajes PENDIENTE).
+Requisito detectado: el sondeo `tests/e2e/OrmProtectionProbe.php` de Komodo debe usar un campo real y capturar la excepción; sin eso la suite aborta con `Invalid condition field: probe_field`. Parche aplicado solo temporalmente para validar y revertido (Komodo quedó limpio):
+```php
+try {
+    $build->invoke($model, [['name', "a'b"]]);        // 'name' es columna real de params
+    $built = implode(' ', $store->getValue($model));
+    $safe  = !str_contains($built, "'a'b'");
+} catch (\Throwable $e) {
+    $safe = false;                                    // la constante apagada también acaba aquí con un campo inválido
+}
+return $safe;
+```
+## SIN VERIFICAR en MySQL (sigue siendo así — la constante queda apagada hasta que lo corras)
+Todo `TestBoundConditions` en MySQL, en particular: la barra invertida (`backslashPayloadsMatchNothingTest`, `backslashValuesRoundTripTest`), prepared statements nativos con `:__cN` y `:__pk`, `LIKE` con `\` (escape por defecto de MySQL), colación/mayúsculas en `=`, comparación de cadenas numéricas con columnas INTEGER, `ORDER BY` con backticks, `LIMIT a,b` literal (enlazar LIMIT no se usa a propósito), conteo de `Paginate` y charsets multibyte.
+```
+mysql -u root -p -e "CREATE DATABASE dumbo_test CHARACTER SET utf8mb4"
+cd ~/web/DumboPHP
+DUMBO_TEST_MYSQL=1 DUMBO_TEST_DB_SCHEMA=dumbo_test DUMBO_TEST_DB_USER=<u> DUMBO_TEST_DB_PASS=<p> php tests/run.php --protected
+DUMBO_TEST_MYSQL=1 DUMBO_TEST_DB_SCHEMA=dumbo_test DUMBO_TEST_DB_USER=<u> DUMBO_TEST_DB_PASS=<p> php tests/run.php
+```
+Las suites nunca se han corrido contra MySQL: compara cualquier fallo con `master` antes de atribuirlo a este cambio. PostgreSQL: no ejecutado.
+
+## Riesgos conocidos / decisiones
+- `null` pasa de `= ''` a `IS NULL` (solo con la constante). Revisar llamadores que dependan de eso.
+- Strings de `conditions` del llamador con `?` o `:nombre` fuera de comillas no pueden mezclarse con condiciones array bajo la constante (PDO no admite mezclar posicional y con nombre).
+- `Find_by_<columna inexistente>` y campos desconocidos ahora lanzan (antes: error SQL).
+- `_sqlQuery` muestra placeholders (`:__c0`), no valores.
+- Sumideros internos no tocados: relaciones (`__call`), `_delete_or_nullify_dependents`, `Delete` con ids en array.
