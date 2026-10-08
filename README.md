@@ -98,6 +98,42 @@ migrations, routing/controllers, the inflection helpers, and the Timothy
 spy/stub/mock helpers. See [`tests/README.md`](tests/README.md) for the full
 guide and [`.kiro/bugs/`](.kiro/bugs/) for issues it surfaced.
 
+### Protected reads: `DUMBO_QUOTE_CONDITIONS` ###
+
+By default the ORM builds the `WHERE` of `Find`, `Find_by_*` and `Paginate` by concatenating the values into the SQL
+(`field = 'value'`), exactly as before. Writes (`Save`, `Insert`, `Update(data)`) and `Find($id)` have always used bound parameters.
+
+Define the constant in your `config/host.php` to make **reads by value safe** (it is OFF unless you define it as `true`):
+
+```php
+define('DUMBO_QUOTE_CONDITIONS', true);
+```
+
+The application keeps calling the ORM exactly the same way — no change in `Find`, `Find_by_*` or the array conditions, and the
+application must not escape or quote anything itself. With the constant on:
+
+| Piece | Behaviour |
+|---|---|
+| Values (`[field, value]`, `Find_by_*`) | Bound as named parameters (`:__c0`, `:__c1`, … unique per query, native prepared statements). Quotes, backslashes, `%`, `_`, Unicode, empty strings and double spaces/newlines are matched literally. Numbers and numeric strings both work. |
+| `null` | `[f, null]` / `[f, '=', null]` → `f IS NULL`; `[f, '!=', null]` / `'<>'` → `f IS NOT NULL`. `null` with any other operator (`<`, `LIKE`, …) or inside `BETWEEN` throws. **Before, `null` meant `= ''`.** |
+| `IN` / `NOT IN` | One placeholder per item (`null` items are skipped; a scalar is a list of one). **Empty list: `IN` → false (`1=0`), `NOT IN` → true (`1=1`).** |
+| `BETWEEN` | `[f, 'BETWEEN', a, b]`, both bound, neither may be `null`. |
+| `LIKE` / `NOT LIKE` | The **whole pattern is bound**. `%` and `_` keep their wildcard meaning in `LIKE` (and are literal in `=`); to match them literally in a `LIKE`, escape them in the pattern (`\%`, `\_` in MySQL/PostgreSQL; SQLite has no default escape character). The ORM does not escape the pattern for you. |
+| Field names | Must be a real column of the model's table (or its `pk`/`rowid`), or `table.column` for JOINs. Anything else throws `QueryConditionException`. |
+| Operators | Whitelist: `= != <> < > <= >= LIKE NOT LIKE IN NOT IN BETWEEN` (case/space-insensitive). Anything else throws. |
+| `sort` (ORDER BY) | Each term must be a model column, `table.column`, an alias declared as `AS alias` in `fields`, or a numeric position, with optional `ASC`/`DESC`. Functions/expressions (`RAND()`, …) throw. |
+| `limit` | `n` or `offset,n` with non-negative integers (cast to int); anything else throws. |
+| `Paginate` | The same bound parameters feed the `COUNT` and the page query. |
+| `Save()` | The primary key of the `UPDATE` is always bound (even with the constant off). `validate['unique']` uses the array form. |
+
+Still the caller's responsibility (raw SQL by design): string `conditions`, `and()` / `or()`, `join`, `group`, `fields`, `Find_by_SQL`.
+A string condition that contains `?` or `:name` outside quotes must not be mixed with array conditions when the constant is on.
+
+**Before turning it on in an app:** (1) every field used in array conditions / `Find_by_*` is a real column (or `table.column`);
+(2) no code escapes values by hand before calling the ORM for those forms (double escaping would search for the escaped text);
+(3) every `sort` is a plain column list; (4) anything that relied on `null` meaning `''` or on an empty `IN` list is reviewed;
+(5) run the app's suite with the constant on, and run the framework suite on MySQL (see `tests/README.md`).
+
 ### Go Further ###
 
 For more info, please visite homepage [DumboPHP](http://www.dumbophp.com/).

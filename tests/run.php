@@ -6,10 +6,14 @@
  *   php tests/run.php TestActiveRecord ...  # run only the named suites
  *   php tests/run.php --verbose             # show per-assertion progress
  *   php tests/run.php --halt                # stop at the first failure
+ *   php tests/run.php --protected           # with DUMBO_QUOTE_CONDITIONS on (bound parameters, validated fields)
  *
  * Unlike the stock `dumboTest` binary this does not require XDebug and resolves
  * INST_PATH to tests/ via bootstrap.php, so it runs straight from the repo root.
  */
+// --protected = DUMBO_QUOTE_CONDITIONS=1 (corre TODA la suite con las protecciones de lectura activas).
+in_array('--protected', $argv, true) && putenv('DUMBO_QUOTE_CONDITIONS=1');
+
 require_once __DIR__ . '/bootstrap.php';
 
 use DumboPHP\lib\Timothy\testDispatcher;

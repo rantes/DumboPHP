@@ -950,6 +950,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     private $_paginateNextChar  = '&gt;';
     private $_paginatePrevChar  = '&lt;';
     private $_queryConditions   = [];
+    /** Valores enlazados (:__cN => valor) de las condiciones en array de la consulta en curso (solo con DUMBO_QUOTE_CONDITIONS). */
+    private $_queryBindings     = [];
     private $_queryFields       = null;
     private $_validate          = true;
     protected $_aliasFields      = [];
@@ -1240,11 +1242,14 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             $sh->closeCursor();
 
         } catch (\PDOException $e) {
+            $this->_queryConditions = [];
+            $this->_queryBindings   = [];
             throw new \Exception("Failed to run {$this->_sqlQuery} due to: {$e->getMessage()}");
         }
 
         $this->_queryFields     = "`{$this->_ObjTable}`.*";
         $this->_queryConditions = [];
+        $this->_queryBindings   = [];
         return $obj;
     }
     public function  and (string $condition): ActiveRecord {
@@ -1315,10 +1320,14 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @return void
      */
     private function _buildConditions(array $mainConditions): void {
+        if ($this->_readsProtected()) {
+            $this->_buildBoundConditions($mainConditions);
+            return;
+        }
+
         $operator   = '=';
         $_condition = '';
         $connector  = 'AND';
-        $protected  = $this->_readsProtected();
 
         foreach ($mainConditions as $conn => $condition) {
             $operator = '=';
@@ -1328,10 +1337,6 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 unset($condition[1]);
             }
             $field      = array_shift($condition);
-            if ($protected) {
-                $field    = $this->_validConditionField((string) $field);
-                $operator = $this->_validConditionOperator((string) $operator);
-            }
             $_condition = "{$field} {$operator} ";
 
             if (preg_match('@BETWEEN@i', $operator) === 1) {
@@ -1357,6 +1362,128 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
             $this->_queryConditions[] = new QueryCondition($_condition, $connector);
         }
+    }
+    /** Descarta condiciones, campos y parámetros de una consulta que no llegó a ejecutarse. */
+    private function _resetQueryState(): void {
+        $this->_queryFields     = "`{$this->_ObjTable}`.*";
+        $this->_queryConditions = [];
+        $this->_queryBindings   = [];
+    }
+    /**
+     * Registra un valor como parámetro enlazado y devuelve su placeholder. Los nombres son únicos por consulta
+     * (:__c0, :__c1, …): MySQL con prepared statements nativos no admite repetir un placeholder con nombre.
+     * Solo escalares: bool → '1'/'0', int/float → su texto, string tal cual (incluye '', comillas, \, %, _, Unicode).
+     *
+     * @throws QueryConditionException si el valor no es escalar
+     */
+    private function _bindValue($value): string {
+        if (! is_scalar($value)) {
+            throw new QueryConditionException('Invalid condition value: expected a scalar, got ' . gettype($value));
+        }
+        $placeholder                        = ':__c' . sizeof($this->_queryBindings);
+        $this->_queryBindings[$placeholder] = is_bool($value) ? (string) (int) $value : (string) $value;
+        return $placeholder;
+    }
+    /**
+     * Construye las condiciones en array con VALORES ENLAZADOS (nunca interpolados). Formas:
+     *   [campo, valor]              campo = :p     (valor null  → campo IS NULL)
+     *   [campo, op, valor]          op ∈ lista blanca; null con = → IS NULL, con != / <> → IS NOT NULL (otro operador con null: excepción)
+     *   [campo, 'IN'|'NOT IN', [..]] un placeholder por elemento; lista vacía: IN → 1=0 (falso), NOT IN → 1=1 (verdadero); los null del listado se omiten
+     *   [campo, 'BETWEEN', a, b]    BETWEEN :a AND :b (ninguno puede ser null)
+     *   [campo, 'LIKE', patrón]     el patrón COMPLETO se enlaza; % y _ siguen siendo comodines (ver README)
+     * Campo y operador se validan (_validConditionField / _validConditionOperator).
+     *
+     * @throws QueryConditionException
+     */
+    private function _buildBoundConditions(array $mainConditions): void {
+        $connector = 'AND';
+
+        foreach ($mainConditions as $conn => $condition) {
+            is_numeric($conn) or ($connector = strtoupper($conn));
+            if (! is_array($condition) || sizeof($condition) < 2) {
+                throw new QueryConditionException('Invalid condition: expected [field, value] or [field, operator, value].');
+            }
+            $condition = array_values($condition);
+            $operator  = sizeof($condition) > 2 ? $this->_validConditionOperator((string) $condition[1]) : '=';
+            $field     = $this->_validConditionField((string) $condition[0]);
+            $values    = array_slice($condition, sizeof($condition) > 2 ? 2 : 1);
+            $sql       = $this->_boundConditionSql($field, $operator, $values);
+
+            $this->_queryConditions[] = new QueryCondition($sql, $connector);
+        }
+    }
+    /** SQL (con placeholders) de UNA condición ya validada. @throws QueryConditionException */
+    private function _boundConditionSql(string $field, string $operator, array $values): string {
+        $value = $values[0] ?? null;
+
+        if ($operator === 'BETWEEN') {
+            if (sizeof($values) < 2 || $values[0] === null || $values[1] === null) {
+                throw new QueryConditionException('BETWEEN needs two non-null values.');
+            }
+            $sql = "{$field} BETWEEN {$this->_bindValue($values[0])} AND {$this->_bindValue($values[1])}";
+        } elseif ($operator === 'IN' || $operator === 'NOT IN') {
+            $items = array_values(array_filter((array) $value, fn($item) => $item !== null));
+            $sql   = $this->_inSql($field, $operator, $items);
+        } elseif ($value === null) {
+            $nullSql = ['=' => 'IS NULL', '!=' => 'IS NOT NULL', '<>' => 'IS NOT NULL'];
+            if (! isset($nullSql[$operator])) {
+                throw new QueryConditionException("NULL is not allowed with operator {$operator}.");
+            }
+            $sql = "{$field} {$nullSql[$operator]}";
+        } else {
+            $sql = "{$field} {$operator} {$this->_bindValue($value)}";
+        }
+        return $sql;
+    }
+    /** IN / NOT IN con un placeholder por elemento; lista vacía = condición constante (IN falso, NOT IN verdadero). */
+    private function _inSql(string $field, string $operator, array $items): string {
+        $placeholders = array_map(fn($item) => $this->_bindValue($item), $items);
+        $empty        = ['IN' => '1=0', 'NOT IN' => '1=1'];
+        return empty($placeholders) ? $empty[$operator] : "{$field} {$operator} (" . implode(',', $placeholders) . ')';
+    }
+    /**
+     * ORDER BY con la misma lista blanca de columnas que las condiciones: cada término debe ser una columna del
+     * modelo, `tabla.columna` (JOIN), un alias declarado con "AS alias" en `fields`, o una posición numérica,
+     * con ASC/DESC opcional. Funciones y expresiones (RAND(), FIELD(...), …) se rechazan. Se re-emite canónico.
+     *
+     * @throws QueryConditionException
+     */
+    private function _safeOrderBy(string $sort, string $fields): string {
+        preg_match_all('/\bAS\s+`?([A-Za-z_][A-Za-z0-9_]*)`?/i', $fields, $m);
+        $aliases = array_map('strtolower', $m[1]);
+        $terms   = [];
+
+        foreach (explode(',', $sort) as $term) {
+            if (preg_match('/^\s*(\d+)\s*(ASC|DESC)?\s*$/i', $term, $t) === 1) {
+                $terms[] = trim("{$t[1]} " . strtoupper($t[2] ?? ''));
+            } elseif (preg_match('/^\s*((?:`[A-Za-z_][A-Za-z0-9_]*`|[A-Za-z_][A-Za-z0-9_]*)(?:\.(?:`[A-Za-z_][A-Za-z0-9_]*`|[A-Za-z_][A-Za-z0-9_]*))?)\s*(ASC|DESC)?\s*$/i', $term, $t) === 1) {
+                $bare = str_replace('`', '', $t[1]);
+                in_array(strtolower($bare), $aliases, true) or $this->_validConditionField($bare);
+                $quoted  = implode('.', array_map(fn($p) => "`{$p}`", explode('.', $bare)));
+                $terms[] = trim("{$quoted} " . strtoupper($t[2] ?? ''));
+            } else {
+                throw new QueryConditionException('Invalid ORDER BY term: ' . substr(preg_replace('/[^\x20-\x7E]/', '?', $term), 0, 64));
+            }
+        }
+        return implode(', ', $terms);
+    }
+    /**
+     * LIMIT casteado a entero: "n" o "offset,n" con enteros no negativos; cualquier otra cosa lanza excepción.
+     *
+     * @param int|string $limit
+     * @throws QueryConditionException
+     */
+    private function _safeLimit($limit): string {
+        $parts = is_int($limit) ? [$limit] : explode(',', (string) $limit);
+        $ints  = [];
+        foreach ($parts as $part) {
+            $part = is_int($part) ? (string) $part : trim((string) $part);
+            if ($part === '' || ! ctype_digit($part) || sizeof($parts) > 2) {
+                throw new QueryConditionException('Invalid LIMIT: ' . substr(preg_replace('/[^\x20-\x7E]/', '?', (string) (is_scalar($limit) ? $limit : gettype($limit))), 0, 32));
+            }
+            $ints[] = (int) $part;
+        }
+        return implode(',', $ints);
     }
     /**
      * Sets the query conditions for select query
@@ -1400,36 +1527,44 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             }
         }
 
-        $this->_prepareSelectParams($paramsIn);
+        // Una condición/orden/límite inválido NO deja la instancia a medias: se limpia el estado y se relanza.
+        try {
+            $this->_prepareSelectParams($paramsIn);
 
-        $params = [
-            'fields'     => $this->_queryFields,
-            'conditions' => trim(implode(' ', $this->_queryConditions)),
-        ];
+            $params = [
+                'fields'     => $this->_queryFields,
+                'conditions' => trim(implode(' ', $this->_queryConditions)),
+            ];
 
-        if (isset($paramsIn[0])) {
-            $params[0] = $paramsIn[0];
+            if (isset($paramsIn[0])) {
+                $params[0] = $paramsIn[0];
+            }
+
+            if (isset($paramsIn['join'])) {
+                $params['join'] = $paramsIn['join'];
+            }
+
+            if (isset($paramsIn['sort'])) {
+                $params['sort'] = $this->_readsProtected() && is_string($paramsIn['sort'])
+                    ? $this->_safeOrderBy($paramsIn['sort'], (string) $params['fields'])
+                    : $paramsIn['sort'];
+            }
+
+            if (isset($paramsIn['group'])) {
+                $params['group'] = $paramsIn['group'];
+            }
+
+            if (isset($paramsIn['limit'])) {
+                $params['limit'] = $this->_readsProtected() ? $this->_safeLimit($paramsIn['limit']) : $paramsIn['limit'];
+            }
+
+            $prepared     = DB->driver->Select($params, $this->_ObjTable, $this->pk);
+            $x            = $this->getData($prepared['prepared'], array_merge($prepared['data'], $this->_queryBindings), $params['fields']);
+            $x->_sqlQuery = $prepared['query'];
+        } catch (QueryConditionException $e) {
+            $this->_resetQueryState();
+            throw $e;
         }
-
-        if (isset($paramsIn['join'])) {
-            $params['join'] = $paramsIn['join'];
-        }
-
-        if (isset($paramsIn['sort'])) {
-            $params['sort'] = $paramsIn['sort'];
-        }
-
-        if (isset($paramsIn['group'])) {
-            $params['group'] = $paramsIn['group'];
-        }
-
-        if (isset($paramsIn['limit'])) {
-            $params['limit'] = $paramsIn['limit'];
-        }
-
-        $prepared     = DB->driver->Select($params, $this->_ObjTable, $this->pk);
-        $x            = $this->getData($prepared['prepared'], $prepared['data'], $params['fields']);
-        $x->_sqlQuery = $prepared['query'];
 
         if (sizeof($x->after_find) > 0) {
             foreach ($x->after_find as $functiontoRun) {
@@ -2275,13 +2410,26 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             $params = $params[0];
         }
 
-        $this->_prepareSelectParams($params);
-        $params['fields']     = $this->_queryFields ?? "`{$this->_ObjTable}`.*";
-        $params['conditions'] = trim(implode(' ', $this->_queryConditions));
+        try {
+            $this->_prepareSelectParams($params);
+            $params['fields']     = $this->_queryFields ?? "`{$this->_ObjTable}`.*";
+            $params['conditions'] = trim(implode(' ', $this->_queryConditions));
 
-        $fullquery  = DB->driver->Select($params, $this->_ObjTable);
-        $queryCount = DB->driver->RowCountOnQuery($fullquery['query']);
-        $regs       = $this->Find_by_SQL($queryCount);
+            if ($this->_readsProtected() && isset($params['sort']) && is_string($params['sort'])) {
+                $params['sort'] = $this->_safeOrderBy($params['sort'], (string) $params['fields']);
+            }
+
+            // Los valores enlazados de las condiciones los usan el conteo y la página (el conteo consume y limpia los de la instancia).
+            $bindings   = $this->_queryBindings;
+            $fullquery  = DB->driver->Select($params, $this->_ObjTable);
+            $queryCount = DB->driver->RowCountOnQuery($fullquery['query']);
+            $this->_sqlQuery = $queryCount;
+            $regs       = $this->getData($queryCount, $bindings);
+            $this->_queryBindings = $bindings;
+        } catch (QueryConditionException $e) {
+            $this->_resetQueryState();
+            throw $e;
+        }
 
         $request  = parse_url($url);
         $per_page = empty($params['per_page']) ? 10 : (int) $params['per_page'];
