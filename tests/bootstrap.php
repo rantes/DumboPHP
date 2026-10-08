@@ -55,4 +55,8 @@ spl_autoload_register(function (string $class): void {
     $file && file_exists($file) && require_once $file;
 });
 
+// Protecciones de lectura por valor (campo/operador/valor). Por defecto APAGADAS, igual que un proyecto sin la constante;
+// `DUMBO_QUOTE_CONDITIONS=1 php tests/run.php` corre TODA la suite con la protección activa.
+defined('DUMBO_QUOTE_CONDITIONS') || define('DUMBO_QUOTE_CONDITIONS', (bool) getenv('DUMBO_QUOTE_CONDITIONS'));
+
 defined('DB') || define('DB', new DumboPHP\Connection());

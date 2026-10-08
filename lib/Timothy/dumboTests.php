@@ -337,7 +337,9 @@ class dumboTests extends Controller {
                 $migrationType = explode(' ', $fields[$i]['type']);
                 $migrationType = $migrationType[0];
                 $field['Type'] = preg_replace('/\(\d+\)/', '', $field['Type']);
-                $passed        = strcmp($migrationType, $field['Type']) === 0;
+                // MySQL informa INTEGER como INT; SQLite conserva el tipo declarado. Se comparan como sinónimos.
+                $synonym       = fn(string $t): string => $t === 'INTEGER' ? 'INT' : $t;
+                $passed        = strcmp($synonym(strtoupper($migrationType)), $synonym(strtoupper($field['Type']))) === 0;
                 $color         = $passed ? 'green' : 'red';
                 $text          = $passed ? 'Passed.' : 'Failed';
                 $this->_log("{$table}: Assert if `{$field['Field']}` is the same as defined at migration: {$migrationType}: " . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));

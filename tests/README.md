@@ -34,6 +34,24 @@ the captured log on failure.
 > this repo. `run.php` bootstraps `INST_PATH=tests/` and loads `bin/dumbophp.php`
 > from the working tree, so it tests the code you are actually editing.
 
+## Read protection and MySQL
+
+```bash
+php tests/run.php                  # default: DUMBO_QUOTE_CONDITIONS off (TestBoundConditions / TestReadProtection report "bandera apagada")
+php tests/run.php --protected      # whole suite with DUMBO_QUOTE_CONDITIONS on (bound parameters, validated fields)
+```
+
+SQLite does **not** treat the backslash as an escape character, so a backslash payload (`x\' OR 1=1 -- -`) is only meaningful on MySQL.
+Run both modes against a **disposable** MySQL database (the suites DROP/CREATE their tables):
+
+```bash
+mysql -u root -p -e "CREATE DATABASE dumbo_test CHARACTER SET utf8mb4"
+DUMBO_TEST_MYSQL=1 DUMBO_TEST_DB_SCHEMA=dumbo_test DUMBO_TEST_DB_USER=<user> DUMBO_TEST_DB_PASS=<pass> php tests/run.php
+DUMBO_TEST_MYSQL=1 DUMBO_TEST_DB_SCHEMA=dumbo_test DUMBO_TEST_DB_USER=<user> DUMBO_TEST_DB_PASS=<pass> php tests/run.php --protected
+```
+
+Optional: `DUMBO_TEST_DB_HOST` (127.0.0.1), `DUMBO_TEST_DB_PORT` (3306), `DUMBO_TEST_DB_SOCKET`, `DUMBO_TEST_DB_CHARSET` (utf8mb4).
+The suites have not been verified on MySQL before this change: compare any failure with `master` before attributing it to the ORM.
 ## Layout
 
 ```

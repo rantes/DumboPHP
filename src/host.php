@@ -18,5 +18,8 @@ error_reporting(E_ALL);
 set_time_limit(0);
 ini_set('max_execution_time',0);
 
+// Lecturas por valor seguras (parámetros enlazados, campos/operadores validados). Apagada por defecto; ver README ("Protected reads").
+// define('DUMBO_QUOTE_CONDITIONS', true);
+
 define('SALT', '8c4fb7bf681156b52fea93442c7dffc9'); // Always change this string.
 $GLOBALS['env'] = APP_ENV;

@@ -15,7 +15,12 @@ class TestMigrations extends dumboTests {
     }
 
     private function tableExists(string $table): bool {
-        $stmt = DB->query("SELECT name FROM sqlite_master WHERE type='table' AND name='{$table}'");
+        // Agnóstico del motor: SQLite (sqlite_master) o MySQL (information_schema, base en uso).
+        $sql = DB->engine === 'mysql'
+            ? 'SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?'
+            : "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
+        $stmt = DB->prepare($sql);
+        $stmt->execute([$table]);
         return $stmt->fetchColumn() === $table;
     }
 
