@@ -1257,6 +1257,47 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     }
 
     /**
+     * ¿Están activadas las protecciones de lectura por valor (DUMBO_QUOTE_CONDITIONS)?
+     * Por defecto NO (compatibilidad): cada proyecto la activa en su host.php tras verificar la lista de la guía.
+     */
+    private function _readsProtected(): bool {
+        return defined('DUMBO_QUOTE_CONDITIONS') && DUMBO_QUOTE_CONDITIONS;
+    }
+    /**
+     * Valida el NOMBRE de campo de una condición en array / Find_by_*: nunca se interpola un nombre que no sea
+     * un identificador SQL simple. Sin calificar ("campo") debe ser una columna real del modelo (o su pk/rowid);
+     * calificado ("tabla.campo", típico de los JOIN) ambos lados deben ser identificadores, y si la tabla es la
+     * del modelo la columna debe existir.
+     *
+     * @throws QueryConditionException
+     */
+    private function _validConditionField(string $field): string {
+        $ident   = '/^[A-Za-z_][A-Za-z0-9_]*$/';
+        $parts   = explode('.', $field);
+        $columns = array_map('strtolower', array_merge($this->getRawFields(), [$this->pk, 'rowid']));
+        $isOwn   = sizeof($parts) === 1 || strtolower($parts[0]) === strtolower($this->_ObjTable);
+        $column  = (string) end($parts);
+        $valid   = sizeof($parts) <= 2
+            && array_reduce($parts, fn($ok, $p) => $ok && preg_match($ident, $p) === 1, true)
+            && (! $isOwn || in_array(strtolower($column), $columns, true));
+        if (! $valid) {
+            throw new QueryConditionException('Invalid condition field: ' . substr(preg_replace('/[^\x20-\x7E]/', '?', $field), 0, 64));
+        }
+        return $field;
+    }
+    /**
+     * Valida el OPERADOR de una condición contra una lista blanca. Nunca se interpola otro.
+     *
+     * @throws QueryConditionException
+     */
+    private function _validConditionOperator(string $operator): string {
+        $normalized = strtoupper(preg_replace('/\s+/', ' ', trim($operator)));
+        if (! in_array($normalized, ['=', '!=', '<>', '<', '>', '<=', '>=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'BETWEEN'], true)) {
+            throw new QueryConditionException('Invalid condition operator: ' . substr(preg_replace('/[^\x20-\x7E]/', '?', $operator), 0, 32));
+        }
+        return $normalized;
+    }
+    /**
      * Helper to build conditions in SQL.
      *
      * ways to set the conditions:
@@ -1277,6 +1318,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         $operator   = '=';
         $_condition = '';
         $connector  = 'AND';
+        $protected  = $this->_readsProtected();
 
         foreach ($mainConditions as $conn => $condition) {
             $operator = '=';
@@ -1286,6 +1328,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 unset($condition[1]);
             }
             $field      = array_shift($condition);
+            if ($protected) {
+                $field    = $this->_validConditionField((string) $field);
+                $operator = $this->_validConditionOperator((string) $operator);
+            }
             $_condition = "{$field} {$operator} ";
 
             if (preg_match('@BETWEEN@i', $operator) === 1) {
@@ -1481,7 +1527,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             throw new \Exception('The param data should not be empty and must be array.');
         }
 
-        $prepared        = DB->driver->Update($params, $this->_ObjTable);
+        // Solo 'data' y 'conditions' llegan al driver ('bindings' es de uso interno de Save()).
+        $prepared        = DB->driver->Update(['data' => $params['data'], 'conditions' => $params['conditions']], $this->_ObjTable);
         $this->_sqlQuery = $prepared['query'];
         $sh              = DB->prepare($this->_sqlQuery);
         if (! $sh->execute($prepared['prepared'])) {
@@ -1553,7 +1600,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                         $obj1      = new $thisclass();
                         $resultset = $obj1->Find([
                             'fields'     => $field['field'],
-                            'conditions' => "{$field['field']}='" . $this->{$field['field']} . "' AND {$this->pk}<>'" . $this->{$this->pk} . "'",
+                            'conditions' => [[$field['field'], $this->{$field['field']}], [$this->pk, '<>', $this->{$this->pk}]],
                         ]);
                         $resultset->counter() > 0 && $this->_error->add(['field' => $field['field'], 'message' => $message]);
                     }
@@ -1640,7 +1687,12 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 $field !== $this->pk && isset($this->{$field}) && $field !== 'created_at' && ($data[$field] = $this->{$field});
             }
 
-            $prepared = DB->driver->Update(['data' => $data, 'conditions' => "{$this->_ObjTable}.{$this->pk} = '" . $this->{$this->pk} . "'"], $this->_ObjTable);
+            // El pk se ENLAZA (:__pk), como los valores de las escrituras: nunca se interpola.
+            $prepared = DB->driver->Update([
+                'data'       => $data,
+                'conditions' => "{$this->_ObjTable}.{$this->pk} = :__pk",
+                'bindings'   => [':__pk' => $this->{$this->pk}],
+            ], $this->_ObjTable);
         } else {
             foreach ($this->before_insert as $functiontoRun) {
                 $this->{$functiontoRun}();

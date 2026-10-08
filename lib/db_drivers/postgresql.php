@@ -309,6 +309,11 @@ DUMBO;
 
         $query .= ' WHERE ' . $params['conditions'];
 
+        // Valores enlazados de uso interno (p. ej. el pk de Save()): se suman a los de SET.
+        foreach ($params['bindings'] ?? [] as $placeholder => $value) {
+            $prepared[$placeholder] = $value;
+        }
+
         return ['query' => $query, 'prepared' => $prepared];
     }
 
