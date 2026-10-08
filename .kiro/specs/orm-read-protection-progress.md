@@ -124,3 +124,11 @@ Las suites nunca se han corrido contra MySQL: compara cualquier fallo con `maste
 `TestMigrations::tableExists` (`sqlite_master`, commit `bc1b71e`) y `assertHasFieldTypes` (INTEGER vs INT, commit `9a4e136`).
 Dato no capturado: versión exacta de MySQL, `sql_mode` y charset de la base usada (conviene anotarlos si se repite). **PostgreSQL sigue sin verificar.**
 Estado de la constante: sigue APAGADA por defecto en el framework (decisión de activación en cada app, ver tabla de "Valor por defecto").
+
+---
+
+## Contrato con el sondeo de las apps (2026-10-08)
+`tests/suites/TestOrmProbeContract.php` fija los miembros PRIVADOS de `ActiveRecord` que usa el sondeo de arranque de Komodo
+(`OrmProtectionGuard`): método `_buildConditions(array)`, propiedades `_queryConditions` y `_queryBindings` (arrays, por defecto `[]`) y el campo
+`rowid` siempre aceptado. Si se renombran o cambian de forma, esta prueba falla ANTES de desplegar; de lo contrario el sondeo cerraría (503) todas las
+apps tras el despliegue del framework. Procedimiento si el cambio es intencional: actualizar el contrato + el sondeo de cada app (`PROBE_VERSION`), desplegar primero las apps y avisar en el checklist.
