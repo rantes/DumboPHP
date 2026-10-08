@@ -3224,7 +3224,7 @@ class index {
 
         if (!file_exists($path . $controllerFile)) {
             $canGo = false;
-            $this->setResponseCode(HTTP_404);
+            http_response_code(HTTP_404);
             echo 'Missing Controller';
         }
         $queryparams = http_build_query($params);
