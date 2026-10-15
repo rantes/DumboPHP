@@ -3241,7 +3241,7 @@ class index {
             $this->page->params($params);
             $this->page->_setAction_($action);
             $this->page->_setController_($controller);
-            $this->page->fullUrl(INST_URI . "{$controller}/{$action}/{$queryparams}");
+            $this->page->fullUrl(INST_URI . "{$controller}/{$action}{$queryparams}");
             //loads of helpers
             if (isset($this->page->helper) and sizeof($this->page->helper) > 0) {
                 $this->page->LoadHelper($this->page->helper);
