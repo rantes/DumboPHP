@@ -2411,6 +2411,9 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         }
 
         try {
+            foreach ($this->before_find as $hook):
+                $this->{$hook}();
+            endforeach;
             $this->_prepareSelectParams($params);
             $params['fields']     = $this->_queryFields ?? "`{$this->_ObjTable}`.*";
             $params['conditions'] = trim(implode(' ', $this->_queryConditions));
