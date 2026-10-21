@@ -1157,7 +1157,8 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
      * @see \ArrayObject::getIterator()
      */
     public function getIterator(): \ArrayIterator {
-        return new \ArrayIterator($this, \ArrayIterator::STD_PROP_LIST);
+        // return new \ArrayIterator($this, \ArrayIterator::STD_PROP_LIST);
+        return parent::getIterator();
     }
     /**
      * Fetch the data with the providen query
