@@ -30,7 +30,7 @@ class mysql implements DBDriver {
         $body     = " FROM `{$table}` ";
 
         if (! empty($this->_params)) {
-            is_numeric($this->_params) && ($this->_params = (integer) $this->_params);
+            is_numeric($this->_params) && ($this->_params = (int) $this->_params);
             $type = gettype($this->_params);
 
             switch ($type) {
@@ -43,7 +43,7 @@ class mysql implements DBDriver {
                 $ids  = explode(',', $this->_params);
                 $tail = "{$tail} WHERE `{$pk}` in ( ";
                 while (null !== ($id = array_shift($ids))) {
-                    $id        = (integer) $id;
+                    $id        = (int) $id;
                     $values[]  = $id;
                     $tail     .= '?,';
                 }

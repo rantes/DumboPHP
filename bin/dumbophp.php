@@ -712,7 +712,7 @@ class Connection extends \PDO {
             parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [\PDO::ATTR_PERSISTENT => true]);
             $this->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $this->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
-            $this->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+            $this->setAttribute(\Pdo\Mysql::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
             $this->setAttribute(\PDO::ATTR_STRINGIFY_FETCHES, false);
             $this->setAttribute(\PDO::ATTR_ORACLE_NULLS, \PDO::NULL_TO_STRING);
             $this->_secrets = null;
@@ -800,7 +800,7 @@ class Connection extends \PDO {
             }
             break;
         default:
-            $count = (integer) $result[0]['counter'];
+            $count = (int) $result[0]['counter'];
             break;
         }
 
@@ -1955,7 +1955,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 return FALSE;
             }
 
-            $this->{$this->pk} = (integer) DB->lastInsertId();
+            $this->{$this->pk} = (int) DB->lastInsertId();
             if (sizeof($this->after_insert) > 0) {
                 foreach ($this->after_insert as $functiontoRun) {
                     $this->{$functiontoRun}();
@@ -2561,7 +2561,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         case 'VAR_CHAR':
         case 'VARCHAR':
         case 'FLOAT':
-        case 'VAR_STRING';
+        case 'VAR_STRING':
             $attributes['type'] = 'text';
             break;
         case 'BLOB':

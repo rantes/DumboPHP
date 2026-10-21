@@ -51,7 +51,7 @@ class Shell extends BaseShell {
                 if(isset($this->_options[$match[1]])){
                     switch($this->_options[$match[1]]['cast']) {
                         case 'numeric':
-                            $match[2] = (integer)$match[2];
+                            $match[2] = (int)$match[2];
                         break;
                         case 'boolean':
                             $match[2] = $trueFalse[strtolower($match[2])];
