@@ -712,7 +712,7 @@ class Connection extends \PDO {
             parent::__construct($dsn, $this->_settings['username'], $this->_settings['password'], [\PDO::ATTR_PERSISTENT => true]);
             $this->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $this->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
-            $this->setAttribute(\Pdo\Mysql::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+            // $this->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
             $this->setAttribute(\PDO::ATTR_STRINGIFY_FETCHES, false);
             $this->setAttribute(\PDO::ATTR_ORACLE_NULLS, \PDO::NULL_TO_STRING);
             $this->_secrets = null;
