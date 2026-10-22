@@ -38,7 +38,7 @@ class DumboShellColors {
      * @param string $background_color human readable color
      * @return string Colorformatted string
      */
-    public function getColoredString($string, $foreground_color = null, $background_color = null) {
+    public function getColoredString($string, $foreground_color = '', $background_color = 'black') {
         $colored_string = "";
 
         if (isset($this->foreground_colors[$foreground_color])) {

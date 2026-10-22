@@ -136,7 +136,7 @@ class testDispatcher {
             fwrite(STDOUT, "Flying takes practice.\n");
             fwrite(STDOUT, "RESULT: FAILED\nLOG:\n\n");
             echo file_get_contents("{$this->_logPath}{$this->_logFile}");
-            exit((integer)$this->_failed);
+            exit((int)$this->_failed);
         } else {
             fwrite(STDOUT, "RESULT: PASS.\n");
             fwrite(STDOUT, "All tests passed.\n");

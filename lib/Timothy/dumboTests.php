@@ -232,7 +232,7 @@ class dumboTests extends Controller {
     public function assertTrue($value, $message = null): void {
         $this->assertions++;
         $message        = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is true ';
-        $passed         = $value === (boolean) true;
+        $passed         = $value === (bool) true;
         $this->_passed += $passed;
         $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
@@ -247,7 +247,7 @@ class dumboTests extends Controller {
     public function assertFalse($value, $message = null): void {
         $this->assertions++;
         $message        = $message ?? 'Assert if <' . gettype($value) . '> ' . $value . ' is false ';
-        $passed         = $value === (boolean) false;
+        $passed         = $value === (bool) false;
         $this->_passed += $passed;
         $this->_log($message . ': ' . $this->_colors->getColoredString($this->_textOutputs[$passed], $this->_colorsPalete[$passed]));
         $this->_progress($passed);
@@ -565,9 +565,9 @@ class dumboTests extends Controller {
      * @return mixed Method return.
      */
     public function invokeMethod(&$object, $methodName, array $parameters = []): mixed {
-        $reflection = new \ReflectionClass(get_class($object));
+        $reflection = new \ReflectionClass($object);
         $method     = $reflection->getMethod($methodName);
-        $method->isPublic() or $method->setAccessible(true);
+        // $method->isPublic() or $method->setAccessible(true);
 
         return $method->invokeArgs($object, $parameters);
     }
