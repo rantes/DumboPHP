@@ -1888,7 +1888,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 }
             }
         } catch (\PDOException $e) {
-            $this->_error->add(['field' => $this->_ObjTable, 'message' => 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage()]);
+            $this->_error->add(['field' => $this->_ObjTable, 'message' => 'Failed to run ' . $this->_sqlQuery . ' due to: ' . $e->getMessage()]);
             return false;
         }
 
@@ -1967,7 +1967,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
                 }
             }
         } catch (\PDOException $e) {
-            $this->_error->add(['field' => $this->_ObjTable, 'message' => 'Failed to run ', $this->_sqlQuery, ' due to: ', $e->getMessage()]);
+            $this->_error->add(['field' => $this->_ObjTable, 'message' => 'Failed to run ' . $this->_sqlQuery . ' due to: ' . $e->getMessage()]);
             return false;
         }
 
