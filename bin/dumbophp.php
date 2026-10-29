@@ -3010,14 +3010,15 @@ abstract class Migrations extends Core_General_Class {
      * $this->AddColumn(['field' => 'additional', 'type'=>'INT', 'null'=>'false']);
      */
     protected function Add_Column(array $params): void {
-        $query = DB->driver->validateField($this->_table, $params['field']);
-        $res   = DB->driver->validateField($query, $params['field']);
-
-        if ($res < 1) {
-            $query = DB->driver->AddColumn($this->_table, $params);
-            $this->_runQuery($query);
-        }
-
+        $this->_columnExists($params['field']) or $this->_runQuery(DB->driver->AddColumn($this->_table, $params));
+    }
+    /**
+     * Whether the column exists in the table. The driver builds the query (it needs the schema) and the
+     * connection runs it and counts.
+     * @param string $field
+     */
+    private function _columnExists(string $field): bool {
+        return DB->validateField(DB->driver->validateField($this->_table, $field, (string) DB->driver->schema), $field) > 0;
     }
     /**
      * Add index to the table
@@ -3126,10 +3127,17 @@ abstract class Migrations extends Core_General_Class {
      * @param array $params Array with the column attributes
      */
     protected function Alter_Column(array $params) {
-        $query = DB->driver->validateField($this->_table, $params['field']);
-        if (DB->driver->validateField($query) > 0) {
-            $query = DB->driver->AlterColumn($this->_table, $params);
+        if (! $this->_columnExists($params['field'])) {
+            throw new \Exception("Can not alter column `{$params['field']}`: it does not exist in table `{$this->_table}`.", 1);
+        }
+
+        $query = DB->driver->AlterColumn($this->_table, $params);
+        try {
             $this->_runQuery($query);
+        } catch (\Throwable $e) {
+            // The sqlite driver rebuilds the table inside BEGIN..COMMIT; leave no transaction open on failure.
+            str_starts_with($query, 'BEGIN') and DB->exec('ROLLBACK');
+            throw $e;
         }
     }
     /**
@@ -3142,9 +3150,7 @@ abstract class Migrations extends Core_General_Class {
             throw new \Exception('fields param must be a string', 1);
         }
 
-        $query = DB->driver->RemoveColumn($this->_table, $field);
-
-        empty($query) || $this->_runQuery($query);
+        $this->_columnExists($field) and $this->_runQuery(DB->driver->RemoveColumn($this->_table, $field));
     }
 }
 

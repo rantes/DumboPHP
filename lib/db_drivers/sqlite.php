@@ -12,17 +12,25 @@ class sqlite implements DBDriver {
     public ?string $schema    = null;
     public string $pk         = 'rowid';
 
-    public function AddColumn(string $table, array $params): string {
-        $query = '';
+    /**
+     * Type, size, nullability and default of a column, as in CreateTable: NOT NULL only when 'null' is false or 'false'.
+     */
+    private function _columnDefinition(array $params): string {
         $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
 
-        $query  = "ALTER TABLE `" . $table . "` ADD COLUMN `" . $params['field'] . "` " . strtoupper($params['type']);
+        $query  = strtoupper($params['type']);
         $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
-        $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
-        $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
-        $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
+        $query .= (isset($params['null']) && ($params['null'] === false || $params['null'] === 'false')) ? " NOT NULL" : null;
+        $query .= (isset($params['default']) && $params['default'] !== '') ? " DEFAULT '" . $params['default'] . "'" : null;
 
         return $query;
+    }
+
+    /**
+     * SQLite limitation: ADD COLUMN ... NOT NULL requires a non-null DEFAULT, otherwise the engine refuses it.
+     */
+    public function AddColumn(string $table, array $params): string {
+        return "ALTER TABLE `" . $table . "` ADD COLUMN `" . $params['field'] . "` " . $this->_columnDefinition($params);
     }
 
     public function AddIndex(string $table, string $name, string $fields): string {
@@ -38,29 +46,48 @@ class sqlite implements DBDriver {
     }
 
     public function AddSingleIndex(string $table, string $field): string {
-        $query     = '';
-        $indexName = "idx_{$table}_{$field}";
-
-        $x = $this->ValidateIndex($table, $indexName, '');
-
-        if ($x === 0) {
-            $query = "CREATE INDEX {$indexName} ON `{$table}` ({$field})";
-        }
-
-        return $query;
+        return "CREATE INDEX IF NOT EXISTS idx_{$table}_{$field} ON `{$table}` (`{$field}`)";
     }
 
+    /**
+     * SQLite has no MODIFY COLUMN, so the table is rebuilt in one transaction: rename it, create it again with the
+     * column redefined, copy every row, drop the old copy and recreate the indexes. Needs the open connection (DB)
+     * to read the current structure.
+     *
+     * Limitations: only PRIMARY KEY (single column) and AUTOINCREMENT are carried over; UNIQUE, CHECK, FOREIGN KEY
+     * and triggers declared in the original CREATE TABLE are lost. Rows that violate a stricter definition (e.g. NULL
+     * into a new NOT NULL) make the copy fail and the transaction is rolled back.
+     */
     public function AlterColumn(string $table, array $params): string {
-        $query = '';
-        $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
+        $old     = "{$table}__alter_old";
+        $columns = DB->query("PRAGMA table_info(`{$table}`)")->fetchAll(\PDO::FETCH_ASSOC);
+        $sql     = (string) DB->query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '{$table}'")->fetchColumn();
+        $indexes = DB->query("SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = '{$table}' AND sql IS NOT NULL")->fetchAll(\PDO::FETCH_COLUMN);
+        $defs    = [];
+        $names   = [];
 
-        $query  = "ALTER TABLE `" . $table . "` MODIFY `" . $params['field'] . "` " . strtoupper($params['type']);
-        $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
-        $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
-        $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
-        $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
+        if (sizeof(array_filter(array_column($columns, 'pk'))) > 1) {
+            throw new Exception("Can not alter a column of `{$table}`: composite primary keys are not supported.", 1);
+        }
 
-        return $query;
+        foreach ($columns as $column) {
+            $names[] = "`{$column['name']}`";
+            $def     = $column['name'] === $params['field']
+                ? $this->_columnDefinition($params)
+                : trim("{$column['type']}" . ($column['notnull'] ? ' NOT NULL' : '') . (in_array($column['dflt_value'], [null, ''], true) ? '' : " DEFAULT {$column['dflt_value']}"));
+            $pk      = $column['pk'] ? ' PRIMARY KEY' . (stripos($sql, 'AUTOINCREMENT') !== false ? ' AUTOINCREMENT' : '') : '';
+            $defs[]  = "`{$column['name']}` {$def}{$pk}";
+        }
+
+        $cols       = implode(',', $names);
+        $statements = array_merge(
+            ['BEGIN', "ALTER TABLE `{$table}` RENAME TO `{$old}`", "CREATE TABLE `{$table}` (" . implode(',', $defs) . ")",
+             "INSERT INTO `{$table}` ({$cols}) SELECT {$cols} FROM `{$old}`", "DROP TABLE `{$old}`"],
+            $indexes,
+            ['COMMIT']
+        );
+
+        return implode(";\n", $statements);
     }
 
     public function CreateTable(string $table, array $fields): string {
@@ -157,12 +184,8 @@ DUMBO;
     }
 
     public function RemoveColumn(string $table, string $field): string {
-        $query = '';
-        if ($this->validateField($table, $field, '') > 0) {
-            $query = "ALTER TABLE `" . $table . "` DROP `" . $field . "`";
-        }
-
-        return $query;
+        // Limitation: SQLite refuses to drop a column that is indexed, a primary key or UNIQUE.
+        return "ALTER TABLE `{$table}` DROP COLUMN `{$field}`";
     }
 
     public function RemoveIndex(string $table, string $index): string {
