@@ -63,16 +63,56 @@ Cada campo es un array asociativo con las siguientes claves:
 ## Métodos disponibles en Migrations
 
 ```php
-$this->Create_Table();                          // Crea la tabla con $_fields
-$this->Drop_Table();                            // Elimina la tabla
-$this->Add_Column(['field'=>'x', 'type'=>'Y']); // Agrega columna
-$this->Alter_Column(['field'=>'x', 'type'=>'Y']);// Modifica columna
-$this->Remove_Column('nombre_columna');          // Elimina columna
-$this->Add_Index('nombre_idx', 'campo');         // Agrega índice nombrado
-$this->Add_Single_Index('campo');                // Agrega índice simple
-$this->Remove_Index('nombre_idx');               // Elimina índice
-$this->Add_Primary_Key('campo');                 // Agrega PK
+$this->Create_Table();                                   // Crea la tabla con $_fields (IF NOT EXISTS)
+$this->Drop_Table();                                     // Elimina la tabla (IF EXISTS)
+$this->Add_Column(['field'=>'x', 'type'=>'INTEGER']);    // Agrega columna
+$this->Alter_Column(['field'=>'x', 'type'=>'INTEGER']);  // Redefine una columna existente
+$this->Remove_Column('x');                               // Elimina columna
+$this->Add_Index(['name'=>'idx_a_b', 'fields'=>['a','b']]); // Índice nombrado (name y fields obligatorios; fields es array)
+$this->Add_Single_Index('campo');                        // Índice simple sobre un campo
+$this->Remove_Index('idx_a_b');                          // Elimina índice
 ```
+
+## Cambiar el esquema de una tabla con datos
+
+No hay migraciones con versiones ni registro de migraciones aplicadas: el versionador es git. La clase
+`Create<Tabla>` describe siempre el esquema **final** (instalaciones nuevas). Para una base que ya tiene datos, el
+cambio se escribe con las operaciones de alteración dentro de `alter()` (hoy vacío en la clase base), se ejecuta
+una vez y luego se retira.
+
+```php
+public function alter() {
+    $this->Add_Column(['field' => 'qty', 'type' => 'INTEGER', 'default' => '0']);
+}
+```
+
+`alter()` no se ejecuta con `dumbo migration up|down|reset|all`. Se ejecuta con `dumbo migration alter <tabla>`
+(llama a `alter()` solo) o con `dumbo migration run <tabla>` (`up()` y luego `alter()`).
+
+Parámetros de columna: `field` y `type` obligatorios; opcionales `limit`, `default` y `null`. `null => false` o
+`'false'` produce `NOT NULL`; cualquier otro valor, o su ausencia, deja la columna nullable.
+
+| Operación | Si ya está hecha | Si no se puede |
+|---|---|---|
+| `Add_Column` | no hace nada (la columna ya existe) | — |
+| `Remove_Column` | no hace nada (la columna no existe) | SQLite no quita columnas indexadas, PRIMARY KEY o UNIQUE |
+| `Alter_Column` | redefine siempre | columna inexistente: `Exception` «Can not alter column `x`: it does not exist in table `t`.» |
+| `Add_Index`, `Add_Single_Index`, `Remove_Index` | no hacen nada si el índice ya existe / no existe | — |
+
+Todo lo anterior está cubierto por `tests/suites/TestMigrationsAlter.php` y se comprobó **solo en SQLite**.
+El driver MySQL se corrigió por lectura y **no se ha ejecutado**; en MySQL `Alter_Column` usa `MODIFY`, que redefine
+la columna completa (hay que repetir tipo, límite, nulabilidad y valor por defecto).
+
+### Limitaciones de SQLite
+
+- `Add_Column` con `null => false` exige un `default` no nulo (lo impone el motor).
+- SQLite no tiene `MODIFY COLUMN`: `Alter_Column` reconstruye la tabla en una transacción (renombra, crea de
+  nuevo, copia las filas, borra la copia y recrea los índices). Solo conserva `PRIMARY KEY` de una columna y
+  `AUTOINCREMENT`; `UNIQUE`, `CHECK`, claves foráneas y triggers del `CREATE TABLE` original se pierden, y no
+  admite claves primarias compuestas. Si alguna fila no cabe en la nueva definición (p. ej. `NULL` en una columna
+  que pasa a `NOT NULL`) la copia falla y se revierte.
+- `Remove_All_indexes()` no funciona en SQLite (el driver devuelve `PRAGMA index_list`, que no trae `INDEX_NAME`).
+- No probado: PostgreSQL (su driver conserva los mismos patrones rotos) ni `Add_Index` compuesto en MySQL.
 
 ## Ejecutar migraciones desde CLI
 
