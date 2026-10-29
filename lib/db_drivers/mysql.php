@@ -225,7 +225,7 @@ DUMBO;
 
         $query  = "ALTER TABLE `" . $table . "` ADD COLUMN `" . $params['field'] . "` " . strtoupper($params['type']);
         $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
-        $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
+        $query .= (isset($params['null']) && ($params['null'] === false || $params['null'] === 'false')) ? " NOT NULL" : null;
         $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
         $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
 
@@ -240,11 +240,11 @@ DUMBO;
     public function AlterColumn(string $table, array $params): string {
         $query = '';
         $params['type'] == 'VARCHAR' && empty($params['limit']) && ($params['limit'] = '255');
-        $params['type'] == 'INTEGER' && empty($field['limit']) && ($params['limit'] = 11);
+        $params['type'] == 'INTEGER' && empty($params['limit']) && ($params['limit'] = 11);
 
         $query  = "ALTER TABLE `" . $table . "` MODIFY `" . $params['field'] . "` " . strtoupper($params['type']);
         $query .= (isset($params['limit']) && $params['limit'] != '') ? "(" . $params['limit'] . ")" : null;
-        $query .= (isset($params['null']) && $params['null'] != '') ? " NOT NULL" : null;
+        $query .= (isset($params['null']) && ($params['null'] === false || $params['null'] === 'false')) ? " NOT NULL" : null;
         $query .= (isset($params['default']) && $params['default'] != '') ? " DEFAULT '" . $params['default'] . "'" : null;
         $query .= (! empty($params['comments'])) ? " COMMENT '" . $params['comment'] . "'" : null;
 
@@ -257,12 +257,7 @@ DUMBO;
      * @return string The query to run
      */
     public function RemoveColumn(string $table, string $field): string {
-        $query = '';
-        if ($this->validateField($table, $field) > 0) {
-            $query = "ALTER TABLE `" . $table . "` DROP `" . $field . "`";
-        }
-
-        return $query;
+        return "ALTER TABLE `" . $table . "` DROP COLUMN `" . $field . "`";
     }
     /**
      * Sets an index with a particular name
