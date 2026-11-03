@@ -734,7 +734,7 @@ class Connection extends \PDO {
      * @return array
      */
     public function getColumnFields($query) {
-        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER', 'REAL'];
+        $numerics = ['INT', 'FLOAT', 'BIGINT', 'TINY', 'LONG', 'INTEGER', 'REAL', 'DECIMAL', 'NUMERIC'];
         $normalizedTypes = [
             'INTEGER' => 'INTEGER',
             'INT'     => 'INTEGER',
@@ -743,6 +743,8 @@ class Connection extends \PDO {
             'FLOAT'   => 'FLOAT',
             'REAL'  => 'FLOAT',
             'DOUBLE'  => 'FLOAT',
+            'DECIMAL' => 'DECIMAL',
+            'NUMERIC' => 'NUMERIC',
             'LONG'    => 'TEXT',
             'VARCHAR' => 'TEXT',
             'TEXT'    => 'TEXT',
@@ -756,7 +758,7 @@ class Connection extends \PDO {
             while (null !== ($res = array_shift($resultset1))) {
                 $rtype = $res['type'] ?? $res['Type'];
                 $rname = $res['name'] ?? $res['Field'];
-                $type  = strtoupper(preg_replace('@\(\d+\)@', '', $rtype));
+                $type  = strtoupper(preg_replace('@\(\d+(,\d+)?\)@', '', $rtype));
 
                 if (DB->engine === 'sqlite' || DB->engine === 'sqlite2' || DB->engine === 'sqlite3') {
                     $type = $normalizedTypes[$type] ?? 'TEXT';
@@ -1018,7 +1020,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             'DOUBLE',
             'LONGLONG',
             'TIMESTAMP',
-            'REAL'
+            'REAL',
+            'DECIMAL',
+            'NUMERIC',
+            'NEWDECIMAL'
         ];
         // $this->setFlags(\ArrayObject::ARRAY_AS_PROPS);
         $this->_error = new Errors;
@@ -1212,7 +1217,10 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             'DOUBLE',
             'LONGLONG',
             'TIMESTAMP',
-            'REAL'
+            'REAL',
+            'DECIMAL',
+            'NUMERIC',
+            'NEWDECIMAL'
         ];
 
         try {
@@ -1229,7 +1237,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             for ($i = 0; $i < $columncount; $i++) {
                 $colMeta = $sh->getColumnMeta($i);
                 if ($isSqlite) {
-                    $colMeta['native_type'] = strtoupper(preg_replace('/(\(\d+\))/i', '', $colMeta['sqlite:decl_type'] ?? 'TEXT'));
+                    $colMeta['native_type'] = strtoupper(preg_replace('/(\(\d+(,\d+)?\))/i', '', $colMeta['sqlite:decl_type'] ?? 'TEXT'));
                 }
                 $cols[] = [$colMeta['name'], $colMeta['native_type']];
             }
