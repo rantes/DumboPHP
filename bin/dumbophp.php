@@ -1057,15 +1057,15 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
             if (isset($this->_fields[$field]) && $this->_fields[$field]) {
                 $val = empty($value) ? 0 : $value;
             }
-            $this->{$field} = $val;
+            $this->_assignTyped($field, $val);
         }
         foreach ($colmeta as $col) {
             $value = $fields[$col[0]] ?? null;
             if (in_array(strtoupper($col[1]), $willCast)) {
                 $val = empty($value) ? 0 : $value;
-                $this->{$col[0]} = 1 * $val;
+                $this->_assignTyped($col[0], 1 * $val);
             } else {
-                $this->{$col[0]} = $value;
+                $this->_assignTyped($col[0], $value);
             }
             // KMD-FIX-ORM-ALIAS-FIELDS — columnas seleccionadas con "AS alias"
             // (ej: 'id AS value, name AS text') no coinciden con ninguna
@@ -1089,6 +1089,41 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
 
         $this->_init_();
 
+    }
+    /**
+     * Assigns a value to a field of the model. When the property is declared with a type (?int, ?float, ?string)
+     * and the value does not fit, the value is not assigned and a validation error is added to _error for that field,
+     * so Save() fails instead of the TypeError escaping. A number with decimals in an integer property is rejected, not truncated.
+     * It only covers the values that arrive through the constructor / Niu(): a direct assignment to a declared typed property
+     * ($obj->qty = 'abc') is resolved by PHP itself and still throws TypeError.
+     * @param string|int $field
+     * @param mixed $value
+     */
+    private function _assignTyped($field, $value): void {
+        if (! isset($GLOBALS['models'][$this->_name]['types'])) {
+            $types = [];
+            foreach ((new \ReflectionObject($this))->getProperties(\ReflectionProperty::IS_PUBLIC) as $property) {
+                $type = $property->getType();
+                $type instanceof \ReflectionNamedType && ($types[$property->getName()] = $type->getName());
+            }
+            $GLOBALS['models'][$this->_name]['types'] = $types;
+        }
+
+        $type     = $GLOBALS['models'][$this->_name]['types'][$field] ?? '';
+        $messages = [
+            'int'    => 'This Field must be an integer number.',
+            'float'  => 'This Field must be numeric.',
+            'string' => 'This Field must be text.',
+        ];
+        $message = $messages[$type] ?? 'This Field has an invalid value.';
+        $decimal = $type === 'int' && (is_string($value) || is_float($value)) && is_numeric($value) && ((float) $value) != floor((float) $value);
+
+        try {
+            $decimal and throw new \TypeError($message);
+            $this->{$field} = $value;
+        } catch (\TypeError $e) {
+            $this->_error->add(['field' => (string) $field, 'message' => $message]);
+        }
     }
     /**
      * Sets the name for the linked table. If the param comes empty, turns into a getter.
