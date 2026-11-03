@@ -43,15 +43,32 @@ Los valores que llegan por el constructor o por `Niu([...])` (la asignación en 
 | Valor | `?int` | `?float` | `?string` |
 |-------|--------|----------|-----------|
 | `"5"`, `5` | `5` | `5.0` | `"5"` |
-| `"5.7"` | error: `This Field must be an integer number.` | `5.7` | `"5.7"` |
+| `"5.7"` | error | `5.7` | `"5.7"` |
 | `""` | `0` | `0.0` | `""` |
 | `null` | `0` | `0.0` | `null` |
-| `"abc"` | error: `This Field must be an integer number.` | error: `This Field must be numeric.` | `"abc"` |
-| `"3,5"` | error: `This Field must be an integer number.` | error: `This Field must be numeric.` | `"3,5"` |
+| `"abc"` | error | error | `"abc"` |
+| `"3,5"` | error | error | `"3,5"` |
 | `"1e3"` | `1000` | `1000.0` | `"1e3"` |
-| arreglo | error: `This Field must be an integer number.` | error: `This Field must be numeric.` | error: `This Field must be text.` |
+| arreglo | error | error | error |
 
-(`""` y `null` valen `0` solo en campos numéricos de la tabla.) `$obj->_error->errFields()` lista los campos con error y `(string) $obj->_error` los mensajes.
+(`""` y `null` valen `0` solo en campos numéricos de la tabla.) Un `?string` solo rechaza lo que no es texto (un arreglo).
+
+**Casos de formulario en un `?int`** (comprobados): se aceptan `"5.0"`, `"5.00"`, `"100.00"` (valen `5`, `5` y `100`), `" 5"`, `"5 "`, `"+5"`, `"-5"`, `"007"`, `"1e3"` y `"1.5e2"` (`1000` y `150`); se rechazan `"0x1A"`, `"5.7"`, `".5"` y un entero que desborda 64 bits (`"9223372036854775808"`). Un número cuyo valor es entero se acepta como entero; solo se rechaza el que tiene parte decimal. En un `?float` se acepta `".5"` (`0.5`); un entero grande como `"9223372036854775807"` pierde precisión por ser float.
+
+**Errores y mensajes:** `$obj->_error->errFields()` lista los campos con error (el mensaje no nombra el campo) y `(string) $obj->_error` devuelve los mensajes. Por defecto: `int` → «Este campo debe ser un número entero.», `float` → «Este campo debe ser un número.», `string` → «Este campo debe ser texto.» (y «Este campo no es válido.» para cualquier otro tipo). Se registran en el constructor, antes de que corra `_init_()`, por eso el modelo los cambia **redeclarando la propiedad `_typeMessages` en el cuerpo de la clase** (no desde `_init_()`). Basta con declarar las claves que cambian: la que falte conserva su texto por defecto en español; «Este campo no es válido.» solo se usa para tipos que no son `int`, `float` ni `string`:
+
+```php
+class Product extends ActiveRecord {
+    public $_typeMessages = [
+        'int'    => 'Solo enteros.',
+        'float'  => 'Solo números.',
+        'string' => 'Solo texto.',
+    ];
+    public ?int $stock = null;
+}
+```
+
+`_typeMessages` no es una columna: no se guarda ni aparece en `getArray()`, en `json_encode()` ni en `getRawFields()`/`getFields()`. El resto de los mensajes del framework (`validate[...]`, etc.) sigue en inglés y se sobrescribe por campo con la clave `message`.
 
 **Límite:** la asignación directa a una propiedad tipada declarada (`$obj->stock = 'abc'`) la resuelve PHP y lanza `TypeError`; el framework no la intercepta. Valide antes de asignar, o pase los datos por `Niu([...])`.
 

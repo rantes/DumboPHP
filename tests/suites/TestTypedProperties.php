@@ -44,9 +44,47 @@ class TestTypedProperties extends dumboTests {
         $this->assertEquals(null, $o->name, 'name is not assigned');
     }
 
-    public function errorMessageIsLiteralTest(): void {
-        $o = $this->TypedThing->Niu(['qty' => 'abc', 'price' => 'x']);
-        $this->assertEquals('This Field must be an integer number.,This Field must be numeric.', (string) $o->_error);
+    public function defaultMessagesAreInSpanishTest(): void {
+        $o = $this->TypedThing->Niu(['qty' => 'abc', 'price' => 'x', 'name' => ['a']]);
+        $this->assertEquals('Este campo debe ser un número entero.,Este campo debe ser un número.,Este campo debe ser texto.', (string) $o->_error);
+    }
+
+    public function modelCanRedeclareTheMessagesTest(): void {
+        $o = $this->TypedThingMsg->Niu(['qty' => 'abc', 'price' => 'x', 'name' => ['a']]);
+        $this->assertEquals('Solo enteros.,Solo números.,Solo texto.', (string) $o->_error);
+        $this->assertEquals(['qty', 'price', 'name'], $o->_error->errFields());
+        $this->assertEquals('Este campo debe ser un número entero.', (string) $this->TypedThing->Niu(['qty' => 'abc'])->_error, 'a model that does not redeclare keeps the defaults');
+    }
+
+    public function partialRedeclarationKeepsTheOtherDefaultsTest(): void {
+        $o = $this->TypedThingPartial->Niu(['qty' => 'abc', 'price' => 'x', 'name' => ['a']]);
+        $this->assertEquals('Solo enteros.,Este campo debe ser un número.,Este campo debe ser texto.', (string) $o->_error);
+    }
+
+    public function typeMessagesAreNotDataTest(): void {
+        $o = $this->TypedThing->Niu(['qty' => '3', 'name' => 'x']);
+        $this->assertTrue($o->Save(), 'Save() works');
+        $f = $this->TypedThing->Find((int) $o->id);
+        $this->assertFalse(array_key_exists('_typeMessages', $f->getArray()[0] ?? []), 'not in getArray()');
+        $this->assertFalse(str_contains(json_encode($f), '_typeMessages'), 'not in json_encode()');
+        $this->assertFalse(in_array('_typeMessages', $f->getRawFields()), 'not in getRawFields()');
+        $this->assertFalse(in_array('_typeMessages', array_column($f->getFields(), 'Field')), 'not in getFields()');
+        $this->assertFalse(array_key_exists('_typeMessages', DB->query('SELECT * FROM typed_things')->fetch(\PDO::FETCH_ASSOC)), 'not a column of the stored row');
+    }
+
+    public function formCasesTest(): void {
+        foreach (['5.0', '5.00', ' 5', '5 ', '+5', '007', '1.5e2'] as $accepted):
+            $this->assertFalse($this->TypedThing->Niu(['qty' => $accepted])->_error->isActived(), json_encode($accepted) . ' is accepted in an integer');
+        endforeach;
+        $this->assertEquals(5, $this->TypedThing->Niu(['qty' => '5.00'])->qty, '"5.00" is the integer 5');
+        $this->assertEquals(100, $this->TypedThing->Niu(['qty' => '100.00'])->qty, '"100.00" is the integer 100');
+        $this->assertEquals(-5, $this->TypedThing->Niu(['qty' => '-5'])->qty, '"-5" is -5');
+        $this->assertEquals(150, $this->TypedThing->Niu(['qty' => '1.5e2'])->qty, '"1.5e2" is 150');
+        foreach (['0x1A', '5.7', '.5', '9223372036854775808'] as $rejected):
+            $this->assertTrue($this->TypedThing->Niu(['qty' => $rejected])->_error->isActived(), json_encode($rejected) . ' is rejected in an integer');
+        endforeach;
+        $this->assertEquals(9223372036854775807, $this->TypedThing->Niu(['qty' => '9223372036854775807'])->qty, 'the largest 64 bits integer is accepted');
+        $this->assertEquals(0.5, $this->TypedThing->Niu(['price' => '.5'])->price, '".5" is accepted in a float');
     }
 
     public function emptyStringIsZeroTest(): void {
