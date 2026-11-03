@@ -17,8 +17,8 @@ class Product extends ActiveRecord {
     // Propiedades públicas = columnas de la tabla
     public ?string $name        = null;
     public ?string $description = null;
-    public ?string $price       = null;
-    public ?string $stock       = null;
+    public ?float  $price       = null;
+    public ?int    $stock       = null;
 
     // _init_() reemplaza al constructor — NUNCA sobreescribir __construct()
     public function _init_(): void {
@@ -30,11 +30,32 @@ class Product extends ActiveRecord {
 
 ### Reglas de modelos
 
-- Las propiedades públicas representan columnas. Siempre `?string $campo = null` (el framework castea según el tipo de BD).
+- Las propiedades públicas representan columnas. El tipo de la propiedad refleja el de la columna: `?string` para texto, `?int` para enteros, IDs, timestamps y flags 0/1, `?float` para decimales (`FLOAT`, `DECIMAL`). Nunca `?bool`: usar `?int` con 0/1. Una propiedad `?string` sigue funcionando igual que siempre, pero no valida nada.
 - `_init_()` es el inicializador del modelo. Nunca usar `__construct()`.
 - `id`, `created_at` y `updated_at` son manejados automáticamente — no declararlos.
 - El nombre de la tabla se deriva automáticamente: `Product` → `products`, `UserProfile` → `user_profiles`.
 - Para PK personalizada: `public string $pk = 'mi_pk';`
+
+### Datos inválidos en propiedades tipadas
+
+Los valores que llegan por el constructor o por `Niu([...])` (la asignación en bloque desde `$_POST`) se validan contra el tipo de la propiedad. Un valor que no cabe **no se asigna**, queda registrado en `$obj->_error` bajo el nombre del campo (sin lanzar excepción) y `Save()` devuelve `false`. Los demás campos se asignan normalmente. Comportamiento comprobado en SQLite:
+
+| Valor | `?int` | `?float` | `?string` |
+|-------|--------|----------|-----------|
+| `"5"`, `5` | `5` | `5.0` | `"5"` |
+| `"5.7"` | error: `This Field must be an integer number.` | `5.7` | `"5.7"` |
+| `""` | `0` | `0.0` | `""` |
+| `null` | `0` | `0.0` | `null` |
+| `"abc"` | error: `This Field must be an integer number.` | error: `This Field must be numeric.` | `"abc"` |
+| `"3,5"` | error: `This Field must be an integer number.` | error: `This Field must be numeric.` | `"3,5"` |
+| `"1e3"` | `1000` | `1000.0` | `"1e3"` |
+| arreglo | error: `This Field must be an integer number.` | error: `This Field must be numeric.` | error: `This Field must be text.` |
+
+(`""` y `null` valen `0` solo en campos numéricos de la tabla.) `$obj->_error->errFields()` lista los campos con error y `(string) $obj->_error` los mensajes.
+
+**Límite:** la asignación directa a una propiedad tipada declarada (`$obj->stock = 'abc'`) la resuelve PHP y lanza `TypeError`; el framework no la intercepta. Valide antes de asignar, o pase los datos por `Niu([...])`.
+
+**Lectura de la base:** un `NULL` de la base se lee como `0` en columnas numéricas y como `""` en las demás (`PDO::NULL_TO_STRING`). Las columnas `INT`, `BIGINT`, `FLOAT`, `DECIMAL` y `NUMERIC` se leen como número.
 
 ## Métodos de consulta (Find)
 
