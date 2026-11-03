@@ -112,6 +112,7 @@ class TestTypedProperties extends dumboTests {
             . "set_include_path('{$repo}' . PATH_SEPARATOR . '{$repo}/bin' . PATH_SEPARATOR . '{$repo}/lib');\n"
             . "define('INST_PATH', '{$dir}/');\n"
             . "require_once 'dumbophp.php';\n"
+            . "require_once '{$repo}/lib/DumboShellColors.php';\n"
             . "require_once '{$repo}/lib/DumboGeneratorClass.php';\n"
             . "\$g = new DumboPHP\\lib\\DumboGeneratorClass();\n"
             . "\$g->model(['things', 'no-migration', 'pk:primary', 'qty:integer', 'big:biginteger', 'price:float', 'amount:decimal', 'name:string', 'body:text']);\n");
