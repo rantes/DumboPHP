@@ -56,6 +56,11 @@ class TestTypedProperties extends dumboTests {
         $this->assertEquals('Este campo debe ser un número entero.', (string) $this->TypedThing->Niu(['qty' => 'abc'])->_error, 'a model that does not redeclare keeps the defaults');
     }
 
+    public function partialRedeclarationKeepsTheOtherDefaultsTest(): void {
+        $o = $this->TypedThingPartial->Niu(['qty' => 'abc', 'price' => 'x', 'name' => ['a']]);
+        $this->assertEquals('Solo enteros.,Este campo debe ser un número.,Este campo debe ser texto.', (string) $o->_error);
+    }
+
     public function typeMessagesAreNotDataTest(): void {
         $o = $this->TypedThing->Niu(['qty' => '3', 'name' => 'x']);
         $this->assertTrue($o->Save(), 'Save() works');

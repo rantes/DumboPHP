@@ -1003,9 +1003,11 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     /**
      * Messages registered in _error when a value does not fit the type of a property (?int, ?float, ?string).
      * They are read when the error is registered, which happens in the constructor before _init_() runs, so a model
-     * overrides them by redeclaring this property in the body of its class (not from _init_()).
+     * overrides them by redeclaring this property in the body of its class (not from _init_()). A key missing in
+     * the redeclared array uses the default text of that key (TYPE_MESSAGES).
      */
-    public $_typeMessages           = [
+    public $_typeMessages           = self::TYPE_MESSAGES;
+    public const TYPE_MESSAGES      = [
         'int'    => 'Este campo debe ser un número entero.',
         'float'  => 'Este campo debe ser un número.',
         'string' => 'Este campo debe ser texto.',
@@ -1125,7 +1127,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
         }
 
         $type     = $GLOBALS['models'][$this->_name]['types'][$field] ?? '';
-        $message  = $this->_typeMessages[$type] ?? 'Este campo no es válido.';
+        $message  = $this->_typeMessages[$type] ?? self::TYPE_MESSAGES[$type] ?? 'Este campo no es válido.';
         $decimal = $type === 'int' && (is_string($value) || is_float($value)) && is_numeric($value) && ((float) $value) != floor((float) $value);
 
         try {
