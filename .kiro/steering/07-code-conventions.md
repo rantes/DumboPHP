@@ -56,7 +56,7 @@ DUMBOPHP;
 ### Declaraciones de tipo
 
 - PHP 8.1+: usar tipos en parámetros y retornos de métodos de framework y modelos.
-- En propiedades de modelos: siempre `?string $campo = null` (el framework castea internamente).
+- En propiedades de modelos: el tipo refleja el de la columna — `?string` para texto, `?int` para enteros, IDs, timestamps y flags 0/1, `?float` para decimales; nunca `?bool` (usar `?int` con 0/1). Un dato que no cabe en el tipo (`"abc"` en un `?int`) se registra en `$obj->_error` y `Save()` falla, siempre que llegue por `Niu([...])`; una asignación directa (`$obj->campo = 'abc'`) lanza `TypeError`. `dumbo generate` emite el tipo según el campo (`primary`, `integer`, `biginteger` → `?int`; `float`, `decimal` → `?float`; `string`, `text` → `?string`).
 - En controladores: `void` para acciones, tipos específicos para helpers.
 
 ```php
@@ -64,9 +64,12 @@ DUMBOPHP;
 public function indexAction(): void { ... }
 public function _formatPrice(float $price): string { ... }
 public ?string $name = null;
+public ?int $stock = null;
+public ?float $price = null;
 
-// Incorrecto — no tipar propiedades de modelo con int/float/bool
-public int $price = 0;  // el ORM trabaja con strings internamente
+// Incorrecto — sin nulabilidad, o bool
+public int $price = 0;    // sin ? no admite el null inicial del modelo
+public ?bool $active = null;  // usar ?int con 0/1
 ```
 
 ---
@@ -158,7 +161,7 @@ Las vistas son PHP puro con sintaxis corta. No integrar Twig, Blade, Smarty ni s
 // Siempre escapar output de usuario
 <?= htmlspecialchars($row->name, ENT_QUOTES, 'UTF-8'); ?>
 
-// Para campos que se sabe son numéricos (el ORM castea)
+// Para campos numéricos (la propiedad es ?int o ?float)
 <?= $row->id; ?>
 <?= $row->price; ?>
 ```

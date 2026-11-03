@@ -32,6 +32,17 @@ $GLOBALS['dbTypes'] = [
     'decimal' => ['FLOAT','','0']
 ];
 
+// PHP type of the model property for each field type (the property reflects the type of the column).
+$GLOBALS['phpTypes'] = [
+    'primary' => '?int',
+    'integer' => '?int',
+    'biginteger' => '?int',
+    'string' => '?string',
+    'text' => '?string',
+    'float' => '?float',
+    'decimal' => '?float'
+];
+
 class FieldObject {
 
     public string $name = '';
@@ -158,7 +169,7 @@ class DumboGeneratorClass {
 
         while(null !== ($field = array_shift($this->fields))):
             if (!in_array($field, $noSet)):
-                $attributes = "{$attributes}public ?string \${$field->name} = null;\n    ";
+                $attributes = "{$attributes}public {$GLOBALS['phpTypes'][$field->type]} \${$field->name} = null;\n    ";
             endif;
         endwhile;
 
