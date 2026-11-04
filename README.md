@@ -134,6 +134,30 @@ A string condition that contains `?` or `:name` outside quotes must not be mixed
 (3) every `sort` is a plain column list; (4) anything that relied on `null` meaning `''` or on an empty `IN` list is reviewed;
 (5) run the app's suite with the constant on, and run the framework suite on MySQL (see `tests/README.md`).
 
+### Uncaught errors ###
+
+The front controller (`DumboPHP\index`) catches any `Throwable` that escapes an action or its view — including `Error`s such as
+`TypeError` or `DivisionByZeroError`, which `catch (Exception $e)` does not see — and answers a generic **500**:
+
+- Body: `Ocurrió un error en el servidor.` as `text/plain`, or `{"message":"Ocurrió un error en el servidor."}` as JSON when the
+  request sends `Accept: application/json` or `X-Requested-With: XMLHttpRequest`, or the action had already called `respondToAJAX()`.
+  The original message, file and trace never reach the client.
+- Detail: class, message, file, line and trace are written with PHP's `error_log()` (the `error_log` ini setting; in CLI, STDERR).
+- Output the request had written to a buffer (a view that fails halfway, `ob_start()` in the action, `output_buffering`) is dropped; a
+  pending `redirect()` is dropped too. Output already flushed to the client (no buffering, e.g. streaming) cannot be taken back.
+- `$page->failure()` returns the `Throwable` (server side only).
+
+Actions must keep catching `ControllerException` / `Exception` themselves to answer the right HTTP code: what an action
+catches is handled by the action, exactly as before. The front controller is the safety net for what nobody caught.
+
+**CLI:** `dumbo run controller/action` prints `Error: <class>: <message>` to STDERR and exits with code `1` (the full detail is in the
+log, also on STDERR); a request that does not fail exits `0` as before.
+
+**Tests (Timothy):** `_runAction()` no longer aborts the suite with a trace when an action lets an error escape: it returns the page
+with status 500 and the test goes on. The failure stays visible: the full trace goes to the test log and to STDERR (when PHP's
+`error_log` points to a file, Timothy writes STDERR itself; otherwise the front controller's log already goes there), and
+`$page->failure()` returns the `Throwable`. A test that does not assert on the status will not fail by itself.
+
 ### Go Further ###
 
 For more info, please visite homepage [DumboPHP](http://www.dumbophp.com/).

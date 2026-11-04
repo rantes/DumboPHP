@@ -126,6 +126,15 @@ class TestUncaughtErrors extends dumboTests {
         $this->_assertNoLeak($r['output']);
     }
 
+    public function ajaxByRequestedWithHeaderReturnsJsonMessageTest(): void {
+        $this->describe('Petición con X-Requested-With: XMLHttpRequest recibe JSON con message');
+        $_SERVER['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest';
+        $r = $this->_front('fail/div');
+
+        $this->assertEquals(HTTP_500, $r['status'], 'Estado 500');
+        $this->assertEquals(['message' => self::GENERIC], json_decode($r['output'], true), 'JSON con message');
+    }
+
     public function ajaxAfterRespondToAjaxReturnsJsonMessageTest(): void {
         $this->describe('Acción que ya llamó respondToAJAX y luego falla: JSON genérico, no la respuesta a medias');
         $r = $this->_front('fail/ajax');
@@ -163,17 +172,27 @@ class TestUncaughtErrors extends dumboTests {
 
     public function timothyShowsUnexpectedFailureOnStderrTest(): void {
         $this->describe('Timothy: un fallo inesperado no se vuelve invisible (traza por STDERR) y la prueba continúa');
-        $cmd  = [PHP_BINARY, INST_PATH . 'support/run_failing_action.php', 'fail/type'];
+        // Con error_log de PHP apuntando a un archivo (php.ini), la traza igual debe llegar por STDERR.
+        $toFile = $this->_child(['-d', 'error_log=' . $this->_logTmp]);
+        $this->assertEquals(0, $toFile['exit'], 'El proceso termina bien');
+        $this->assertEquals('CONTINUED code=500 failure=TypeError', $toFile['out'], 'La prueba continúa y ve el 500');
+        $this->assertTrue(str_contains($toFile['err'], 'TypeError') && str_contains($toFile['err'], 'Stack trace'), 'La traza completa llega por STDERR');
+        $this->assertTrue(preg_match('#fail_controller\.php:\d+#', $toFile['err']) === 1, 'Con archivo y línea');
+
+        // Sin error_log configurado el log de PHP ya va a STDERR: una sola vez, sin duplicar.
+        $default = $this->_child([]);
+        $this->assertEquals(1, substr_count($default['err'], 'Stack trace'), 'La traza aparece una sola vez');
+    }
+
+    /** @return array{exit:int,out:string,err:string} */
+    private function _child(array $phpOptions): array {
+        $cmd  = array_merge([PHP_BINARY], $phpOptions, [INST_PATH . 'support/run_failing_action.php', 'fail/type']);
         $proc = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         $out  = stream_get_contents($pipes[1]);
         $err  = stream_get_contents($pipes[2]);
         fclose($pipes[1]);
         fclose($pipes[2]);
-        $exit = proc_close($proc);
 
-        $this->assertEquals(0, $exit, 'El proceso termina bien');
-        $this->assertEquals('CONTINUED code=500 failure=TypeError', $out, 'La prueba continúa y ve el 500');
-        $this->assertTrue(str_contains($err, 'TypeError') && str_contains($err, 'Stack trace'), 'La traza completa llega por STDERR');
-        $this->assertTrue(preg_match('#fail_controller\.php:\d+#', $err) === 1, 'Con archivo y línea');
+        return ['exit' => proc_close($proc), 'out' => $out, 'err' => $err];
     }
 }
