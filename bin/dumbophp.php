@@ -2762,6 +2762,7 @@ abstract class Controller extends Core_General_Class {
     private $_http_response_code       = HTTP_200;
     private string $_full_url          = '';
     private ?\Throwable $_failure      = null;
+    private bool $_failureAcknowledged = false;
     private const FAILURE_MESSAGE      = 'Ocurrió un error en el servidor.';
 
 
@@ -2830,9 +2831,17 @@ abstract class Controller extends Core_General_Class {
         $this->_outputContent = $json ? json_encode(['message' => self::FAILURE_MESSAGE], JSON_UNESCAPED_UNICODE) : self::FAILURE_MESSAGE;
     }
 
-    /** The Throwable that made the front controller answer 500, or null. */
-    public function failure(): ?\Throwable {
+    /**
+     * The Throwable that made the front controller answer 500, or null. Reading it counts as acknowledging
+     * the failure for Timothy (see failureAcknowledged()); pass false to peek without acknowledging.
+     */
+    public function failure(bool $acknowledge = true): ?\Throwable {
+        $this->_failureAcknowledged = $this->_failureAcknowledged || $acknowledge;
         return $this->_failure;
+    }
+
+    public function failureAcknowledged(): bool {
+        return $this->_failureAcknowledged;
     }
 
     public function fullUrl(string | null $url = null): string {

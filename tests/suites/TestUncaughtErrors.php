@@ -184,6 +184,54 @@ class TestUncaughtErrors extends dumboTests {
         $this->assertEquals(1, substr_count($default['err'], 'Stack trace'), 'La traza aparece una sola vez');
     }
 
+    public function unacknowledgedFailureFailsTheTestTest(): void {
+        $this->describe('Timothy: un fallo inesperado que la prueba no lee con failure() hace fallar la prueba');
+        $r = $this->_suite('unacknowledged');
+
+        $this->assertEquals(1, $r['exit'], 'El código de salida de Timothy refleja el fallo');
+        $this->assertTrue(str_contains($r['out'], 'RESULT: FAILED'), 'Resultado FAILED');
+        foreach (['TypeError', 'must be of type int', 'fail_controller.php', 'line 19'] as $needle):
+            $this->assertTrue(str_contains($r['out'], $needle), "El mensaje incluye «{$needle}»");
+        endforeach;
+        $this->assertTrue(str_contains($r['out'], 'MARKER_RAN'), 'Sin --halt las demás pruebas siguen');
+    }
+
+    public function acknowledgedFailurePassesTheTestTest(): void {
+        $this->describe('Timothy: leer failure() reconoce el fallo y la prueba pasa');
+        $r = $this->_suite('acknowledged');
+
+        $this->assertEquals(0, $r['exit'], 'Salida 0');
+        $this->assertFalse(str_contains($r['out'], 'RESULT: FAILED'), 'Sin FAILED');
+    }
+
+    public function failureCaughtByActionIsNotAffectedTest(): void {
+        $this->describe('Timothy: lo que la acción atrapa por su cuenta no cuenta como fallo');
+        $r = $this->_suite('caught');
+
+        $this->assertEquals(0, $r['exit'], 'Salida 0');
+        $this->assertFalse(str_contains($r['out'], 'RESULT: FAILED'), 'Sin FAILED');
+    }
+
+    public function haltStopsAtUnacknowledgedFailureTest(): void {
+        $this->describe('Timothy: con --halt se detiene en el fallo no reconocido');
+        $r = $this->_suite('unacknowledged', true);
+
+        $this->assertEquals(1, $r['exit'], 'Salida 1');
+        $this->assertFalse(str_contains($r['out'], 'MARKER_RAN'), 'No corre la prueba siguiente');
+    }
+
+    /** @return array{exit:int,out:string,err:string} */
+    private function _suite(string $case, bool $halt = false): array {
+        $cmd  = array_merge([PHP_BINARY, INST_PATH . 'support/run_suite.php', 'FailureAckSuite'], $halt ? ['--halt'] : []);
+        $proc = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, array_merge(getenv(), ['ACK_CASE' => $case]));
+        $out  = stream_get_contents($pipes[1]);
+        $err  = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        return ['exit' => proc_close($proc), 'out' => $out, 'err' => $err];
+    }
+
     /** @return array{exit:int,out:string,err:string} */
     private function _child(array $phpOptions): array {
         $cmd  = array_merge([PHP_BINARY], $phpOptions, [INST_PATH . 'support/run_failing_action.php', 'fail/type']);

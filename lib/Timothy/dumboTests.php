@@ -28,6 +28,8 @@ class dumboTests extends Controller {
         'filepathname' => '',
     ];
     private $_actionContent = null;
+    /** @var array<int, array{0: Controller, 1: string}> Failures from _runAction() awaiting acknowledgement */
+    private array $_pendingFailures = [];
     private $_halt = false;
     private $_verbose = false;
     /**
@@ -101,13 +103,37 @@ class dumboTests extends Controller {
      * error_log is not set the front controller's own log already went to STDERR; no duplicate then.
      */
     private function _reportFailure(Controller $page, string $url): void {
-        $failure = $page->failure();
+        $failure = $page->failure(false);
 
         if ($failure !== null) {
             $detail = "Unexpected error running {$url}: {$failure}";
             $this->_log($detail);
             ini_get('error_log') === '' or fwrite(STDERR, "\n{$detail}\n");
+            $this->_pendingFailures[] = [$page, $url];
         }
+    }
+
+    /**
+     * Called by the dispatcher when a test method ends: every failure registered by _runAction() that the
+     * test never read with $page->failure() fails the test, with the Throwable's class, message, file and line.
+     */
+    public function _settleFailures(): void {
+        while (null !== ($pending = array_shift($this->_pendingFailures))):
+            [$page, $url] = $pending;
+            if (! $page->failureAcknowledged()):
+                $e = $page->failure(false);
+                $this->assertions++;
+                $this->_triggerUnacknowledged($url, $e);
+            endif;
+        endwhile;
+    }
+
+    private function _triggerUnacknowledged(string $url, \Throwable $e): void {
+        $this->_failed++;
+        $output = 'ERROR Unexpected ' . get_class($e) . " running {$url}, not acknowledged with \$page->failure(): "
+            . "{$e->getMessage()} in {$e->getFile()} line {$e->getLine()}.";
+        $this->_log($output);
+        fwrite(STDOUT, "\n{$output}\n");
     }
 
     /**

@@ -156,7 +156,13 @@ log, also on STDERR); a request that does not fail exits `0` as before.
 **Tests (Timothy):** `_runAction()` no longer aborts the suite with a trace when an action lets an error escape: it returns the page
 with status 500 and the test goes on. The failure stays visible: the full trace goes to the test log and to STDERR (when PHP's
 `error_log` points to a file, Timothy writes STDERR itself; otherwise the front controller's log already goes there), and
-`$page->failure()` returns the `Throwable`. A test that does not assert on the status will not fail by itself.
+`$page->failure()` returns the `Throwable`.
+
+An unexpected failure **fails the test** unless the test acknowledges it: `_runAction()` registers it as pending and, when the test
+method ends, any failure nobody read with `$page->failure()` counts as a failed test (`F`, exit code `1`, and with `--halt=true` the run
+stops there). The message includes the `Throwable`'s class, message, file and line. Reading `failure()` is the acknowledgement, so a
+test that expects the 500 does `$this->assertTrue($page->failure() instanceof \TypeError)`. Errors an action catches itself are not
+affected. `$page->failure(false)` peeks without acknowledging.
 
 ### Go Further ###
 
