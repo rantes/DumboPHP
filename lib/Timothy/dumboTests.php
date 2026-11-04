@@ -91,7 +91,23 @@ class dumboTests extends Controller {
         $index->page->display();
         $buf                     = ob_get_clean();
         $index->page->_rawOutput = $buf;
+        $this->_reportFailure($index->page, $action[0]);
         return $index->page;
+    }
+
+    /**
+     * The front controller answers 500 to a Throwable nobody caught and the test goes on, so the
+     * failure must not go unnoticed: the full trace goes to the test log and to STDERR. When PHP's
+     * error_log is not set the front controller's own log already went to STDERR; no duplicate then.
+     */
+    private function _reportFailure(Controller $page, string $url): void {
+        $failure = $page->failure();
+
+        if ($failure !== null) {
+            $detail = "Unexpected error running {$url}: {$failure}";
+            $this->_log($detail);
+            ini_get('error_log') === '' or fwrite(STDERR, "\n{$detail}\n");
+        }
     }
 
     /**
