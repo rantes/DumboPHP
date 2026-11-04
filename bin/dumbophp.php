@@ -2761,6 +2761,9 @@ abstract class Controller extends Core_General_Class {
     private $_headers                  = [];
     private $_http_response_code       = HTTP_200;
     private string $_full_url          = '';
+    private ?\Throwable $_failure      = null;
+    private bool $_failureAcknowledged = false;
+    private const FAILURE_MESSAGE      = 'Ocurrió un error en el servidor.';
 
 
     public function __get($var) {
@@ -2802,6 +2805,43 @@ abstract class Controller extends Core_General_Class {
 
     public function willRedirect(): bool {
         return $this->_willRedirect;
+    }
+
+    /**
+     * Replaces whatever response was prepared with a generic 500 (called by the front controller
+     * for a Throwable nobody caught). JSON with a `message` key when the request is AJAX; plain text otherwise.
+     * Keeps the Throwable for failure(); it is never part of the response.
+     */
+    public function respondWithFailure(\Throwable $e): void {
+        $this->_failure            = $e;
+        $this->_willRedirect       = false;
+        $this->_redirectsTo        = '';
+        $this->_http_response_code = HTTP_500;
+        $this->_exposeContent      = true;
+
+        $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+        $json   = $this->_canrespondtoajax
+            || str_contains($accept, 'application/json')
+            || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+
+        $this->_headers = [
+            'Cache-Control: no-store',
+            'Content-type: ' . ($json ? 'application/json' : 'text/plain') . '; charset=utf-8',
+        ];
+        $this->_outputContent = $json ? json_encode(['message' => self::FAILURE_MESSAGE], JSON_UNESCAPED_UNICODE) : self::FAILURE_MESSAGE;
+    }
+
+    /**
+     * The Throwable that made the front controller answer 500, or null. Reading it counts as acknowledging
+     * the failure for Timothy (see failureAcknowledged()); pass false to peek without acknowledging.
+     */
+    public function failure(bool $acknowledge = true): ?\Throwable {
+        $this->_failureAcknowledged = $this->_failureAcknowledged || $acknowledge;
+        return $this->_failure;
+    }
+
+    public function failureAcknowledged(): bool {
+        return $this->_failureAcknowledged;
     }
 
     public function fullUrl(string | null $url = null): string {
@@ -3207,7 +3247,44 @@ abstract class Migrations extends Core_General_Class {
 class index {
     public Controller $page;
 
+    /**
+     * Front controller. Any Throwable that escapes the action or the view (an Error such as
+     * TypeError is not an Exception, so actions that catch Exception never see it) is logged in
+     * full and answered with a generic 500: the original message, file and trace never reach the client.
+     * What actions already catch (ControllerException, Exception) is handled by them, as before.
+     */
     public function __construct() {
+        $url    = (string) ($_GET['url'] ?? '');
+        $level  = ob_get_level();
+        $length = (int) ob_get_length();
+
+        try {
+            $this->_dispatch();
+        } catch (\Throwable $e) {
+            $this->_discardOutput($level, $length);
+            error_log('DumboPHP: error sin atrapar en ' . ($_SERVER['REQUEST_METHOD'] ?? 'CLI') . " /{$url} - {$e}");
+            isset($this->page) || ($this->page = new class extends Controller {});
+            $this->page->respondWithFailure($e);
+        }
+    }
+
+    /**
+     * Drops what the failed request wrote: buffers it opened (views) and whatever it appended to the
+     * buffer that was already active. Output already flushed to the client cannot be taken back.
+     */
+    private function _discardOutput(int $level, int $length): void {
+        while (ob_get_level() > $level) {
+            ob_end_clean();
+        }
+
+        if ($level > 0 && ob_get_length() > $length) {
+            $kept = substr((string) ob_get_contents(), 0, $length);
+            ob_clean();
+            echo $kept;
+        }
+    }
+
+    private function _dispatch(): void {
         defined('APP_CONFIGS') || define('APP_CONFIGS', new Config());
         defined('DB') || define('DB', new Connection());
 

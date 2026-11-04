@@ -97,6 +97,7 @@ class testDispatcher {
                 $objtest->_spyCalls = [];
                 $objtest->beforeEach();
                 $objtest->{$action->name}();
+                $objtest->_settleFailures();
                 $took = microtime(true) - $start;
                 $this->_failed = ($this->_failed || $objtest->_failed > 0);
                 $this->fails += $objtest->_failed;

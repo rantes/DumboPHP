@@ -17,6 +17,13 @@ class RunCommand extends BaseShell implements Interfaces\DumboCommand {
         }
 
         require_once 'app/webroot/index.php';
+
+        // app/webroot/index.php deja el front controller en $index. Si respondió 500 por un Throwable sin atrapar,
+        // el detalle completo ya está en el log (STDERR); aquí solo se muestra el mensaje y se sale con código distinto de cero.
+        $failure = isset($index) ? $index->page->failure() : null;
+        $failure === null or fwrite(STDERR, 'Error: ' . get_class($failure) . ': ' . $failure->getMessage() . PHP_EOL);
+        $failure === null or exit(1);
+
         $this->showMessage("✔ Request completed.\n");
     }
 
