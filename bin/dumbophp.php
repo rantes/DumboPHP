@@ -3178,16 +3178,19 @@ abstract class Migrations extends Core_General_Class {
     protected function Remove_All_indexes() {
         $query   = DB->driver->GetAllIndexes($this->_table, DB->driver->schema);
         $indexes = $this->_fetchQuery($query);
+        $removed = [];
 
         if (! empty($indexes)) {
             foreach ($indexes as $index) {
-                if (isset($index['INDEX_NAME']) && $index['INDEX_NAME'] !== 'PRIMARY') {
-                    $query = DB->driver->RemoveIndex($this->_table, $index['INDEX_NAME']);
+                $name = isset($index['INDEX_NAME']) ? $index['INDEX_NAME'] : '';
+
+                if ($name !== '' && $name !== 'PRIMARY' && ! in_array($name, $removed, true)) {
+                    $removed[] = $name;
+                    $query     = DB->driver->RemoveIndex($this->_table, $name);
                     empty($query) || $this->_runQuery($query);
                 }
             }
         }
-
     }
     /**
      * Set primary key in the table
