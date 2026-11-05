@@ -10,6 +10,17 @@ class DBCommand extends BaseShell implements Interfaces\DumboCommand {
     public array $params = [];
     private ?array $_migrations = [];
 
+    private function isConcreteModel(string $className): bool {
+        $result = false;
+
+        if (class_exists($className)) {
+            $reflection = new \ReflectionClass($className);
+            $result     = $reflection->isInstantiable() && $reflection->isSubclassOf('\DumboPHP\ActiveRecord');
+        }
+
+        return $result;
+    }
+
     public function execute(array $args, array $options): void {
         $this->showMessage("Generating...\n");
 
@@ -30,14 +41,20 @@ class DBCommand extends BaseShell implements Interfaces\DumboCommand {
             $modelsDir = dir($modelsPath);
             while (($file = $modelsDir->read()) != FALSE) {
                 if ($file != "." and $file != ".." and preg_match('/(.+)\.php/', $file, $matches) === 1) {
-                    $models[] = ['file' => $matches[0], 'model' => $matches[1], 'class' => Camelize($matches[1])];
+                    $class = Camelize($matches[1]);
+                    if ($this->isConcreteModel("App\\Models\\{$class}")) {
+                        $models[] = ['file' => $matches[0], 'model' => $matches[1], 'class' => $class];
+                    }
                 }
             }
         } else {
             for ($i = 1; $i < sizeof($args); $i++) {
                 $name = Singulars($args[$i]);
                 if (file_exists($modelsPath . $name . '.php')) {
-                    $models[] = ['file' => $name . '.php', 'model' => $name, 'class' => Camelize($name)];
+                    $class = Camelize($name);
+                    if ($this->isConcreteModel("App\\Models\\{$class}")) {
+                        $models[] = ['file' => $name . '.php', 'model' => $name, 'class' => $class];
+                    }
                 } else {
                     $this->showError('Model not found: ' . $args[$i]);
                 }
