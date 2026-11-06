@@ -164,6 +164,29 @@ stops there). The message includes the `Throwable`'s class, message, file and li
 test that expects the 500 does `$this->assertTrue($page->failure() instanceof \TypeError)`. Errors an action catches itself are not
 affected. `$page->failure(false)` peeks without acknowledging.
 
+### Schema cache ###
+
+Every request used to run `SHOW COLUMNS` (MySQL) or `PRAGMA table_info` (SQLite) once per table it loads. The schema only changes when a
+migration runs, so the normalized result of `Connection::getColumnFields()` (`Cast`, `Field`, `Type`, `Value`) can be read from a file instead.
+
+- **What is cached:** that normalized array, per table; never the SQL, so it does not depend on the engine. `Connection::columnFieldsFor($table)`
+  returns exactly what `getColumnFields()` returns. `$GLOBALS['models']` is still the in-request registry on top of it
+  (`DB->resetModelRegistry()` empties it, for tests).
+- **Where:** `tmp/cache/schema/` under the project (`INST_PATH`), outside the webroot. One PHP file per connection, stamp and table
+  (`<connection>-<stamp>-<table>.php`, a `return [...];` so opcache keeps it in shared memory), written atomically (temporary file in the
+  same directory and `rename`) with mode `0660`; the directory is `0770`. The connection part is a hash of engine, host and database name
+  (never credentials), so instances with different databases never mix schemas. An in-memory SQLite database has no persistent cache.
+- **Invalidation by stamp:** `tmp/cache/schema/stamp` holds a random value. It is part of every cache file name, so changing the stamp
+  leaves all previous files unused even with `opcache.validate_timestamps` off. `dumbo migration <action>` (every action except `sow`) writes
+  a new stamp at the end and deletes the cache files of older stamps; any schema statement run through `Migrations` also renews an
+  *existing* stamp, so a migration run from a script or a failed command cannot leave a stale cache.
+- **No stamp, no cache:** without the `stamp` file, or when the directory is not writable, nothing is read or written and every request queries
+  the schema as before, with no error or warning. An unreadable, empty or malformed cache file is ignored and regenerated.
+- **Permissions:** the web server and the user who runs `dumbo` must both write `tmp/cache/schema/` (share a group); otherwise there is simply
+  no cache, never a wrong one. If `dumbo` cannot replace or remove an old stamp it prints a warning: delete the stamp by hand.
+- **Clearing it by hand:** delete `tmp/cache/schema/stamp` (cache off) or the whole `tmp/cache/schema/` directory.
+- **Deployment note:** after updating the framework, run `dumbo migration run <table>` (or `all`) once on each instance: it creates the first stamp.
+
 ### Go Further ###
 
 For more info, please visite homepage [DumboPHP](http://www.dumbophp.com/).
