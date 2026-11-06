@@ -67,7 +67,14 @@ class MigrationCommand extends BaseShell implements Interfaces\DumboCommand {
                 }
             break;
         }
+        // PERF-CACHE-ESQUEMA — todo comando que toca el esquema (todos salvo sow) deja un sello nuevo: la caché del esquema anterior
+        // deja de usarse y, de ser posible, se borra. La primera ejecución crea el primer sello (desde ahí hay caché).
+        $args[0] === 'sow' or ($this->_renewSchemaStamp() or $this->showError('Warning: the schema cache could not be invalidated; delete tmp/cache/schema/stamp by hand.'));
         $this->showMessage("✔ Migrations completed.\n");
+    }
+
+    private function _renewSchemaStamp(): bool {
+        return DB->renewSchemaStamp();
     }
 
     public function help(): string {

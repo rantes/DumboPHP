@@ -2,6 +2,7 @@
 namespace tests;
 
 use DumboPHP\lib\Timothy\dumboTests;
+use DumboPHP\lib\ShellCommands\MigrationCommand;
 use DumboPHP\SchemaCache;
 use Migrations\CreateGadgets;
 
@@ -217,6 +218,44 @@ class TestSchemaCache extends dumboTests {
         ob_end_clean();
 
         $this->assertFalse(is_dir($this->_dir), 'Un cambio de esquema sin sello previo no crea sello ni caché.');
+    }
+
+    public function migrationCommandRenewsTheStampTest(): void {
+        DB->schemaCache->renew();
+        $stampBefore = DB->schemaCache->stamp();
+        DB->columnFieldsFor('gadgets');
+        $filesBefore = $this->_cacheFiles();
+        $cwd = getcwd();
+        chdir(rtrim(INST_PATH, '/'));
+
+        ob_start();
+        try {
+            (new MigrationCommand())->execute(['reset', 'gadgets'], []);
+        } finally {
+            ob_end_clean();
+            chdir($cwd);
+        }
+
+        $this->assertTrue(DB->schemaCache->stamp() !== $stampBefore, 'El comando dejó un sello nuevo.');
+        $this->assertEquals(trim((string) file_get_contents($this->_dir . '/stamp')), DB->schemaCache->stamp(), 'Y es el que quedó en el archivo.');
+        $this->assertEquals([], array_intersect($filesBefore, $this->_cacheFiles()), 'Los archivos de caché del sello anterior se borraron.');
+    }
+
+    public function migrationCommandCreatesTheFirstStampTest(): void {
+        $this->assertFalse(is_file($this->_dir . '/stamp'), 'Al principio no hay sello.');
+        $cwd = getcwd();
+        chdir(rtrim(INST_PATH, '/'));
+
+        ob_start();
+        try {
+            (new MigrationCommand())->execute(['reset', 'gadgets'], []);
+        } finally {
+            ob_end_clean();
+            chdir($cwd);
+        }
+
+        $this->assertTrue(preg_match('/^[0-9a-f]{16,64}$/', DB->schemaCache->stamp()) === 1, 'El primer reset crea el primer sello.');
+        $this->assertEquals(0, $this->_metadataQueries(fn() => DB->columnFieldsFor('gadgets') && DB->columnFieldsFor('gadgets')) - 1, 'Desde ahí hay caché: la primera lectura consulta y la segunda no.');
     }
 
     public function stampsAreUnpredictableAndFilesHaveRestrictedPermissionsTest(): void {
