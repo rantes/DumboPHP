@@ -492,17 +492,10 @@ function Camelize(string $toCamelize, string $separator = '_'): string {
  * @return string
  */
 function unCamelize(string $toUncamelize): string {
-    $newstring = '';
-    if (isset($toUncamelize) and is_string($toUncamelize)) {
-        $toUncamelize[0] = strtolower($toUncamelize[0]);
-        for ($i = 0; $i < strlen($toUncamelize); $i++) {
-            if (preg_match('`[A-Z]`', $toUncamelize[$i])) {
-                $newstring .= '_';
-            }
-            $newstring .= strtolower($toUncamelize[$i]);
-        }
-    }
-    return $newstring;
+    // The first char is lowered in place, exactly as before (an empty string still raises the same Error); then one pass puts
+    // a '_' before every A-Z and lowers the whole string.
+    $toUncamelize[0] = strtolower($toUncamelize[0]);
+    return strtolower(preg_replace('`[A-Z]`', '_$0', $toUncamelize));
 }
 /**
  * Changes accent chars to its ASCII approximate and changes any non alpha-numeric char into a dash
