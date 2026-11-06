@@ -611,6 +611,143 @@ class Secrets extends Config {
 }
 
 /**
+ * Caché del esquema entre peticiones (PERF-CACHE-ESQUEMA).
+ *
+ * Guarda, por tabla, el arreglo normalizado que devuelve Connection::getColumnFields() (Cast, Field, Type, Value) en un archivo PHP
+ * `return [...];` (así opcache lo mantiene en memoria compartida). No guarda SQL ni depende del motor.
+ *
+ * Solo existe caché mientras haya un SELLO: un archivo pequeño que escriben los comandos de migración con un valor nuevo e
+ * impredecible. El sello forma parte del nombre de cada archivo de caché, así que cambiar el sello deja sin uso todos los anteriores
+ * (aunque opcache.validate_timestamps esté apagado). Sin sello, o con el directorio sin permisos, no se lee ni se escribe nada y
+ * cada petición consulta el esquema como siempre, sin error ni aviso. Un archivo ilegible o con otra forma se ignora.
+ *
+ * La identidad de la conexión (motor, host, base de datos; nunca credenciales) entra en el nombre del archivo, de modo que dos bases
+ * que comparten directorio no mezclan esquemas. Un archivo por tabla: no hay lectura-modificación-escritura ni carreras entre
+ * peticiones, y el contenido de un nombre dado nunca cambia.
+ */
+class SchemaCache {
+    private string $_dir;
+    private string $_identity;
+    private bool $_enabled;
+    private ?string $_stamp = null;
+
+    public function __construct(string $dir, string $identity, bool $enabled = true) {
+        $this->_dir      = rtrim($dir, '/') . '/';
+        $this->_identity = substr(hash('sha256', $identity), 0, 16);
+        $this->_enabled  = $enabled;
+    }
+
+    /**
+     * Sello vigente de esta petición ('' si no hay sello legible). Se lee una vez y se recuerda en el objeto.
+     */
+    public function stamp(): string {
+        $this->_stamp ??= $this->_readStamp();
+
+        return $this->_stamp;
+    }
+
+    /**
+     * Esquema guardado de una tabla, o null si no hay caché utilizable (sin sello, sin archivo o archivo con forma inesperada).
+     */
+    public function fetch(string $table): ?array {
+        $file = $this->_file($table);
+        $data = ($file !== '' && is_file($file)) ? $this->_load($file) : null;
+
+        return $this->_validFields($data) ? $data : null;
+    }
+
+    /**
+     * Guarda el esquema de una tabla de forma atómica (archivo temporal en el mismo directorio y rename). Sin sello, deshabilitada,
+     * sin permisos o con datos que no tienen la forma esperada, no hace nada.
+     */
+    public function store(string $table, array $fields): void {
+        $file = $this->_file($table);
+        if ($file !== '' && $this->_validFields($fields) && $this->_ensureDir()) {
+            $this->_writeAtomic($file, "<?php\nreturn " . var_export($fields, true) . ";\n");
+        }
+    }
+
+    /**
+     * Escribe un sello nuevo (crea el directorio si hace falta) y borra, en lo posible, los archivos de caché de sellos anteriores.
+     * Si no puede escribir el sello nuevo, retira el anterior para que la caché vieja deje de usarse. Devuelve false solo si no pudo
+     * dejar la caché invalidada (hay un sello viejo que no se pudo sustituir ni borrar).
+     */
+    public function renew(): bool {
+        $new     = dechex((int) (microtime(true) * 1000000)) . bin2hex(random_bytes(8));
+        $written = $this->_ensureDir() && $this->_writeAtomic($this->_dir . 'stamp', $new . "\n");
+        $removed = $written || !is_file($this->_dir . 'stamp') || @unlink($this->_dir . 'stamp');
+        $this->_stamp = $written ? $new : '';
+        $written and $this->_purge($new);
+
+        return $removed;
+    }
+
+    /**
+     * Invalida solo si ya hay un sello (no crea la caché donde nadie la pidió): lo usan los cambios de esquema hechos fuera de un
+     * comando de migración. Devuelve false si había un sello y no se pudo invalidar.
+     */
+    public function invalidate(): bool {
+        return $this->_readStamp() === '' ? true : $this->renew();
+    }
+
+    private function _readStamp(): string {
+        $raw = is_file($this->_dir . 'stamp') ? @file_get_contents($this->_dir . 'stamp') : false;
+        $raw = is_string($raw) ? trim($raw) : '';
+
+        return preg_match('/^[0-9a-f]{16,64}$/', $raw) === 1 ? $raw : '';
+    }
+
+    /** Ruta del archivo de la tabla, o '' si no hay caché posible para ella. */
+    private function _file(string $table): string {
+        $stamp = $this->_enabled ? $this->stamp() : '';
+
+        return ($stamp !== '' && preg_match('/^[A-Za-z0-9_]{1,64}$/', $table) === 1) ? "{$this->_dir}{$this->_identity}-{$stamp}-{$table}.php" : '';
+    }
+
+    private function _load(string $file): mixed {
+        try {
+            $data = @include $file;
+        } catch (\Throwable $e) {
+            $data = null;
+        }
+
+        return $data;
+    }
+
+    private function _validFields(mixed $data): bool {
+        $valid = is_array($data) && $data !== [];
+        foreach ($valid ? $data : [] as $field):
+            $valid = $valid && is_array($field) && array_key_exists('Value', $field)
+                && is_bool($field['Cast'] ?? null) && is_string($field['Field'] ?? null) && is_string($field['Type'] ?? null);
+        endforeach;
+
+        return $valid;
+    }
+
+    private function _ensureDir(): bool {
+        is_dir($this->_dir) or @mkdir($this->_dir, 0770, true);
+
+        return is_dir($this->_dir) && is_writable($this->_dir);
+    }
+
+    private function _writeAtomic(string $file, string $content): bool {
+        $tmp = @tempnam($this->_dir, 'tmp');
+        $ok  = $tmp !== false && @file_put_contents($tmp, $content) === strlen($content) && @chmod($tmp, 0660) && @rename($tmp, $file);
+        $ok or ($tmp !== false && @unlink($tmp));
+        $ok && function_exists('opcache_invalidate') && @opcache_invalidate($file, true);
+
+        return $ok;
+    }
+
+    /** Borra los archivos de caché que no son del sello vigente (cualquier conexión). */
+    private function _purge(string $keep): void {
+        foreach (glob($this->_dir . '*.php') ?: [] as $file):
+            str_contains(basename($file), "-{$keep}-") or @unlink($file);
+        endforeach;
+    }
+}
+
+/**
  * Handles the database connection
  * @author rantes
  * @package Core
@@ -619,6 +756,7 @@ class Secrets extends Config {
 #[\AllowDynamicProperties]
 class Connection extends \PDO {
     public string $engine  = '';
+    public SchemaCache $schemaCache;
     public const PDO_CASTS = [
         'BLOB'        => false,
         'MEDIUM_BLOB' => false,
@@ -722,9 +860,61 @@ class Connection extends \PDO {
             $this->driver         = new $driver();
             $this->driver->schema = $this->_settings['schema'];
 
+            // PERF-CACHE-ESQUEMA — identidad sin credenciales: motor, host y base de datos. Una base SQLite en memoria vive solo en este
+            // proceso: su esquema no se comparte entre peticiones, así que no tiene caché persistente.
+            $inMemory          = str_starts_with($this->engine, 'sqlite') && $this->_settings['schema'] === 'memory';
+            $this->schemaCache = new SchemaCache(
+                INST_PATH . 'tmp/cache/schema/',
+                implode('|', [$this->engine, (string) ($this->_settings['host'] ?? ''), (string) $this->_settings['schema']]),
+                !$inMemory
+            );
+
         } catch (\Exception $e) {
             throw new \Exception('Internal Server: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * PERF-CACHE-ESQUEMA — Campos normalizados de una tabla, con la misma forma que getColumnFields(): se leen de la caché del esquema
+     * si hay sello y archivo válido; si no, se consultan al motor (como siempre) y, si hay sello, se guardan para la próxima petición.
+     */
+    public function columnFieldsFor(string $table): array {
+        $cached = $this->schemaCache->fetch($table);
+        $fields = $cached ?? $this->getColumnFields($this->driver->getColumns($table));
+        $cached === null and $this->schemaCache->store($table, $fields);
+
+        return $fields;
+    }
+
+    /**
+     * Escribe un sello nuevo: desde ahora la caché del esquema anterior no se usa. Lo llaman los comandos de migración.
+     */
+    public function renewSchemaStamp(): bool {
+        return $this->schemaCache->renew();
+    }
+
+    /**
+     * Invalida la caché del esquema solo si ya hay un sello (un cambio de esquema hecho fuera de un comando de migración).
+     */
+    public function invalidateSchemaCache(): bool {
+        return $this->schemaCache->invalidate();
+    }
+
+    /**
+     * Cambia la caché del esquema de esta conexión y devuelve la anterior (para restaurarla). Pensado para las pruebas.
+     */
+    public function swapSchemaCache(SchemaCache $cache): SchemaCache {
+        $previous          = $this->schemaCache;
+        $this->schemaCache = $cache;
+
+        return $previous;
+    }
+
+    /**
+     * Vacía el registro de modelos en memoria ($GLOBALS['models']: nombre de tabla, tipos y campos). Pensado para las pruebas.
+     */
+    public function resetModelRegistry(): void {
+        $GLOBALS['models'] = [];
     }
 
     /**
@@ -1151,7 +1341,7 @@ abstract class ActiveRecord extends Core_General_Class implements \JsonSerializa
     private function _setInitialCols(): bool {
         $this->_fields = [];
         if (empty($GLOBALS['models'][$this->_ObjTable]['fields'])) {
-            $fields = DB->getColumnFields(DB->driver->getColumns($this->_ObjTable));
+            $fields = DB->columnFieldsFor($this->_ObjTable);
             $GLOBALS['models'][$this->_ObjTable]['fields'] = $fields;
         }
 
@@ -2994,6 +3184,8 @@ abstract class Migrations extends Core_General_Class {
         if (DB->exec($query) === false) {
             fwrite(STDERR, DB->errorInfo() . PHP_EOL);
         }
+        // PERF-CACHE-ESQUEMA — toda sentencia de esquema pasa por aquí: si hay una caché del esquema con sello, deja de valer.
+        DB->invalidateSchemaCache() or fwrite(STDERR, 'Warning: could not invalidate the schema cache; delete tmp/cache/schema/stamp by hand.' . PHP_EOL);
     }
 
     private function _fetchQuery($query) {
